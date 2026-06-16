@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionStatus {
+  WAITING
+  LIVE
+  PAUSED
+  ENDED
+}
+
+enum CandidateStatus {
+  REGISTERED
+  JOINED
+  ACTIVE
+  COMPLETED
+  DISQUALIFIED
+}
+
+enum QuestionType {
+  mcq
+  psychometric
+  rating
+  image
+}
+
+model Session {
+  id        String        @id @default(cuid())
+  status    SessionStatus @default(WAITING)
+  startedAt DateTime?
+  createdAt DateTime      @default(now())
+
+  candidates Candidate[]
+  questions  Question[]
+}
+
+model Candidate {
+  id               String          @id @default(cuid())
+  rollNumber       String          @unique
+  email            String          @unique
+  passwordHash     String
+  name             String
+  country          String?
+  status           CandidateStatus @default(REGISTERED)
+  disqualifyReason String?
+  tabSwitchCount   Int             @default(0)
+  otpCode          String?
+  otpExpiresAt     DateTime?
+
+  sessionId String
+  session   Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  responses Response[]
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  type          QuestionType
+  text          String
+  imageUrl      String?
+  options       Json
+  correctOption Int?
+  timeLimitSec  Int
+  basePoints    Int
+  speedBonusMax Int          @default(0)
+  orderIndex    Int
+
+  sessionId String
+  session   Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  responses Response[]
+}
+
+model Response {
+  id             String   @id @default(cuid())
+  answer         Json
+  score          Int      @default(0)
+  responseTimeMs Int
+  createdAt      DateTime @default(now())
+
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, questionId])
+}

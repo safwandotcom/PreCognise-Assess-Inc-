@@ -1,110 +1,160 @@
+// app/candidate/exam/page.tsx
 "use client";
-
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { getToken } from "@/lib/auth-store";
-import { PublicQuestion, QuestionType } from "@/types";
+import { getSocket, disconnectSocket } from "@/lib/socket-client";
+import { SocketEvents, QuestionType, type PublicQuestion } from "@/types";
 import TimerRing from "@/components/exam/TimerRing";
 import McqCard from "@/components/exam/McqCard";
 import PsychometricCard from "@/components/exam/PsychometricCard";
 import RatingCard from "@/components/exam/RatingCard";
-
-interface NextQuestionResponse {
-  done: boolean;
-  question?: PublicQuestion;
-}
+import TabSwitchModal from "@/components/exam/TabSwitchModal";
 
 export default function ExamPage() {
   const router = useRouter();
   const [question, setQuestion] = useState<PublicQuestion | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
+  const [loading, setLoading] = useState(true);
+  const [showWarning, setShowWarning] = useState(false);
+  const startTimeRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
 
-  async function loadNextQuestion() {
-    setError(null);
-    try {
-      const res = await fetch("/api/assessment/next-question", {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+  const submitAnswer = useCallback(async (value: number | null) => {
+    if (!question) return;
+    const responseTimeMs = startTimeRef.current
+      ? Date.now() - startTimeRef.current
+      : 0;
+    await fetch("/api/assessment/submit-answer", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ questionId: question.id, value, responseTimeMs }),
+    });
+  }, [question]);
 
-      if (res.status === 401) {
-        router.replace("/candidate/login");
-        return;
-      }
-      if (!res.ok) throw new Error("Failed to load question");
+  const fetchNext = useCallback(async () => {
+    if (!mountedRef.current) return;
+    setLoading(true);
+    const res = await fetch("/api/assessment/next-question", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    const data = await res.json();
+    if (!mountedRef.current) return;
 
-      const data: NextQuestionResponse = await res.json();
-
-      if (data.done || !data.question) {
-        router.replace("/candidate/result");
-        return;
-      }
-
-      setQuestion(data.question);
-      startTimeRef.current = Date.now();
-    } catch (err) {
-      console.error(err);
-      setError("Couldn't load the next question. Retrying...");
-      setTimeout(loadNextQuestion, 2000);
+    if (data.done) {
+      disconnectSocket();
+      router.push("/candidate/result");
+      return;
     }
-  }
+    setQuestion(data.question as PublicQuestion);
+    startTimeRef.current = Date.now();
+    setLoading(false);
+  }, [router]);
 
+  const handleAnswer = useCallback(async (value: number | null) => {
+    await submitAnswer(value);
+    await fetchNext();
+  }, [submitAnswer, fetchNext]);
+
+  // Initial question load
   useEffect(() => {
-    loadNextQuestion();
-    // TODO (Phase 4): connect the socket here and listen for "disqualified" ->
-    // sessionStorage.setItem("disqualifyReason", reason); router.replace("/candidate/disqualified")
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    mountedRef.current = true;
+    fetchNext();
+    return () => { mountedRef.current = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleAnswer(value: number | null) {
-    if (!question) return;
-    const responseTimeMs = Date.now() - startTimeRef.current;
+  // Socket events
+  useEffect(() => {
+    const socket = getSocket();
+    socket.emit(SocketEvents.CANDIDATE_JOIN);
+    socket.on(SocketEvents.WARNING, () => setShowWarning(true));
+    socket.on(SocketEvents.DISQUALIFIED, ({ reason }: { reason: string }) => {
+      sessionStorage.setItem("disqualifyReason", reason);
+      disconnectSocket();
+      router.push("/candidate/disqualified");
+    });
 
-    try {
-      await fetch("/api/assessment/submit-answer", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ questionId: question.id, value, responseTimeMs }),
-      });
-    } catch (err) {
-      console.error("Submit failed, moving on anyway:", err);
-    }
+    return () => {
+      socket.off(SocketEvents.WARNING);
+      socket.off(SocketEvents.DISQUALIFIED);
+    };
+  }, [router]);
 
-    loadNextQuestion();
+  // Anti-cheat listeners
+  useEffect(() => {
+    const socket = getSocket();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") socket.emit(SocketEvents.TAB_SWITCH);
+    };
+    const onBlur = () => socket.emit(SocketEvents.TAB_SWITCH);
+    const onBeforeUnload = () => socket.emit(SocketEvents.PAGE_REFRESH);
+    const onContextMenu = (e: MouseEvent) => e.preventDefault();
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("contextmenu", onContextMenu);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("contextmenu", onContextMenu);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl animate-pulse">Loading question...</div>
+      </div>
+    );
   }
 
-  function renderCard(q: PublicQuestion) {
-    switch (q.type) {
-      case QuestionType.PSYCHOMETRIC:
-        return <PsychometricCard question={q} onAnswer={handleAnswer} />;
-      case QuestionType.RATING:
-        return <RatingCard question={q} onAnswer={handleAnswer} />;
-      default:
-        return <McqCard question={q} onAnswer={handleAnswer} />; // mcq + image
-    }
-  }
+  if (!question) return null;
 
   return (
-    <main
-      onContextMenu={(e) => e.preventDefault()}
-      className="flex min-h-screen select-none flex-col items-center justify-center gap-10 bg-gray-900 px-4 py-12"
-    >
-      {!question && !error && <p className="text-gray-400">Loading question...</p>}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+    <div className="min-h-screen bg-gray-900 text-white select-none">
+      {showWarning && <TabSwitchModal onClose={() => setShowWarning(false)} />}
 
-      {question && (
-        <>
+      <div className="max-w-3xl mx-auto px-4 py-10">
+        <div className="flex justify-between items-center mb-8">
+          <span className="text-gray-400 text-sm">
+            Question {question.orderIndex + 1}
+          </span>
           <TimerRing
-            key={question.id}
             timeLimit={question.timeLimitSec}
             onExpire={() => handleAnswer(null)}
           />
-          {renderCard(question)}
-        </>
-      )}
-    </main>
+        </div>
+
+        <h2 className="text-white text-xl font-semibold mb-6">{question.text}</h2>
+
+        {question.imageUrl && (
+          <Image
+            src={question.imageUrl}
+            alt="Question"
+            width={600}
+            height={256}
+            className="rounded-xl mb-6 object-contain max-h-64"
+          />
+        )}
+
+        {(question.type === QuestionType.MCQ || question.type === QuestionType.IMAGE) && (
+          <McqCard question={question} onAnswer={(v) => handleAnswer(v)} />
+        )}
+        {question.type === QuestionType.PSYCHOMETRIC && (
+          <PsychometricCard question={question} onAnswer={(v) => handleAnswer(v)} />
+        )}
+        {question.type === QuestionType.RATING && (
+          <RatingCard question={question} onAnswer={(v) => handleAnswer(v)} />
+        )}
+      </div>
+    </div>
   );
 }

@@ -11,14 +11,18 @@ import McqCard from "@/components/exam/McqCard";
 import PsychometricCard from "@/components/exam/PsychometricCard";
 import RatingCard from "@/components/exam/RatingCard";
 import TabSwitchModal from "@/components/exam/TabSwitchModal";
+import BroadcastToast from "@/components/exam/BroadcastToast";
 
 export default function ExamPage() {
   const router = useRouter();
   const [question, setQuestion] = useState<PublicQuestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWarning, setShowWarning] = useState(false);
+  const [broadcastMsg, setBroadcastMsg] = useState<string | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
+
+  const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
 
   const submitAnswer = useCallback(async (value: number | null) => {
     if (!question) return;
@@ -77,10 +81,14 @@ export default function ExamPage() {
       disconnectSocket();
       router.push("/candidate/disqualified");
     });
+    socket.on("broadcast", ({ message }: { message: string }) => {
+      setBroadcastMsg(message);
+    });
 
     return () => {
       socket.off(SocketEvents.WARNING);
       socket.off(SocketEvents.DISQUALIFIED);
+      socket.off("broadcast");
     };
   }, [router]);
 
@@ -121,6 +129,7 @@ export default function ExamPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white select-none">
       {showWarning && <TabSwitchModal onClose={() => setShowWarning(false)} />}
+      <BroadcastToast message={broadcastMsg} onDismiss={clearBroadcast} />
 
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex justify-between items-center mb-8">

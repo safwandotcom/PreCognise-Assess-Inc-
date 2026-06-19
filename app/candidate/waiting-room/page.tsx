@@ -1,7 +1,11 @@
+// app/candidate/waiting-room/page.tsx
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { getSocket } from "@/lib/socket-client";
+import { SocketEvents } from "@/types";
+import BroadcastToast from "@/components/exam/BroadcastToast";
 
 const COUNTDOWN_START = 60;
 
@@ -20,8 +24,11 @@ export default function WaitingRoomPage() {
   const name = useSyncExternalStore(subscribeNoop, getCandidateName, getCandidateNameServer);
   const [secondsLeft, setSecondsLeft] = useState(COUNTDOWN_START);
   const [joinedCount, setJoinedCount] = useState(12);
+  const [broadcastMsg, setBroadcastMsg] = useState<string | null>(null);
 
-  // Cosmetic only — real navigation is triggered by session:start (Phase 4).
+  const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
+
+  // Cosmetic only — real navigation is triggered by session:start below.
   useEffect(() => {
     const interval = setInterval(() => {
       setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
@@ -36,13 +43,32 @@ export default function WaitingRoomPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Was a TODO — this was never actually connected, so session:start never
+  // reached this page and the only way forward was the manual test button.
+  // Wiring it here per the original Phase 4 spec, plus listening for the
+  // admin broadcast toast added in Phase 5.
   useEffect(() => {
-    // TODO (Phase 4): connect socket, emit candidate:join, listen for
-    // "session:start" -> router.replace("/candidate/exam")
-  }, []);
+    const socket = getSocket();
+    socket.emit(SocketEvents.CANDIDATE_JOIN);
+
+    socket.on(SocketEvents.SESSION_START, () => {
+      router.replace("/candidate/exam");
+    });
+
+    socket.on("broadcast", ({ message }: { message: string }) => {
+      setBroadcastMsg(message);
+    });
+
+    return () => {
+      socket.off(SocketEvents.SESSION_START);
+      socket.off("broadcast");
+    };
+  }, [router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-gray-900 px-4 text-center">
+      <BroadcastToast message={broadcastMsg} onDismiss={clearBroadcast} />
+
       <div>
         <p className="text-sm uppercase tracking-wide text-gray-500">PreCognise Assess</p>
         <h1 className="mt-2 text-2xl font-semibold text-white">Welcome, {name}</h1>

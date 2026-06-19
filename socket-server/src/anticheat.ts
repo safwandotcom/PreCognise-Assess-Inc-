@@ -7,6 +7,11 @@ import { getCandidate, updateStatus, incrementTabSwitch } from "./state";
 // own .env file (this is separate from the Next.js .env.local).
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
+// Shared secret so /api/admin/disqualify knows this call came from us and
+// not an arbitrary POST from the internet. Same value must be set in both
+// socket-server's env and the Next.js app's .env.local / Vercel env.
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
+
 // anticheat.ts — change this one line
 export type DisqualifyReason = "TAB_SWITCH_2" | "PAGE_REFRESH" | string;
 
@@ -28,10 +33,13 @@ export async function disqualifyCandidate(
   }
 
   // Tell every open admin dashboard so the grid tile turns red live.
+  // Shape matches AdminCandidate from components/admin/CandidateGrid.tsx
+  // (id, not candidateId) so app/admin/page.tsx's merge-by-id actually matches.
   io.to("admins").emit("candidate:event", {
-    candidateId,
+    id: candidateId,
     status: "DISQUALIFIED",
-    reason,
+    disqualifyReason: reason,
+    tabSwitchCount: candidate?.tabSwitchCount,
   });
 
   // Persist to the database. Sockets are memory-only, so without this,
@@ -40,7 +48,10 @@ export async function disqualifyCandidate(
   try {
     const res = await fetch(`${FRONTEND_URL}/api/admin/disqualify`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": INTERNAL_API_SECRET || "",
+      },
       body: JSON.stringify({ candidateId, reason }),
     });
     console.log("Disqualify DB response:", res.status);

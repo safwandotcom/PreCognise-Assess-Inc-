@@ -1,5 +1,5 @@
 // socket-server/src/index.ts
-import "dotenv/config"; 
+import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -24,26 +24,34 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-  const token = socket.handshake.auth?.token as string | undefined;
+  const { token, isAdmin } = socket.handshake.auth as {
+    token?: string;
+    isAdmin?: boolean;
+  };
 
-  if (token) {
-    // Candidate connection — must present a valid JWT or we drop it.
-    try {
-      const payload = jwt.verify(token, JWT_SECRET) as {
-        candidateId: string;
-        rollNumber: string;
-      };
-
-      socket.join(payload.candidateId); // a private room named after their own id
-      registerCandidateHandlers(io, socket, payload);
-    } catch (err) {
-      console.log(`Rejected socket ${socket.id}: invalid or expired token`);
-      socket.disconnect();
-    }
-  } else {
-    // No token = the admin dashboard connecting. Clerk already gated
-    // the page itself before this socket was even opened.
+  if (isAdmin) {
     registerAdminHandlers(io, socket);
+    return;
+  }
+
+  if (!token) {
+    console.log(`Rejected socket ${socket.id}: no token and not flagged admin`);
+    socket.disconnect();
+    return;
+  }
+
+  // Candidate connection — must present a valid JWT or we drop it.
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as {
+      candidateId: string;
+      rollNumber: string;
+    };
+
+    socket.join(payload.candidateId); // a private room named after their own id
+    registerCandidateHandlers(io, socket, payload);
+  } catch (err) {
+    console.log(`Rejected socket ${socket.id}: invalid or expired token`);
+    socket.disconnect();
   }
 });
 

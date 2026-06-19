@@ -60,6 +60,14 @@ export function registerAdminHandlers(io: Server, socket: Socket) {
     disqualifyCandidate(io, candidateId, reason);
   });
 
+  // NEW — relays the admin's typed message to everyone who has joined
+  // the "candidates" room (i.e. past login, on waiting-room or exam).
+  socket.on("admin:broadcast", ({ message }: { message: string }) => {
+    if (typeof message === "string" && message.trim().length > 0) {
+      io.to("candidates").emit("broadcast", { message: message.trim() });
+    }
+  });
+
   socket.on("disconnect", () => {
     removeAdminSocket(socket.id);
   });

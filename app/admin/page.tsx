@@ -90,7 +90,7 @@ export default function AdminPage() {
             <h1 className="text-2xl font-bold">PreCognise Admin</h1>
             <p className="text-sm text-gray-500">Demo Mode</p>
           </div>
-          <UserButton afterSignOutUrl="/admin" />
+          <UserButton />
         </header>
 
         <section className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">

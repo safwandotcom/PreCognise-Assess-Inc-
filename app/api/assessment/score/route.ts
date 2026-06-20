@@ -27,10 +27,20 @@ export async function GET(req: NextRequest) {
 
   const candidate = await prisma.candidate.findUnique({
     where: { id: candidateId },
-    select: { sessionId: true },
+    select: { sessionId: true, status: true },
   });
   if (!candidate) {
     return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+  }
+
+  // Kept consistent with next-question/submit-answer. result/page.tsx is for
+  // completed candidates; disqualified candidates are routed to
+  // /candidate/disqualified instead, so this route isn't expected to serve them.
+  if (candidate.status === "DISQUALIFIED") {
+    return NextResponse.json(
+      { error: "You have been disqualified from this assessment" },
+      { status: 403 }
+    );
   }
 
   const responses = await prisma.response.findMany({

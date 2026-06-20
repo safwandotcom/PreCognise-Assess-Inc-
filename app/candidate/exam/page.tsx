@@ -48,6 +48,16 @@ export default function ExamPage() {
     const data = await res.json();
     if (!mountedRef.current) return;
 
+    // Server-side disqualification gate (added alongside the API patch) —
+    // this is the Back-button case: the socket-side redirect already fired
+    // once, but if this route is somehow hit again, don't try to render an
+    // undefined question, just send them to the disqualified screen.
+    if (res.status === 403) {
+      disconnectSocket();
+      router.push("/candidate/disqualified");
+      return;
+    }
+
     if (data.done) {
       disconnectSocket();
       router.push("/candidate/result");

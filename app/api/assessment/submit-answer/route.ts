@@ -24,6 +24,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
   }
 
+  // Same gate as next-question — without this, the Back-button re-entry
+  // path can still POST an answer and get scored even after disqualification.
+  const candidate = await prisma.candidate.findUnique({
+    where: { id: candidateId },
+    select: { status: true },
+  });
+  if (!candidate) {
+    return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+  }
+  if (candidate.status === "DISQUALIFIED") {
+    return NextResponse.json(
+      { error: "You have been disqualified from this assessment" },
+      { status: 403 }
+    );
+  }
+
   const body = (await req.json()) as Partial<AnswerPayload>;
   const { questionId, value, responseTimeMs } = body;
 

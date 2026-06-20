@@ -24,11 +24,22 @@ export async function GET(req: NextRequest) {
 
     const candidate = await prisma.candidate.findUnique({
         where: { id: candidateId },
-        select: { sessionId: true },
+        select: { sessionId: true, status: true },
     });
 
     if (!candidate) {
         return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+    }
+
+    // The JWT alone doesn't know the candidate got disqualified after it was
+    // issued — that only happened in the DB + socket layer. Without this
+    // check, pressing Back after a tab-switch disqualification just re-enters
+    // this route and the JWT still verifies fine, letting the exam continue.
+    if (candidate.status === "DISQUALIFIED") {
+        return NextResponse.json(
+            { error: "You have been disqualified from this assessment" },
+            { status: 403 }
+        );
     }
 
     // Question IDs this candidate has already submitted a Response for

@@ -66,10 +66,13 @@ export default function WaitingRoomPage() {
   }, [router]);
 
   return (
+    
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-gray-900 px-4 text-center">
       <BroadcastToast message={broadcastMsg} onDismiss={clearBroadcast} />
 
+
       <div>
+        
         <p className="text-sm uppercase tracking-wide text-gray-500">PreCognise Assess</p>
         <h1 className="mt-2 text-2xl font-semibold text-white">Welcome, {name}</h1>
         <p className="mt-1 text-gray-400">Hang tight — the session will begin shortly.</p>

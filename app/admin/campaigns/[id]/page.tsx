@@ -125,7 +125,6 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const [editSlug, setEditSlug] = useState("");
   const [editExpiry, setEditExpiry] = useState("");
   const [editMax, setEditMax] = useState("");
-  const [editDirty, setEditDirty] = useState(false);
 
   // Import state
   const [importRows, setImportRows] = useState<{ name: string; email: string; country?: string }[]>([]);
@@ -153,18 +152,15 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     }
   }, [id]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  // Dirty detection
-  useEffect(() => {
-    if (!campaign) return;
-    const dirty =
-      editName !== campaign.name ||
-      editSlug !== campaign.slug ||
-      editExpiry !== (campaign.expiresAt ? campaign.expiresAt.slice(0, 16) : "") ||
-      editMax !== (campaign.maxCandidates?.toString() ?? "");
-    setEditDirty(dirty);
-  }, [editName, editSlug, editExpiry, editMax, campaign]);
+  const editDirty = !!campaign && (
+    editName !== campaign.name ||
+    editSlug !== campaign.slug ||
+    editExpiry !== (campaign.expiresAt ? campaign.expiresAt.slice(0, 16) : "") ||
+    editMax !== (campaign.maxCandidates?.toString() ?? "")
+  );
 
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();

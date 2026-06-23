@@ -32,6 +32,7 @@ function BrandHeader({ branding }: { branding: Branding }) {
   return (
     <div className="mb-8 text-center">
       {branding.logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={branding.logoUrl}
           alt={branding.orgName}
@@ -94,9 +95,9 @@ function CredentialsCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-white">You're registered!</h2>
+          <h2 className="text-xl font-bold text-white">You&apos;re registered!</h2>
           <p className="mt-1 text-sm text-gray-400">
-            Save these credentials — you'll need them to log in to the assessment.
+            Save these credentials — you&apos;ll need them to log in to the assessment.
           </p>
         </div>
 

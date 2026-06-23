@@ -78,6 +78,7 @@ export default function SettingsPage() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   function set<K extends keyof AssessmentSettings>(key: K, value: AssessmentSettings[K]) {

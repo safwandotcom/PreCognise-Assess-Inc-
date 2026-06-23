@@ -322,6 +322,7 @@ export default function QuestionsPage() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate(data: Omit<Question, "id" | "orderIndex">) {
@@ -568,7 +569,7 @@ export default function QuestionsPage() {
         <Modal title="Delete question?" onClose={() => setDeleteTarget(null)}>
           <p className="text-sm text-[#6B6A63]">
             Are you sure you want to delete{" "}
-            <span className="font-medium text-[#1A1B23]">"{deleteTarget.text.slice(0, 60)}{deleteTarget.text.length > 60 ? "…" : ""}"</span>?
+            <span className="font-medium text-[#1A1B23]">&quot;{deleteTarget.text.slice(0, 60)}{deleteTarget.text.length > 60 ? "…" : ""}&quot;</span>?
             This cannot be undone.
           </p>
           <div className="mt-5 flex justify-end gap-3">

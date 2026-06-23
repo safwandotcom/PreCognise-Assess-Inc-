@@ -54,6 +54,7 @@ export default function CandidateLoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           {branding.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={branding.logoUrl}
               alt={branding.orgName}

@@ -129,6 +129,7 @@ export default function ExamPage() {
       .then((r) => r.json())
       .then((data: AssessmentSettings) => { settingsRef.current = { ...SETTINGS_DEFAULTS, ...data }; })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNext();
     return () => {
       mountedRef.current = false;

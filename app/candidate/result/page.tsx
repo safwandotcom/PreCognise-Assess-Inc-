@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { getToken } from "@/lib/auth-store";
 import { useBranding } from "@/lib/use-branding";
 
@@ -351,6 +350,7 @@ export default function ResultPage() {
       {/* Org header */}
       <div>
         {branding.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={branding.logoUrl} alt={branding.orgName} className="mx-auto mb-2 h-8 max-w-[160px] object-contain" />
         ) : (
           <p className="text-xs uppercase tracking-widest text-gray-500">{branding.orgName}</p>

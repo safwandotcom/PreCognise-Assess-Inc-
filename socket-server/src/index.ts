@@ -49,7 +49,7 @@ io.on("connection", (socket) => {
 
     socket.join(payload.candidateId); // a private room named after their own id
     registerCandidateHandlers(io, socket, payload);
-  } catch (err) {
+  } catch {
     console.log(`Rejected socket ${socket.id}: invalid or expired token`);
     socket.disconnect();
   }

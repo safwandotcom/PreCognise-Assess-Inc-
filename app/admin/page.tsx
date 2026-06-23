@@ -50,6 +50,7 @@ export default function AdminPage() {
   // candidate:event on disqualify, not on join/status changes (that path
   // doesn't write to the DB), so this is how JOINED/ACTIVE reach the grid.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStats();
     fetchCandidates();
     const interval = setInterval(() => {

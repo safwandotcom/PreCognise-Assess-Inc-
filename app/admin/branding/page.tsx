@@ -43,6 +43,7 @@ function LoginPreview({ form }: { form: BrandingForm }) {
       {/* Brand header */}
       <div className="mb-8 text-center">
         {form.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={form.logoUrl}
             alt={form.orgName}
@@ -182,6 +183,7 @@ export default function BrandingPage() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   function setField<K extends keyof BrandingForm>(key: K, value: BrandingForm[K]) {
@@ -326,6 +328,7 @@ export default function BrandingPage() {
 
                   {form.logoUrl && (
                     <div className="flex items-center gap-4 rounded-xl border border-[#E8E6DF] bg-[#FAFAF8] px-4 py-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={form.logoUrl}
                         alt="Logo preview"

@@ -13,7 +13,7 @@ const DEFAULT: Branding = {
   orgName: "PreCognise",
   tagline: "Candidate Assessment",
   logoUrl: null,
-  primaryColour: "#3730A3",
+  primaryColour: "#2E0BFC",
 };
 
 export function useBranding(): Branding {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
@@ -14,7 +14,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-        checked ? "bg-[#3730A3]" : "bg-gray-200"
+        checked ? "bg-[#2E0BFC]" : "bg-gray-200"
       }`}
     >
       <span
@@ -40,11 +40,11 @@ function SettingRow({
   warning?: string;
 }) {
   return (
-    <div className="py-4 border-b border-[#E8E6DF] last:border-0">
+    <div className="py-4 border-b border-[#E2E8F0] last:border-0">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-[#1A1B23]">{label}</p>
-          <p className="mt-0.5 text-xs text-[#6B6A63]">{desc}</p>
+          <p className="text-sm font-medium text-[#0F172A]">{label}</p>
+          <p className="mt-0.5 text-xs text-[#64748B]">{desc}</p>
           {!checked && warning && (
             <p className="mt-1 text-xs font-medium text-amber-600">{warning}</p>
           )}
@@ -113,15 +113,15 @@ export default function SettingsPage() {
     !form.antiCheatDevTools;
 
   return (
-    <main className="min-h-screen bg-[#FAFAF8]">
+    <main className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <div className="border-b border-[#E8E6DF] bg-white">
+      <div className="border-b border-[#E2E8F0] bg-white">
         <div className="mx-auto max-w-3xl px-6 py-5">
-          <Link href="/admin" className="text-sm text-[#6B6A63] hover:text-[#1A1B23]">← Admin dashboard</Link>
+          <Link href="/admin" className="text-sm text-[#64748B] hover:text-[#0F172A]">← Admin dashboard</Link>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#1A1B23]">Settings</h1>
-              <p className="mt-0.5 text-sm text-[#6B6A63]">Configure anti-cheat, exam behaviour, and access rules.</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Settings</h1>
+              <p className="mt-0.5 text-sm text-[#64748B]">Configure anti-cheat, exam behaviour, and access rules.</p>
             </div>
             <div className="flex items-center gap-3">
               {savedMsg && !isDirty && (
@@ -137,7 +137,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={load}
-                    className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+                    className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
                   >
                     Discard
                   </button>
@@ -145,7 +145,7 @@ export default function SettingsPage() {
                     type="submit"
                     form="settings-form"
                     disabled={saving}
-                    className="rounded-lg bg-[#3730A3] px-5 py-2 text-sm font-medium text-white hover:bg-[#2D2785] disabled:opacity-60"
+                    className="rounded-lg bg-[#2E0BFC] px-5 py-2 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-60"
                   >
                     {saving ? "Saving…" : "Save settings"}
                   </button>
@@ -158,7 +158,7 @@ export default function SettingsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#3730A3] border-t-transparent" />
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
         </div>
       ) : (
         <form id="settings-form" onSubmit={handleSave}>
@@ -175,9 +175,9 @@ export default function SettingsPage() {
             )}
 
             {/* Anti-cheat section */}
-            <section className="rounded-2xl border border-[#E8E6DF] bg-white p-6">
+            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6">
               <div className="mb-1 flex items-center gap-2">
-                <h2 className="text-base font-semibold text-[#1A1B23]">Anti-cheat rules</h2>
+                <h2 className="text-base font-semibold text-[#0F172A]">Anti-cheat rules</h2>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                   antiCheatAllOff
                     ? "bg-amber-50 text-amber-700"
@@ -186,7 +186,7 @@ export default function SettingsPage() {
                   {antiCheatAllOff ? "All off" : "Active"}
                 </span>
               </div>
-              <p className="mb-4 text-sm text-[#6B6A63]">Changes take effect immediately — no restart required.</p>
+              <p className="mb-4 text-sm text-[#64748B]">Changes take effect immediately — no restart required.</p>
 
               <SettingRow
                 label="Tab switch detection"
@@ -223,8 +223,8 @@ export default function SettingsPage() {
             </section>
 
             {/* Exam behaviour */}
-            <section className="rounded-2xl border border-[#E8E6DF] bg-white p-6">
-              <h2 className="mb-4 text-base font-semibold text-[#1A1B23]">Exam behaviour</h2>
+            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6">
+              <h2 className="mb-4 text-base font-semibold text-[#0F172A]">Exam behaviour</h2>
 
               <SettingRow
                 label="Speed bonus"
@@ -238,8 +238,8 @@ export default function SettingsPage() {
               <div className="pt-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-[#1A1B23]">Grace period after timer</p>
-                    <p className="mt-0.5 text-xs text-[#6B6A63]">
+                    <p className="text-sm font-medium text-[#0F172A]">Grace period after timer</p>
+                    <p className="mt-0.5 text-xs text-[#64748B]">
                       Extra seconds a candidate gets after the visible timer hits 0 before the answer is auto-submitted.
                       Useful to account for network latency. 0 = no grace period.
                     </p>
@@ -251,29 +251,29 @@ export default function SettingsPage() {
                       max={30}
                       value={form.gracePeriodSec}
                       onChange={(e) => set("gracePeriodSec", Math.max(0, Math.min(30, Number(e.target.value))))}
-                      className="w-16 rounded-lg border border-[#E8E6DF] bg-white px-2.5 py-1.5 text-center text-sm text-[#1A1B23] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                      className="w-16 rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-center text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
                     />
-                    <span className="text-sm text-[#6B6A63]">sec</span>
+                    <span className="text-sm text-[#64748B]">sec</span>
                   </div>
                 </div>
                 {form.gracePeriodSec > 0 && (
                   <div className="mt-3 flex items-center gap-2">
                     <div className="flex-1 overflow-hidden rounded-full bg-gray-100" style={{ height: 6 }}>
                       <div
-                        className="h-full rounded-full bg-[#3730A3] transition-all"
+                        className="h-full rounded-full bg-[#2E0BFC] transition-all"
                         style={{ width: `${(form.gracePeriodSec / 30) * 100}%` }}
                       />
                     </div>
-                    <span className="text-xs text-[#6B6A63]">{form.gracePeriodSec}s / 30s max</span>
+                    <span className="text-xs text-[#64748B]">{form.gracePeriodSec}s / 30s max</span>
                   </div>
                 )}
               </div>
             </section>
 
             {/* Geo-restriction */}
-            <section className="rounded-2xl border border-[#E8E6DF] bg-white p-6">
-              <h2 className="mb-1 text-base font-semibold text-[#1A1B23]">Geo-restriction</h2>
-              <p className="mb-4 text-sm text-[#6B6A63]">
+            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6">
+              <h2 className="mb-1 text-base font-semibold text-[#0F172A]">Geo-restriction</h2>
+              <p className="mb-4 text-sm text-[#64748B]">
                 Restrict exam access by country. Candidates whose registered country is not in this list
                 will be blocked when the exam starts. Leave blank to allow all countries.
               </p>
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                       form.geoRestriction.trim() ? "bg-amber-400" : "bg-emerald-400"
                     }`}
                   />
-                  <span className="text-sm text-[#6B6A63]">
+                  <span className="text-sm text-[#64748B]">
                     {form.geoRestriction.trim()
                       ? `Active — allowed: ${form.geoRestriction.split(",").map(c => c.trim().toUpperCase()).filter(Boolean).join(", ")}`
                       : "Off — all countries allowed"}
@@ -297,21 +297,21 @@ export default function SettingsPage() {
                   value={form.geoRestriction}
                   onChange={(e) => set("geoRestriction", e.target.value)}
                   placeholder="e.g. CA, US, GB"
-                  className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 font-mono text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 font-mono text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
                 />
-                <p className="text-xs text-[#6B6A63]">
+                <p className="text-xs text-[#64748B]">
                   Comma-separated ISO 3166-1 alpha-2 codes. Candidates with no country recorded are always blocked when restriction is active.
                 </p>
               </div>
             </section>
 
             {/* Save (bottom) */}
-            <div className="flex justify-end gap-3 border-t border-[#E8E6DF] pt-4">
+            <div className="flex justify-end gap-3 border-t border-[#E2E8F0] pt-4">
               {isDirty && (
                 <button
                   type="button"
                   onClick={load}
-                  className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+                  className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
                 >
                   Discard changes
                 </button>
@@ -319,7 +319,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving || !isDirty}
-                className="rounded-lg bg-[#3730A3] px-6 py-2 text-sm font-medium text-white hover:bg-[#2D2785] disabled:opacity-50"
+                className="rounded-lg bg-[#2E0BFC] px-6 py-2 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Save settings"}
               </button>

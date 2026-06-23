@@ -1,25 +1,24 @@
-// components/admin/KpiCard.tsx
 interface KpiCardProps {
   label: string;
   value: number;
   color: "blue" | "green" | "red" | "gray" | "gold";
 }
 
-const COLOR_MAP: Record<KpiCardProps["color"], string> = {
-  blue: "border-blue-500 text-blue-400",
-  green: "border-green-500 text-green-400",
-  red: "border-red-500 text-red-400",
-  gray: "border-gray-500 text-gray-400",
-  gold: "border-yellow-500 text-yellow-400",
+const COLOR_MAP: Record<KpiCardProps["color"], { bar: string; value: string }> = {
+  blue:  { bar: "bg-blue-500",    value: "text-blue-600" },
+  green: { bar: "bg-emerald-500", value: "text-emerald-600" },
+  red:   { bar: "bg-red-500",     value: "text-red-600" },
+  gray:  { bar: "bg-slate-400",   value: "text-slate-600" },
+  gold:  { bar: "bg-amber-500",   value: "text-amber-600" },
 };
 
 export default function KpiCard({ label, value, color }: KpiCardProps) {
+  const { bar, value: valueCls } = COLOR_MAP[color];
   return (
-    <div
-      className={`rounded-lg border bg-gray-800/60 p-4 ${COLOR_MAP[color]} border-opacity-50`}
-    >
-      <p className="text-sm text-gray-400">{label}</p>
-      <p className={`mt-1 text-3xl font-bold ${COLOR_MAP[color].split(" ")[1]}`}>
+    <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+      <div className={`mb-3 h-1 w-8 rounded-full ${bar}`} />
+      <p className="text-xs font-medium text-[#64748B] uppercase tracking-wide">{label}</p>
+      <p className={`mt-1 text-3xl font-bold ${valueCls}`}>
         {value}
       </p>
     </div>

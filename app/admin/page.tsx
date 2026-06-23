@@ -18,6 +18,13 @@ interface Stats {
   total: number;
 }
 
+const NAV_LINKS = [
+  { href: "/admin/questions", label: "Question Builder" },
+  { href: "/admin/branding",  label: "Branding" },
+  { href: "/admin/campaigns", label: "Campaigns" },
+  { href: "/admin/settings",  label: "Settings" },
+];
+
 export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [candidates, setCandidates] = useState<AdminCandidate[]>([]);
@@ -45,10 +52,6 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Initial load + polling every 3s. Stats only needs counts, but the
-  // candidate list also needs to be polled — handlers.ts only emits
-  // candidate:event on disqualify, not on join/status changes (that path
-  // doesn't write to the DB), so this is how JOINED/ACTIVE reach the grid.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStats();
@@ -60,9 +63,6 @@ export default function AdminPage() {
     return () => clearInterval(interval);
   }, [fetchStats, fetchCandidates]);
 
-  // Live socket updates — candidate:event carries the single changed
-  // candidate's new state, stats:update just means "go refetch stats now"
-  // rather than carrying the payload itself (see handlers.ts).
   useEffect(() => {
     const socket = getAdminSocket();
     socket.emit("admin:join");
@@ -85,67 +85,76 @@ export default function AdminPage() {
   }, [fetchStats]);
 
   return (
-    <main className="min-h-screen bg-gray-900 p-6 text-gray-100">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Gradient header */}
+      <header
+        className="px-6 py-5"
+        style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">PreCognise Admin</h1>
-            <p className="text-sm text-gray-500">Demo Mode</p>
+            <p className="text-xs font-medium uppercase tracking-widest text-indigo-200">
+              PreCognise Assess
+            </p>
+            <h1 className="mt-0.5 text-2xl font-bold text-white">
+              Admin Dashboard
+            </h1>
           </div>
-          <UserButton />
-        </header>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/admin/session"
+              className="rounded-lg border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur hover:bg-white/20"
+            >
+              Session Control
+            </Link>
+            <UserButton />
+          </div>
+        </div>
+      </header>
 
-        <section className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
-          <KpiCard label="Registered" value={stats?.registered ?? 0} color="gray" />
-          <KpiCard label="Joined" value={stats?.joined ?? 0} color="gold" />
-          <KpiCard label="Active" value={stats?.active ?? 0} color="green" />
-          <KpiCard label="Completed" value={stats?.completed ?? 0} color="blue" />
-          <KpiCard label="Disqualified" value={stats?.disqualified ?? 0} color="red" />
+      <main className="mx-auto max-w-7xl px-6 py-8">
+        {/* KPI row */}
+        <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
+          <KpiCard label="Registered"   value={stats?.registered   ?? 0} color="gray" />
+          <KpiCard label="Joined"        value={stats?.joined        ?? 0} color="gold" />
+          <KpiCard label="Active"        value={stats?.active        ?? 0} color="green" />
+          <KpiCard label="Completed"     value={stats?.completed     ?? 0} color="blue" />
+          <KpiCard label="Disqualified"  value={stats?.disqualified  ?? 0} color="red" />
         </section>
 
         {/* Quick nav */}
-        <section className="mb-6 flex flex-wrap gap-3">
-          <Link
-            href="/admin/questions"
-            className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-indigo-500 hover:text-indigo-400"
-          >
-            Question Builder →
-          </Link>
-          <Link
-            href="/admin/branding"
-            className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-indigo-500 hover:text-indigo-400"
-          >
-            Branding →
-          </Link>
-          <Link
-            href="/admin/campaigns"
-            className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-indigo-500 hover:text-indigo-400"
-          >
-            Campaigns →
-          </Link>
-          <Link
-            href="/admin/settings"
-            className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-indigo-500 hover:text-indigo-400"
-          >
-            Settings →
-          </Link>
+        <section className="mb-8 flex flex-wrap gap-2">
+          {NAV_LINKS.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-medium text-[#0F172A] transition hover:border-[#2E0BFC] hover:text-[#2E0BFC]"
+            >
+              {label} →
+            </Link>
+          ))}
         </section>
 
-        <section className="mb-6">
+        {/* Session controls */}
+        <section className="mb-8">
           <SessionControls candidates={candidates} />
         </section>
 
+        {/* Candidates */}
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-300">
-            Candidates
-          </h2>
-          {loadError ? (
-            <p className="text-sm text-red-400">{loadError}</p>
-          ) : (
-            <CandidateGrid candidates={candidates} />
-          )}
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-[#0F172A]">Candidates</h2>
+            <span className="text-xs text-[#64748B]">Live · refreshes every 3 s</span>
+          </div>
+          <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+            {loadError ? (
+              <p className="text-sm text-red-500">{loadError}</p>
+            ) : (
+              <CandidateGrid candidates={candidates} />
+            )}
+          </div>
         </section>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

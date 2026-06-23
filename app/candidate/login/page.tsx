@@ -49,76 +49,99 @@ export default function CandidateLoginPage() {
     }
   }
 
+  const inputCls =
+    "w-full rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2.5 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none transition focus:border-[#2E0BFC] focus:bg-white focus:ring-1 focus:ring-[#2E0BFC]";
+
   return (
-    <main className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          {branding.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={branding.logoUrl}
-              alt={branding.orgName}
-              className="mx-auto mb-3 h-10 max-w-[200px] object-contain"
-            />
-          ) : (
-            <h1 className="text-3xl font-bold text-white tracking-tight">{branding.orgName}</h1>
-          )}
-          <p className="text-gray-400 text-sm mt-1">{branding.tagline}</p>
+        {/* Brand header */}
+        <div className="mb-6 overflow-hidden rounded-2xl text-center"
+          style={{ background: `linear-gradient(135deg, ${branding.primaryColour} 0%, #6366F1 100%)` }}
+        >
+          <div className="px-6 py-7">
+            {branding.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={branding.logoUrl}
+                alt={branding.orgName}
+                className="mx-auto mb-2 h-8 max-w-[180px] object-contain"
+              />
+            ) : (
+              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+                <span className="text-lg font-bold text-white">
+                  {branding.orgName.charAt(0)}
+                </span>
+              </div>
+            )}
+            <h1 className="text-lg font-bold text-white">{branding.orgName}</h1>
+            <p className="mt-0.5 text-sm text-white/70">{branding.tagline}</p>
+          </div>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-gray-800 border border-gray-700 rounded-xl p-6 space-y-4"
-        >
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Roll Number</label>
-            <input
-              type="text"
-              value={rollNumber}
-              onChange={(e) => setRollNumber(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
-              style={{ "--tw-ring-color": branding.primaryColour } as React.CSSProperties}
-              placeholder="e.g. PC-2026-001"
-              autoComplete="off"
-            />
-          </div>
+        {/* Login card */}
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-[#0F172A]">Candidate sign in</h2>
+          <p className="mb-5 text-xs text-[#64748B]">Enter your credentials to access the assessment.</p>
 
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
-              placeholder="you@example.com"
-              autoComplete="off"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#0F172A]">Roll Number</label>
+              <input
+                type="text"
+                value={rollNumber}
+                onChange={(e) => setRollNumber(e.target.value)}
+                className={inputCls}
+                placeholder="e.g. PC-2026-001"
+                autoComplete="off"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
-              placeholder="••••••••"
-              autoComplete="off"
-            />
-          </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#0F172A]">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={inputCls}
+                placeholder="you@example.com"
+                autoComplete="off"
+              />
+            </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#0F172A]">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputCls}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full text-white font-medium rounded-md py-2 transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: branding.primaryColour }}
-          >
-            {isLoading ? "Sending OTP..." : "Continue"}
-          </button>
-        </form>
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <p className="text-xs text-red-600">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-lg py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: `linear-gradient(115deg, ${branding.primaryColour} 0%, #6366F1 100%)` }}
+            >
+              {isLoading ? "Sending OTP..." : "Continue →"}
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-4 text-center text-xs text-[#94A3B8]">
+          Assessment platform by {branding.orgName}
+        </p>
       </div>
-    </main>
+    </div>
   );
 }

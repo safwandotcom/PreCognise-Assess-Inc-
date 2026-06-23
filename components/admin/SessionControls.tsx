@@ -10,10 +10,10 @@ interface SessionControlsProps {
 }
 
 const DISQUALIFY_REASONS = [
-  { value: "MANUAL_REVIEW", label: "Manual review" },
+  { value: "MANUAL_REVIEW",  label: "Manual review" },
   { value: "SUSPECTED_PROXY", label: "Suspected proxy / impersonation" },
-  { value: "EXTERNAL_HELP", label: "External assistance suspected" },
-  { value: "OTHER", label: "Other" },
+  { value: "EXTERNAL_HELP",  label: "External assistance suspected" },
+  { value: "OTHER",          label: "Other" },
 ];
 
 export default function SessionControls({ candidates }: SessionControlsProps) {
@@ -33,9 +33,6 @@ export default function SessionControls({ candidates }: SessionControlsProps) {
       });
       if (!res.ok) throw new Error("Request failed");
 
-      // DB update succeeded — now tell candidates directly via socket.
-      // Pause is admin-side only for this demo: it does not interrupt
-      // an in-progress exam (no timer freeze / resume handling yet).
       if (action === "start") {
         getAdminSocket().emit("session:start");
       } else if (action === "end") {
@@ -64,45 +61,46 @@ export default function SessionControls({ candidates }: SessionControlsProps) {
     setSelectedCandidateId("");
   }
 
+  const selectCls = "rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC] focus:ring-1 focus:ring-[#2E0BFC]";
+
   return (
-    <div className="rounded-lg border border-gray-700 bg-gray-800/60 p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-300">
-        Session Controls
-      </h3>
+    <div className="rounded-xl border border-[#E2E8F0] bg-white p-5">
+      <h3 className="mb-1 text-sm font-semibold text-[#0F172A]">Session Controls</h3>
+      <p className="mb-4 text-xs text-[#64748B]">Start, pause, or end the live assessment session.</p>
 
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => runAction("start")}
           disabled={busy !== null}
-          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50"
+          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 transition"
         >
           {busy === "start" ? "Starting..." : "Start"}
         </button>
         <button
           onClick={() => runAction("pause")}
           disabled={busy !== null}
-          className="rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition"
         >
           {busy === "pause" ? "Pausing..." : "Pause"}
         </button>
         <button
           onClick={() => runAction("end")}
           disabled={busy !== null}
-          className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50 transition"
         >
           {busy === "end" ? "Ending..." : "End"}
         </button>
       </div>
 
-      <div className="mt-4 border-t border-gray-700 pt-4">
-        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+      <div className="mt-5 border-t border-[#E2E8F0] pt-5">
+        <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#64748B]">
           Manual Disqualify
         </h4>
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={selectedCandidateId}
             onChange={(e) => setSelectedCandidateId(e.target.value)}
-            className="rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-200"
+            className={selectCls}
           >
             <option value="">Select candidate...</option>
             {candidates
@@ -116,17 +114,15 @@ export default function SessionControls({ candidates }: SessionControlsProps) {
           <select
             value={selectedReason}
             onChange={(e) => setSelectedReason(e.target.value)}
-            className="rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-200"
+            className={selectCls}
           >
             {DISQUALIFY_REASONS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
+              <option key={r.value} value={r.value}>{r.label}</option>
             ))}
           </select>
           <button
             onClick={manualDisqualify}
-            className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-600"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 transition"
           >
             Disqualify
           </button>
@@ -134,7 +130,7 @@ export default function SessionControls({ candidates }: SessionControlsProps) {
       </div>
 
       {statusMsg && (
-        <p className="mt-3 text-xs text-gray-400">{statusMsg}</p>
+        <p className="mt-4 text-xs text-[#64748B]">{statusMsg}</p>
       )}
     </div>
   );

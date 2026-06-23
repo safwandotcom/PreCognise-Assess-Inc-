@@ -81,35 +81,61 @@ export default function VerifyOtpPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm text-center">
-        <h1 className="text-3xl font-bold text-white tracking-tight mb-1">PreCognise</h1>
-        <p className="text-gray-400 text-sm mb-8">
-          Enter the 6-digit code sent to your email
-        </p>
-
-        <div className="flex justify-center gap-2 mb-6">
-          {digits.map((digit, index) => (
-            <input
-              key={index}
-              ref={(el) => {
-                inputRefs.current[index] = el;
-              }}
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              disabled={isLoading}
-              onChange={(e) => handleChange(index, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(index, e)}
-              className="w-12 h-14 text-center text-xl font-semibold bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          ))}
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div
+            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
+            style={{ background: "linear-gradient(135deg, #2E0BFC 0%, #6366F1 100%)" }}
+          >
+            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-[#0F172A]">Check your email</h1>
+          <p className="mt-1 text-sm text-[#64748B]">
+            Enter the 6-digit code we sent to your email address.
+          </p>
         </div>
 
-        {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-        {isLoading && <p className="text-gray-400 text-sm">Verifying...</p>}
+        {/* OTP card */}
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 text-center shadow-sm">
+          <div className="flex justify-center gap-2 mb-5">
+            {digits.map((digit, index) => (
+              <input
+                key={index}
+                ref={(el) => { inputRefs.current[index] = el; }}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                disabled={isLoading}
+                onChange={(e) => handleChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                className="h-14 w-12 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] text-center text-xl font-bold text-[#0F172A] outline-none transition focus:border-[#2E0BFC] focus:bg-white focus:ring-2 focus:ring-[#2E0BFC]/20 disabled:opacity-50"
+              />
+            ))}
+          </div>
+
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+              <p className="text-xs text-red-600">{error}</p>
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="flex items-center justify-center gap-2 text-sm text-[#64748B]">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
+              Verifying...
+            </div>
+          )}
+        </div>
+
+        <p className="mt-4 text-center text-xs text-[#94A3B8]">
+          Didn&apos;t receive the code? Check your spam folder or contact support.
+        </p>
       </div>
-    </main>
+    </div>
   );
 }

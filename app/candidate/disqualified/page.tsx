@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 const REASON_LABELS: Record<string, string> = {
   TAB_SWITCH_2: "You switched away from the exam tab more than once.",
   PAGE_REFRESH: "The exam page was refreshed or closed mid-session.",
+  geo_restricted: "This assessment is not available in your region.",
 };
 
 function subscribeNoop() {

@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import KpiCard from "@/components/admin/KpiCard";
 import CandidateGrid, { AdminCandidate } from "@/components/admin/CandidateGrid";
@@ -49,6 +50,7 @@ export default function AdminPage() {
   // candidate:event on disqualify, not on join/status changes (that path
   // doesn't write to the DB), so this is how JOINED/ACTIVE reach the grid.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStats();
     fetchCandidates();
     const interval = setInterval(() => {
@@ -99,6 +101,34 @@ export default function AdminPage() {
           <KpiCard label="Active" value={stats?.active ?? 0} color="green" />
           <KpiCard label="Completed" value={stats?.completed ?? 0} color="blue" />
           <KpiCard label="Disqualified" value={stats?.disqualified ?? 0} color="red" />
+        </section>
+
+        {/* Quick nav */}
+        <section className="mb-6 flex flex-wrap gap-3">
+          <Link
+            href="/admin/questions"
+            className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-indigo-500 hover:text-indigo-400"
+          >
+            Question Builder →
+          </Link>
+          <Link
+            href="/admin/branding"
+            className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-indigo-500 hover:text-indigo-400"
+          >
+            Branding →
+          </Link>
+          <Link
+            href="/admin/campaigns"
+            className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-indigo-500 hover:text-indigo-400"
+          >
+            Campaigns →
+          </Link>
+          <Link
+            href="/admin/settings"
+            className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-indigo-500 hover:text-indigo-400"
+          >
+            Settings →
+          </Link>
         </section>
 
         <section className="mb-6">

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum SessionStatus {
@@ -29,6 +30,49 @@ enum QuestionType {
   image
 }
 
+model AssessmentSettings {
+  id                   String   @id @default(cuid())
+
+  // Anti-cheat toggles
+  antiCheatTabSwitch   Boolean  @default(true)
+  antiCheatContextMenu Boolean  @default(true)
+  antiCheatCopyPaste   Boolean  @default(true)
+  antiCheatScreenshot  Boolean  @default(true)
+  antiCheatDevTools    Boolean  @default(true)
+
+  // Exam behaviour
+  speedBonusEnabled    Boolean  @default(true)
+  gracePeriodSec       Int      @default(0)
+
+  // Geo-restriction: comma-separated ISO-3166-1 alpha-2 codes (empty = no restriction)
+  geoRestriction       String   @default("")
+
+  updatedAt            DateTime @updatedAt
+}
+
+model OrgBranding {
+  id            String   @id @default(cuid())
+  orgName       String   @default("PreCognise")
+  tagline       String   @default("Candidate Assessment")
+  logoUrl       String?
+  primaryColour String   @default("#3730A3")
+  updatedAt     DateTime @updatedAt
+}
+
+model Campaign {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  active        Boolean   @default(true)
+  expiresAt     DateTime?
+  maxCandidates Int?
+  createdAt     DateTime  @default(now())
+
+  sessionId  String
+  session    Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  candidates Candidate[]
+}
+
 model Session {
   id        String        @id @default(cuid())
   status    SessionStatus @default(WAITING)
@@ -37,6 +81,7 @@ model Session {
 
   candidates Candidate[]
   questions  Question[]
+  campaigns  Campaign[]
 }
 
 model Candidate {
@@ -52,9 +97,11 @@ model Candidate {
   otpCode          String?
   otpExpiresAt     DateTime?
 
-  sessionId String
-  session   Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  responses Response[]
+  sessionId  String
+  session    Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  responses  Response[]
 }
 
 model Question {

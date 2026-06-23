@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useBranding } from "@/lib/use-branding";
 
 export default function CandidateLoginPage() {
   const router = useRouter();
+  const branding = useBranding();
+
   const [rollNumber, setRollNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,8 +53,16 @@ export default function CandidateLoginPage() {
     <main className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">PreCognise</h1>
-          <p className="text-gray-400 text-sm mt-1">Candidate Login</p>
+          {branding.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt={branding.orgName}
+              className="mx-auto mb-3 h-10 max-w-[200px] object-contain"
+            />
+          ) : (
+            <h1 className="text-3xl font-bold text-white tracking-tight">{branding.orgName}</h1>
+          )}
+          <p className="text-gray-400 text-sm mt-1">{branding.tagline}</p>
         </div>
 
         <form
@@ -64,7 +75,8 @@ export default function CandidateLoginPage() {
               type="text"
               value={rollNumber}
               onChange={(e) => setRollNumber(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
+              style={{ "--tw-ring-color": branding.primaryColour } as React.CSSProperties}
               placeholder="e.g. PC-2026-001"
               autoComplete="off"
             />
@@ -76,7 +88,7 @@ export default function CandidateLoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
               placeholder="you@example.com"
               autoComplete="off"
             />
@@ -88,7 +100,7 @@ export default function CandidateLoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
               placeholder="••••••••"
               autoComplete="off"
             />
@@ -99,7 +111,8 @@ export default function CandidateLoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-md py-2 transition-colors"
+            className="w-full text-white font-medium rounded-md py-2 transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: branding.primaryColour }}
           >
             {isLoading ? "Sending OTP..." : "Continue"}
           </button>

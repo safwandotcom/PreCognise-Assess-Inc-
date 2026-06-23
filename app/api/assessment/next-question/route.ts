@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
+import { getSettings } from "@/lib/get-settings";
 import { PublicQuestion, QuestionType } from "@/types";
 
 function getBearerToken(req: NextRequest): string | null {
@@ -24,22 +25,34 @@ export async function GET(req: NextRequest) {
 
     const candidate = await prisma.candidate.findUnique({
         where: { id: candidateId },
-        select: { sessionId: true, status: true },
+        select: { sessionId: true, status: true, country: true },
     });
 
     if (!candidate) {
         return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
     }
 
-    // The JWT alone doesn't know the candidate got disqualified after it was
-    // issued — that only happened in the DB + socket layer. Without this
-    // check, pressing Back after a tab-switch disqualification just re-enters
-    // this route and the JWT still verifies fine, letting the exam continue.
     if (candidate.status === "DISQUALIFIED") {
         return NextResponse.json(
             { error: "You have been disqualified from this assessment" },
             { status: 403 }
         );
+    }
+
+    // ── Geo-restriction check ────────────────────────────────────────────────
+    const settings = await getSettings();
+    if (settings.geoRestriction.trim()) {
+        const allowed = settings.geoRestriction
+            .split(",")
+            .map((c) => c.trim().toUpperCase())
+            .filter(Boolean);
+        const candidateCountry = (candidate.country ?? "").toUpperCase();
+        if (!candidateCountry || !allowed.includes(candidateCountry)) {
+            return NextResponse.json(
+                { error: "geo_restricted" },
+                { status: 403 }
+            );
+        }
     }
 
     // Question IDs this candidate has already submitted a Response for
@@ -65,7 +78,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ done: true });
     }
 
-    // Sanitized shape — correctOption is deliberately omitted
     const question: PublicQuestion = {
         id: next.id,
         type: next.type as unknown as QuestionType,
@@ -74,7 +86,8 @@ export async function GET(req: NextRequest) {
         options: next.options as (string | number)[],
         timeLimitSec: next.timeLimitSec,
         basePoints: next.basePoints,
-        speedBonusMax: next.speedBonusMax,
+        // Respect global speed bonus toggle — zero it out if disabled
+        speedBonusMax: settings.speedBonusEnabled ? next.speedBonusMax : 0,
         orderIndex: next.orderIndex,
     };
 

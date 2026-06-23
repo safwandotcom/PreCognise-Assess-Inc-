@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
 import { calculateScore } from "@/lib/scoring";
+import { getSettings } from "@/lib/get-settings";
 import { AnswerPayload, QuestionType } from "@/types";
 
 function getBearerToken(req: NextRequest): string | null {
@@ -24,8 +25,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
   }
 
-  // Same gate as next-question — without this, the Back-button re-entry
-  // path can still POST an answer and get scored even after disqualification.
   const candidate = await prisma.candidate.findUnique({
     where: { id: candidateId },
     select: { status: true },
@@ -47,8 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  // Reject duplicate submissions — the @@unique constraint backs this up,
-  // but checking first lets us return a clean 409 instead of a DB error.
+  // Double-answer guard — @@unique constraint also backs this up
   const existing = await prisma.response.findUnique({
     where: { candidateId_questionId: { candidateId, questionId } },
   });
@@ -56,20 +54,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Question already answered" }, { status: 409 });
   }
 
-  const question = await prisma.question.findUnique({
-    where: { id: questionId },
-  });
+  const question = await prisma.question.findUnique({ where: { id: questionId } });
   if (!question) {
     return NextResponse.json({ error: "Question not found" }, { status: 404 });
   }
 
-  const isCorrect = question.correctOption !== null && value === question.correctOption;
+  // Respect global speed bonus toggle
+  const settings = await getSettings();
+  const effectiveSpeedBonusMax = settings.speedBonusEnabled ? question.speedBonusMax : 0;
 
+  const isCorrect = question.correctOption !== null && value === question.correctOption;
   const scoreEarned = calculateScore(
     isCorrect,
     question.type as unknown as QuestionType,
     question.basePoints,
-    question.speedBonusMax,
+    effectiveSpeedBonusMax,
     responseTimeMs,
     question.timeLimitSec
   );
@@ -78,8 +77,6 @@ export async function POST(req: NextRequest) {
     data: {
       candidateId,
       questionId,
-      // value is null on a skipped/timed-out question — Prisma needs
-      // Prisma.JsonNull, not JS null, to store that in a required Json field
       answer: value === null || value === undefined ? Prisma.JsonNull : value,
       score: scoreEarned,
       responseTimeMs,

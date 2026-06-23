@@ -7,11 +7,11 @@ import { getAdminSocket, disconnectAdminSocket } from "@/lib/admin-socket-client
 
 type SessionStatus = "WAITING" | "LIVE" | "PAUSED" | "ENDED";
 
-const STATUS_COLOR: Record<SessionStatus, string> = {
-  WAITING: "text-gray-400",
-  LIVE: "text-green-400",
-  PAUSED: "text-yellow-400",
-  ENDED: "text-red-400",
+const STATUS_STYLES: Record<SessionStatus, { label: string; badge: string; dot: string }> = {
+  WAITING: { label: "Waiting",  badge: "bg-slate-100 text-slate-600 border-slate-200",     dot: "bg-slate-400" },
+  LIVE:    { label: "Live",     badge: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
+  PAUSED:  { label: "Paused",   badge: "bg-amber-50 text-amber-700 border-amber-200",       dot: "bg-amber-500" },
+  ENDED:   { label: "Ended",    badge: "bg-red-50 text-red-700 border-red-200",             dot: "bg-red-500" },
 };
 
 export default function AdminSessionPage() {
@@ -50,70 +50,93 @@ export default function AdminSessionPage() {
   function sendBroadcast() {
     const trimmed = message.trim();
     if (!trimmed) return;
-
-    // handlers.ts relays this to everyone in the "candidates" room, which
-    // BroadcastToast picks up on waiting-room and exam pages.
     getAdminSocket().emit("admin:broadcast", { message: trimmed });
     setSentMsg(`Sent: "${trimmed}"`);
     setMessage("");
   }
 
+  const s = STATUS_STYLES[status];
+
   return (
-    <main className="min-h-screen bg-gray-900 p-6 text-gray-100">
-      <div className="mx-auto max-w-2xl">
-        <Link href="/admin" className="text-sm text-gray-500 hover:text-gray-300">
-          ← Back to dashboard
-        </Link>
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Header */}
+      <header
+        className="px-6 py-5"
+        style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
+      >
+        <div className="mx-auto flex max-w-2xl items-center gap-4">
+          <Link
+            href="/admin"
+            className="flex items-center gap-1.5 text-sm font-medium text-indigo-200 hover:text-white"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Dashboard
+          </Link>
+          <span className="text-indigo-300">/</span>
+          <h1 className="text-xl font-bold text-white">Session Control</h1>
+        </div>
+      </header>
 
-        <h1 className="mt-2 text-2xl font-bold">Session Control</h1>
-
-        <div className="mt-6 rounded-lg border border-gray-700 bg-gray-800/60 p-5">
-          <p className="text-sm text-gray-400">Current status</p>
-          <p className={`text-3xl font-bold ${STATUS_COLOR[status]}`}>
-            {status}
+      <main className="mx-auto max-w-2xl px-6 py-8 space-y-6">
+        {/* Status card */}
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-6">
+          <p className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
+            Current status
           </p>
+          <div className="mt-2 flex items-center gap-3">
+            <span className={`flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold ${s.badge}`}>
+              <span className={`h-2 w-2 rounded-full ${s.dot} ${status === "LIVE" ? "animate-pulse" : ""}`} />
+              {s.label}
+            </span>
+          </div>
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-6 flex gap-3">
             <button
               onClick={() => runAction("start")}
               disabled={busy}
-              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50"
+              className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 transition"
             >
-              Start Session
+              {busy ? "Working..." : "Start Session"}
             </button>
             <button
               onClick={() => runAction("end")}
               disabled={busy}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              className="rounded-lg border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50 transition"
             >
               End Session
             </button>
           </div>
         </div>
 
-        <div className="mt-6 rounded-lg border border-gray-700 bg-gray-800/60 p-5">
-          <p className="mb-2 text-sm font-semibold text-gray-300">
-            Broadcast Message
+        {/* Broadcast card */}
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-6">
+          <h2 className="mb-1 text-sm font-semibold text-[#0F172A]">Broadcast Message</h2>
+          <p className="mb-4 text-xs text-[#64748B]">
+            This message appears as a toast on all candidate screens instantly.
           </p>
           <div className="flex gap-2">
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Message to all candidates..."
-              className="flex-1 rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-200"
+              onKeyDown={(e) => e.key === "Enter" && sendBroadcast()}
+              placeholder="Type a message to all candidates..."
+              className="flex-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#2E0BFC] focus:ring-1 focus:ring-[#2E0BFC]"
             />
             <button
               onClick={sendBroadcast}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition"
+              style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #6366F1 100%)" }}
             >
               Send
             </button>
           </div>
           {sentMsg && (
-            <p className="mt-2 text-xs text-gray-500">{sentMsg}</p>
+            <p className="mt-3 text-xs text-[#64748B]">{sentMsg}</p>
           )}
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

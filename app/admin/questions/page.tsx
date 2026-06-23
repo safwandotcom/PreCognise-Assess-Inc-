@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
@@ -63,17 +63,17 @@ function TypeBadge({ type }: { type: QuestionType }) {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#E8E6DF] bg-white py-20 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F3EE]">
-        <svg className="h-7 w-7 text-[#6B6A63]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#E2E8F0] bg-white py-20 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F1F5F9]">
+        <svg className="h-7 w-7 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </div>
-      <p className="font-medium text-[#1A1B23]">No questions yet</p>
-      <p className="mt-1 text-sm text-[#6B6A63]">Add your first question to get started.</p>
+      <p className="font-medium text-[#0F172A]">No questions yet</p>
+      <p className="mt-1 text-sm text-[#64748B]">Add your first question to get started.</p>
       <button
         onClick={onAdd}
-        className="mt-5 rounded-lg bg-[#3730A3] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#2D2785]"
+        className="mt-5 rounded-lg bg-[#2E0BFC] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#1E06B8]"
       >
         Add question
       </button>
@@ -118,7 +118,7 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Type */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Question type</label>
+        <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Question type</label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {(["mcq", "image", "psychometric", "rating"] as QuestionType[]).map((t) => (
             <button
@@ -127,8 +127,8 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
               onClick={() => setField("type", t)}
               className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                 form.type === t
-                  ? "border-[#3730A3] bg-[#3730A3] text-white"
-                  : "border-[#E8E6DF] bg-white text-[#6B6A63] hover:border-[#3730A3] hover:text-[#3730A3]"
+                  ? "border-[#2E0BFC] bg-[#2E0BFC] text-white"
+                  : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#2E0BFC] hover:text-[#2E0BFC]"
               }`}
             >
               {TYPE_LABELS[t]}
@@ -139,40 +139,40 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
 
       {/* Question text */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Question text</label>
+        <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Question text</label>
         <textarea
           required
           rows={3}
           value={form.text}
           onChange={(e) => setField("text", e.target.value)}
           placeholder="Enter the question..."
-          className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+          className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
         />
       </div>
 
       {/* Image URL (image MCQ only) */}
       {showImage && (
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Image URL</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Image URL</label>
           <input
             type="url"
             value={form.imageUrl ?? ""}
             onChange={(e) => setField("imageUrl", e.target.value || null)}
             placeholder="https://..."
-            className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+            className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
           />
-          <p className="mt-1 text-xs text-[#6B6A63]">Paste a public image URL. File upload coming soon.</p>
+          <p className="mt-1 text-xs text-[#64748B]">Paste a public image URL. File upload coming soon.</p>
         </div>
       )}
 
       {/* Options (MCQ / Image) */}
       {showOptions && (
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Options</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Options</label>
           <div className="space-y-2">
             {form.options.map((opt, i) => (
               <div key={i} className="flex items-center gap-3">
-                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-[#E8E6DF] bg-[#F4F3EE] text-xs font-semibold text-[#6B6A63]">
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-[#E2E8F0] bg-[#F1F5F9] text-xs font-semibold text-[#64748B]">
                   {String.fromCharCode(65 + i)}
                 </span>
                 <input
@@ -180,7 +180,7 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
                   value={opt}
                   onChange={(e) => setOption(i, e.target.value)}
                   placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                  className="flex-1 rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                  className="flex-1 rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
                 />
               </div>
             ))}
@@ -191,7 +191,7 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
       {/* Correct option */}
       {showCorrect && (
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Correct answer</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Correct answer</label>
           <div className="flex gap-2">
             {form.options.map((_, i) => (
               <button
@@ -200,8 +200,8 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
                 onClick={() => setField("correctOption", i)}
                 className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-all ${
                   form.correctOption === i
-                    ? "bg-[#3730A3] text-white"
-                    : "border border-[#E8E6DF] bg-white text-[#6B6A63] hover:border-[#3730A3]"
+                    ? "bg-[#2E0BFC] text-white"
+                    : "border border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#2E0BFC]"
                 }`}
               >
                 {String.fromCharCode(65 + i)}
@@ -214,7 +214,7 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
       {/* Timing & scoring */}
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Timer (sec)</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Timer (sec)</label>
           <input
             type="number"
             required
@@ -222,28 +222,28 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
             max={300}
             value={form.timeLimitSec}
             onChange={(e) => setField("timeLimitSec", Number(e.target.value))}
-            className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+            className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Base points</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Base points</label>
           <input
             type="number"
             required
             min={0}
             value={form.basePoints}
             onChange={(e) => setField("basePoints", Number(e.target.value))}
-            className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+            className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Speed bonus</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Speed bonus</label>
           <input
             type="number"
             min={0}
             value={form.speedBonusMax}
             onChange={(e) => setField("speedBonusMax", Number(e.target.value))}
-            className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+            className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
           />
         </div>
       </div>
@@ -255,18 +255,18 @@ function QuestionForm({ initial, onSave, onCancel, saving, mode }: QuestionFormP
       )}
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 border-t border-[#E8E6DF] pt-5">
+      <div className="flex justify-end gap-3 border-t border-[#E2E8F0] pt-5">
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+          className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-[#3730A3] px-5 py-2 text-sm font-medium text-white hover:bg-[#2D2785] disabled:opacity-60"
+          className="rounded-lg bg-[#2E0BFC] px-5 py-2 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-60"
         >
           {saving ? "Saving…" : mode === "create" ? "Add question" : "Save changes"}
         </button>
@@ -281,11 +281,11 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 px-4 py-10 backdrop-blur-sm">
       <div className="w-full max-w-xl rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#E8E6DF] px-6 py-4">
-          <h2 className="text-base font-semibold text-[#1A1B23]">{title}</h2>
+        <div className="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-4">
+          <h2 className="text-base font-semibold text-[#0F172A]">{title}</h2>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#6B6A63] hover:bg-[#F4F3EE]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#64748B] hover:bg-[#F1F5F9]"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -393,25 +393,25 @@ export default function QuestionsPage() {
   const totalPoints = questions.reduce((sum, q) => sum + q.basePoints + q.speedBonusMax, 0);
 
   return (
-    <main className="min-h-screen bg-[#FAFAF8]">
+    <main className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <div className="border-b border-[#E8E6DF] bg-white">
+      <div className="border-b border-[#E2E8F0] bg-white">
         <div className="mx-auto max-w-4xl px-6 py-5">
-          <Link href="/admin" className="text-sm text-[#6B6A63] hover:text-[#1A1B23]">
+          <Link href="/admin" className="text-sm text-[#64748B] hover:text-[#0F172A]">
             ← Admin dashboard
           </Link>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#1A1B23]">
+              <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">
                 Question Builder
               </h1>
-              <p className="mt-0.5 text-sm text-[#6B6A63]">
+              <p className="mt-0.5 text-sm text-[#64748B]">
                 {questions.length} question{questions.length !== 1 ? "s" : ""} · {totalPoints} total points
               </p>
             </div>
             <button
               onClick={() => setShowCreate(true)}
-              className="rounded-lg bg-[#3730A3] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#2D2785]"
+              className="rounded-lg bg-[#2E0BFC] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1E06B8]"
             >
               + Add question
             </button>
@@ -423,7 +423,7 @@ export default function QuestionsPage() {
       <div className="mx-auto max-w-4xl px-6 py-8">
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#3730A3] border-t-transparent" />
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
           </div>
         )}
 
@@ -438,9 +438,9 @@ export default function QuestionsPage() {
         )}
 
         {!loading && !error && questions.length > 0 && (
-          <div className="overflow-hidden rounded-2xl border border-[#E8E6DF] bg-white">
+          <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white">
             {/* Table header */}
-            <div className="grid grid-cols-[2rem_1fr_7rem_6rem_6rem_7rem] items-center gap-4 border-b border-[#E8E6DF] bg-[#FAFAF8] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#6B6A63]">
+            <div className="grid grid-cols-[2rem_1fr_7rem_6rem_6rem_7rem] items-center gap-4 border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#64748B]">
               <span>#</span>
               <span>Question</span>
               <span>Type</span>
@@ -453,16 +453,16 @@ export default function QuestionsPage() {
               <div
                 key={q.id}
                 className={`grid grid-cols-[2rem_1fr_7rem_6rem_6rem_7rem] items-center gap-4 px-5 py-4 text-sm ${
-                  idx % 2 === 0 ? "bg-white" : "bg-[#FAFAF8]"
-                } ${idx < questions.length - 1 ? "border-b border-[#E8E6DF]" : ""}`}
+                  idx % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"
+                } ${idx < questions.length - 1 ? "border-b border-[#E2E8F0]" : ""}`}
               >
                 {/* Number */}
-                <span className="font-mono text-xs font-semibold text-[#6B6A63]">
+                <span className="font-mono text-xs font-semibold text-[#64748B]">
                   {String(idx + 1).padStart(2, "0")}
                 </span>
 
                 {/* Text */}
-                <p className="truncate font-medium text-[#1A1B23]" title={q.text}>
+                <p className="truncate font-medium text-[#0F172A]" title={q.text}>
                   {q.text}
                 </p>
 
@@ -472,10 +472,10 @@ export default function QuestionsPage() {
                 </div>
 
                 {/* Timer */}
-                <span className="text-right text-[#6B6A63]">{q.timeLimitSec}s</span>
+                <span className="text-right text-[#64748B]">{q.timeLimitSec}s</span>
 
                 {/* Points */}
-                <span className="text-right text-[#6B6A63]">
+                <span className="text-right text-[#64748B]">
                   {q.basePoints}
                   {q.speedBonusMax > 0 && (
                     <span className="ml-1 text-xs text-amber-600">+{q.speedBonusMax}</span>
@@ -488,7 +488,7 @@ export default function QuestionsPage() {
                     onClick={() => handleReorder(q.id, "up")}
                     disabled={idx === 0}
                     title="Move up"
-                    className="rounded p-1 text-[#6B6A63] hover:bg-[#F4F3EE] disabled:opacity-20"
+                    className="rounded p-1 text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-20"
                   >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
@@ -498,7 +498,7 @@ export default function QuestionsPage() {
                     onClick={() => handleReorder(q.id, "down")}
                     disabled={idx === questions.length - 1}
                     title="Move down"
-                    className="rounded p-1 text-[#6B6A63] hover:bg-[#F4F3EE] disabled:opacity-20"
+                    className="rounded p-1 text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-20"
                   >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -507,7 +507,7 @@ export default function QuestionsPage() {
                   <button
                     onClick={() => setEditTarget(q)}
                     title="Edit"
-                    className="rounded p-1 text-[#6B6A63] hover:bg-[#F4F3EE]"
+                    className="rounded p-1 text-[#64748B] hover:bg-[#F1F5F9]"
                   >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487a2.1 2.1 0 112.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
@@ -567,15 +567,15 @@ export default function QuestionsPage() {
       {/* Delete confirmation */}
       {deleteTarget && (
         <Modal title="Delete question?" onClose={() => setDeleteTarget(null)}>
-          <p className="text-sm text-[#6B6A63]">
+          <p className="text-sm text-[#64748B]">
             Are you sure you want to delete{" "}
-            <span className="font-medium text-[#1A1B23]">&quot;{deleteTarget.text.slice(0, 60)}{deleteTarget.text.length > 60 ? "…" : ""}&quot;</span>?
+            <span className="font-medium text-[#0F172A]">&quot;{deleteTarget.text.slice(0, 60)}{deleteTarget.text.length > 60 ? "…" : ""}&quot;</span>?
             This cannot be undone.
           </p>
           <div className="mt-5 flex justify-end gap-3">
             <button
               onClick={() => setDeleteTarget(null)}
-              className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+              className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
             >
               Cancel
             </button>

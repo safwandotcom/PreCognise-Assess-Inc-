@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket-client";
 import { SocketEvents } from "@/types";
+import { useBranding } from "@/lib/use-branding";
 import BroadcastToast from "@/components/exam/BroadcastToast";
 
 const COUNTDOWN_START = 60;
@@ -16,11 +17,12 @@ function getCandidateName() {
   return sessionStorage.getItem("candidateName") ?? "Candidate";
 }
 function getCandidateNameServer() {
-  return "Candidate"; // sessionStorage doesn't exist during SSR
+  return "Candidate";
 }
 
 export default function WaitingRoomPage() {
   const router = useRouter();
+  const branding = useBranding();
   const name = useSyncExternalStore(subscribeNoop, getCandidateName, getCandidateNameServer);
   const [secondsLeft, setSecondsLeft] = useState(COUNTDOWN_START);
   const [joinedCount, setJoinedCount] = useState(12);
@@ -28,7 +30,6 @@ export default function WaitingRoomPage() {
 
   const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
 
-  // Cosmetic only — real navigation is triggered by session:start below.
   useEffect(() => {
     const interval = setInterval(() => {
       setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
@@ -43,10 +44,6 @@ export default function WaitingRoomPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Was a TODO — this was never actually connected, so session:start never
-  // reached this page and the only way forward was the manual test button.
-  // Wiring it here per the original Phase 4 spec, plus listening for the
-  // admin broadcast toast added in Phase 5.
   useEffect(() => {
     const socket = getSocket();
     socket.emit(SocketEvents.CANDIDATE_JOIN);
@@ -65,30 +62,82 @@ export default function WaitingRoomPage() {
     };
   }, [router]);
 
+  const minutes = Math.floor(secondsLeft / 60);
+  const secs = secondsLeft % 60;
+  const countdownDisplay = minutes > 0
+    ? `${minutes}:${String(secs).padStart(2, "0")}`
+    : `${secs}s`;
+
   return (
-    
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-gray-900 px-4 text-center">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center px-4">
       <BroadcastToast message={broadcastMsg} onDismiss={clearBroadcast} />
 
+      <div className="w-full max-w-sm">
+        {/* Org badge */}
+        <div className="mb-6 flex flex-col items-center">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-xl mb-3"
+            style={{ background: `linear-gradient(135deg, ${branding.primaryColour} 0%, #6366F1 100%)` }}
+          >
+            <span className="text-xl font-bold text-white">
+              {branding.orgName.charAt(0)}
+            </span>
+          </div>
+          <p className="text-xs font-medium uppercase tracking-widest text-[#64748B]">
+            {branding.orgName}
+          </p>
+        </div>
 
-      <div>
-        
-        <p className="text-sm uppercase tracking-wide text-gray-500">PreCognise Assess</p>
-        <h1 className="mt-2 text-2xl font-semibold text-white">Welcome, {name}</h1>
-        <p className="mt-1 text-gray-400">Hang tight — the session will begin shortly.</p>
+        {/* Main card */}
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center shadow-sm">
+          <h1 className="text-xl font-semibold text-[#0F172A]">
+            Welcome, {name}
+          </h1>
+          <p className="mt-1 text-sm text-[#64748B]">
+            Your session will begin shortly. Please stay on this page.
+          </p>
+
+          {/* Countdown */}
+          <div className="my-8 flex flex-col items-center">
+            <div
+              className="flex h-24 w-24 items-center justify-center rounded-full border-4 text-3xl font-bold"
+              style={{
+                borderColor: branding.primaryColour,
+                color: branding.primaryColour,
+              }}
+            >
+              {countdownDisplay}
+            </div>
+            <p className="mt-2 text-xs text-[#94A3B8]">Estimated wait</p>
+          </div>
+
+          {/* Joined count */}
+          <div className="flex items-center justify-center gap-1.5">
+            <div className="flex -space-x-1">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-5 w-5 rounded-full border-2 border-white bg-[#E2E8F0]"
+                />
+              ))}
+            </div>
+            <p className="text-xs text-[#64748B]">
+              {joinedCount} candidates in the waiting room
+            </p>
+          </div>
+        </div>
+
+        {/* Test button */}
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => router.replace("/candidate/exam")}
+            className="text-xs text-[#94A3B8] underline-offset-2 hover:text-[#64748B] hover:underline"
+          >
+            Continue to exam (test only)
+          </button>
+        </div>
       </div>
-
-      <div className="text-6xl font-bold text-blue-500">{secondsLeft}s</div>
-
-      <p className="text-sm text-gray-500">{joinedCount} candidates have joined the waiting room</p>
-
-      <button
-        type="button"
-        onClick={() => router.replace("/candidate/exam")}
-        className="mt-6 rounded-lg border border-gray-700 px-4 py-2 text-xs text-gray-500 hover:border-gray-500 hover:text-gray-300"
-      >
-        Continue to exam (test only)
-      </button>
-    </main>
+    </div>
   );
 }

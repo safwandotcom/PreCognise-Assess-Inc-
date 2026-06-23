@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
@@ -90,7 +90,7 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
     <button
       type="button"
       onClick={copy}
-      className="flex items-center gap-1.5 rounded-lg border border-[#E8E6DF] px-3 py-1.5 text-xs font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+      className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-[#64748B] hover:bg-[#F1F5F9]"
     >
       {copied ? (
         <><svg className="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> Copied</>
@@ -258,17 +258,17 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#FAFAF8]">
-        <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#3730A3] border-t-transparent" />
+      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC]">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
       </main>
     );
   }
 
   if (!campaign) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAFAF8] text-center">
-        <p className="font-semibold text-[#1A1B23]">Campaign not found</p>
-        <Link href="/admin/campaigns" className="text-sm text-[#3730A3] hover:underline">← Back to campaigns</Link>
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F8FAFC] text-center">
+        <p className="font-semibold text-[#0F172A]">Campaign not found</p>
+        <Link href="/admin/campaigns" className="text-sm text-[#2E0BFC] hover:underline">← Back to campaigns</Link>
       </main>
     );
   }
@@ -276,22 +276,22 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const applyUrl = `${getBaseUrl()}/apply/${campaign.slug}`;
 
   return (
-    <main className="min-h-screen bg-[#FAFAF8]">
+    <main className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <div className="border-b border-[#E8E6DF] bg-white">
+      <div className="border-b border-[#E2E8F0] bg-white">
         <div className="mx-auto max-w-5xl px-6 py-5">
-          <Link href="/admin/campaigns" className="text-sm text-[#6B6A63] hover:text-[#1A1B23]">← All campaigns</Link>
+          <Link href="/admin/campaigns" className="text-sm text-[#64748B] hover:text-[#0F172A]">← All campaigns</Link>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold tracking-tight text-[#1A1B23]">{campaign.name}</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">{campaign.name}</h1>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   campaign.active ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" : "bg-gray-100 text-gray-500"
                 }`}>
                   {campaign.active ? "Active" : "Inactive"}
                 </span>
               </div>
-              <p className="mt-0.5 font-mono text-sm text-[#6B6A63]">/apply/{campaign.slug}</p>
+              <p className="mt-0.5 font-mono text-sm text-[#64748B]">/apply/{campaign.slug}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <CopyButton text={applyUrl} label="Copy apply link" />
@@ -299,7 +299,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                 type="button"
                 onClick={handleToggleActive}
                 className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                  campaign.active ? "border border-[#E8E6DF] text-[#6B6A63] hover:bg-[#F4F3EE]" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  campaign.active ? "border border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F5F9]" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                 }`}
               >
                 {campaign.active ? "Deactivate" : "Activate"}
@@ -318,46 +318,46 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             { label: "Capacity", value: campaign.maxCandidates ?? "∞" },
             { label: "Expires", value: campaign.expiresAt ? new Date(campaign.expiresAt).toLocaleDateString() : "Never" },
           ].map(({ label, value }) => (
-            <div key={label} className="rounded-2xl border border-[#E8E6DF] bg-white px-5 py-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#6B6A63]">{label}</p>
-              <p className="mt-1 text-2xl font-bold text-[#1A1B23]">{value}</p>
+            <div key={label} className="rounded-2xl border border-[#E2E8F0] bg-white px-5 py-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-[#64748B]">{label}</p>
+              <p className="mt-1 text-2xl font-bold text-[#0F172A]">{value}</p>
             </div>
           ))}
         </div>
 
         {/* Apply link */}
-        <section className="rounded-2xl border border-[#E8E6DF] bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-[#1A1B23]">Registration link</h2>
-          <div className="flex items-center gap-3 rounded-lg border border-[#E8E6DF] bg-[#FAFAF8] px-4 py-3">
-            <p className="flex-1 truncate font-mono text-sm text-[#3730A3]">{applyUrl}</p>
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-[#0F172A]">Registration link</h2>
+          <div className="flex items-center gap-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+            <p className="flex-1 truncate font-mono text-sm text-[#2E0BFC]">{applyUrl}</p>
             <CopyButton text={applyUrl} />
           </div>
-          <p className="mt-2 text-xs text-[#6B6A63]">Share this link with candidates. They can register directly.</p>
+          <p className="mt-2 text-xs text-[#64748B]">Share this link with candidates. They can register directly.</p>
         </section>
 
         {/* Edit */}
-        <section className="rounded-2xl border border-[#E8E6DF] bg-white p-5">
-          <h2 className="mb-4 text-sm font-semibold text-[#1A1B23]">Campaign settings</h2>
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
+          <h2 className="mb-4 text-sm font-semibold text-[#0F172A]">Campaign settings</h2>
           <form onSubmit={handleSaveEdit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#1A1B23]">Name</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Name</label>
                 <input
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2 text-sm text-[#1A1B23] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#1A1B23]">Slug</label>
-                <div className="flex items-center overflow-hidden rounded-lg border border-[#E8E6DF] bg-white focus-within:border-[#3730A3]">
-                  <span className="select-none border-r border-[#E8E6DF] bg-[#F4F3EE] px-2.5 py-2 text-xs text-[#6B6A63]">/apply/</span>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Slug</label>
+                <div className="flex items-center overflow-hidden rounded-lg border border-[#E2E8F0] bg-white focus-within:border-[#2E0BFC]">
+                  <span className="select-none border-r border-[#E2E8F0] bg-[#F1F5F9] px-2.5 py-2 text-xs text-[#64748B]">/apply/</span>
                   <input
                     required
                     value={editSlug}
                     onChange={(e) => setEditSlug(e.target.value)}
-                    className="flex-1 bg-transparent px-2.5 py-2 text-sm text-[#1A1B23] outline-none"
+                    className="flex-1 bg-transparent px-2.5 py-2 text-sm text-[#0F172A] outline-none"
                   />
                 </div>
               </div>
@@ -365,23 +365,23 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#1A1B23]">Expires at</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Expires at</label>
                 <input
                   type="datetime-local"
                   value={editExpiry}
                   onChange={(e) => setEditExpiry(e.target.value)}
-                  className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2 text-sm text-[#1A1B23] outline-none focus:border-[#3730A3]"
+                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC]"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#1A1B23]">Max candidates</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Max candidates</label>
                 <input
                   type="number"
                   min={1}
                   value={editMax}
                   onChange={(e) => setEditMax(e.target.value)}
                   placeholder="Unlimited"
-                  className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3]"
+                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC]"
                 />
               </div>
             </div>
@@ -391,14 +391,14 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                 <button
                   type="button"
                   onClick={load}
-                  className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+                  className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg bg-[#3730A3] px-5 py-2 text-sm font-medium text-white hover:bg-[#2D2785] disabled:opacity-60"
+                  className="rounded-lg bg-[#2E0BFC] px-5 py-2 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-60"
                 >
                   {saving ? "Saving…" : "Save settings"}
                 </button>
@@ -408,16 +408,16 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
         </section>
 
         {/* CSV import */}
-        <section className="rounded-2xl border border-[#E8E6DF] bg-white p-5">
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-[#1A1B23]">CSV import</h2>
-              <p className="mt-0.5 text-xs text-[#6B6A63]">Bulk-add candidates. Roll numbers and temp passwords are generated automatically.</p>
+              <h2 className="text-sm font-semibold text-[#0F172A]">CSV import</h2>
+              <p className="mt-0.5 text-xs text-[#64748B]">Bulk-add candidates. Roll numbers and temp passwords are generated automatically.</p>
             </div>
             <button
               type="button"
               onClick={downloadTemplate}
-              className="flex items-center gap-1.5 rounded-lg border border-[#E8E6DF] px-3 py-1.5 text-xs font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+              className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-[#64748B] hover:bg-[#F1F5F9]"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -426,33 +426,33 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             </button>
           </div>
 
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#E8E6DF] bg-[#FAFAF8] py-8 text-center hover:border-[#3730A3] hover:bg-indigo-50/30">
-            <svg className="mb-2 h-7 w-7 text-[#6B6A63]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#E2E8F0] bg-[#F8FAFC] py-8 text-center hover:border-[#2E0BFC] hover:bg-indigo-50/30">
+            <svg className="mb-2 h-7 w-7 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
-            <span className="text-sm font-medium text-[#1A1B23]">Click to upload CSV</span>
-            <span className="mt-0.5 text-xs text-[#6B6A63]">Columns: name, email, country (optional)</span>
+            <span className="text-sm font-medium text-[#0F172A]">Click to upload CSV</span>
+            <span className="mt-0.5 text-xs text-[#64748B]">Columns: name, email, country (optional)</span>
             <input type="file" accept=".csv,text/csv" className="sr-only" onChange={handleFileChange} />
           </label>
 
           {importRows.length > 0 && (
-            <div className="mt-4 rounded-xl border border-[#E8E6DF] bg-[#FAFAF8] p-4">
+            <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-medium text-[#1A1B23]">{importRows.length} row{importRows.length !== 1 ? "s" : ""} parsed</p>
+                <p className="text-sm font-medium text-[#0F172A]">{importRows.length} row{importRows.length !== 1 ? "s" : ""} parsed</p>
                 <button
                   type="button"
                   onClick={handleImport}
                   disabled={importing}
-                  className="rounded-lg bg-[#3730A3] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#2D2785] disabled:opacity-60"
+                  className="rounded-lg bg-[#2E0BFC] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-60"
                 >
                   {importing ? "Importing…" : `Import ${importRows.length} candidates`}
                 </button>
               </div>
               <div className="max-h-40 overflow-y-auto">
                 {importRows.slice(0, 5).map((r, i) => (
-                  <p key={i} className="text-xs text-[#6B6A63]">{r.name} · {r.email}</p>
+                  <p key={i} className="text-xs text-[#64748B]">{r.name} · {r.email}</p>
                 ))}
-                {importRows.length > 5 && <p className="text-xs text-[#6B6A63]">…and {importRows.length - 5} more</p>}
+                {importRows.length > 5 && <p className="text-xs text-[#64748B]">…and {importRows.length - 5} more</p>}
               </div>
             </div>
           )}
@@ -491,14 +491,14 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
         {/* Candidates table */}
         {campaign.candidates.length > 0 && (
-          <section className="rounded-2xl border border-[#E8E6DF] bg-white overflow-hidden">
-            <div className="border-b border-[#E8E6DF] px-5 py-4">
-              <h2 className="text-sm font-semibold text-[#1A1B23]">Registered candidates</h2>
+          <section className="rounded-2xl border border-[#E2E8F0] bg-white overflow-hidden">
+            <div className="border-b border-[#E2E8F0] px-5 py-4">
+              <h2 className="text-sm font-semibold text-[#0F172A]">Registered candidates</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#E8E6DF] bg-[#FAFAF8] text-xs font-semibold uppercase tracking-wide text-[#6B6A63]">
+                  <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                     <th className="px-5 py-3 text-left">Roll #</th>
                     <th className="px-5 py-3 text-left">Name</th>
                     <th className="px-5 py-3 text-left">Email</th>
@@ -510,12 +510,12 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                   {campaign.candidates.map((c, i) => (
                     <tr
                       key={c.id}
-                      className={`border-b border-[#E8E6DF] last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-[#FAFAF8]"}`}
+                      className={`border-b border-[#E2E8F0] last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
                     >
-                      <td className="px-5 py-3 font-mono text-xs font-semibold text-[#1A1B23]">{c.rollNumber}</td>
-                      <td className="px-5 py-3 text-[#1A1B23]">{c.name}</td>
-                      <td className="px-5 py-3 text-[#6B6A63]">{c.email}</td>
-                      <td className="px-5 py-3 text-[#6B6A63]">{c.country ?? "—"}</td>
+                      <td className="px-5 py-3 font-mono text-xs font-semibold text-[#0F172A]">{c.rollNumber}</td>
+                      <td className="px-5 py-3 text-[#0F172A]">{c.name}</td>
+                      <td className="px-5 py-3 text-[#64748B]">{c.email}</td>
+                      <td className="px-5 py-3 text-[#64748B]">{c.country ?? "—"}</td>
                       <td className="px-5 py-3">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[c.status] ?? ""}`}>
                           {c.status}
@@ -542,7 +542,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             </button>
           ) : (
             <div className="flex items-center gap-3">
-              <p className="text-sm text-[#1A1B23]">Delete <strong>{campaign.name}</strong>? This cannot be undone.</p>
+              <p className="text-sm text-[#0F172A]">Delete <strong>{campaign.name}</strong>? This cannot be undone.</p>
               <button
                 type="button"
                 onClick={handleDelete}
@@ -553,7 +553,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
               <button
                 type="button"
                 onClick={() => setDeleteConfirm(false)}
-                className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+                className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
               >
                 Cancel
               </button>

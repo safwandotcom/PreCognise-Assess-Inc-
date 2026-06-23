@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
@@ -39,7 +39,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={copy}
-      className="flex items-center gap-1.5 rounded-lg border border-[#E8E6DF] px-3 py-1.5 text-xs font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+      className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-[#64748B] hover:bg-[#F1F5F9]"
     >
       {copied ? (
         <>
@@ -102,9 +102,9 @@ function CreateModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#E8E6DF] px-6 py-4">
-          <h2 className="text-base font-semibold text-[#1A1B23]">New campaign</h2>
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full text-[#6B6A63] hover:bg-[#F4F3EE]">
+        <div className="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-4">
+          <h2 className="text-base font-semibold text-[#0F172A]">New campaign</h2>
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full text-[#64748B] hover:bg-[#F1F5F9]">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -114,61 +114,61 @@ function CreateModal({
         <form onSubmit={handleSubmit} className="space-y-5 px-6 py-5">
           {/* Name */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Campaign name <span className="text-red-500">*</span></label>
+            <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Campaign name <span className="text-red-500">*</span></label>
             <input
               required
               value={form.name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="e.g. EZone Assessment 2026"
-              className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
             />
           </div>
 
           {/* Slug */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Slug (URL path) <span className="text-red-500">*</span></label>
-            <div className="flex items-center overflow-hidden rounded-lg border border-[#E8E6DF] bg-white focus-within:border-[#3730A3] focus-within:ring-2 focus-within:ring-[#3730A3]/10">
-              <span className="select-none border-r border-[#E8E6DF] bg-[#F4F3EE] px-3 py-2.5 text-sm text-[#6B6A63]">/apply/</span>
+            <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Slug (URL path) <span className="text-red-500">*</span></label>
+            <div className="flex items-center overflow-hidden rounded-lg border border-[#E2E8F0] bg-white focus-within:border-[#2E0BFC] focus-within:ring-2 focus-within:ring-[#2E0BFC]/10">
+              <span className="select-none border-r border-[#E2E8F0] bg-[#F1F5F9] px-3 py-2.5 text-sm text-[#64748B]">/apply/</span>
               <input
                 required
                 value={form.slug}
                 onChange={(e) => handleSlugChange(e.target.value)}
                 placeholder="ezone-2026"
-                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-[#1A1B23] outline-none"
+                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-[#0F172A] outline-none"
               />
             </div>
-            <p className="mt-1 text-xs text-[#6B6A63]">Lowercase letters, numbers, hyphens only.</p>
+            <p className="mt-1 text-xs text-[#64748B]">Lowercase letters, numbers, hyphens only.</p>
           </div>
 
           {/* Optional */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Expires at</label>
+              <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Expires at</label>
               <input
                 type="datetime-local"
                 value={form.expiresAt}
                 onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))}
-                className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Max candidates</label>
+              <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Max candidates</label>
               <input
                 type="number"
                 min={1}
                 value={form.maxCandidates}
                 onChange={(e) => setForm((f) => ({ ...f, maxCandidates: e.target.value }))}
                 placeholder="Unlimited"
-                className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-[#E8E6DF] pt-4">
-            <button type="button" onClick={onClose} className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]">
+          <div className="flex justify-end gap-3 border-t border-[#E2E8F0] pt-4">
+            <button type="button" onClick={onClose} className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]">
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="rounded-lg bg-[#3730A3] px-5 py-2 text-sm font-medium text-white hover:bg-[#2D2785] disabled:opacity-60">
+            <button type="submit" disabled={saving} className="rounded-lg bg-[#2E0BFC] px-5 py-2 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-60">
               {saving ? "Creating…" : "Create campaign"}
             </button>
           </div>
@@ -191,16 +191,16 @@ function CampaignCard({ c, onToggle }: { c: Campaign; onToggle: (id: string, act
   else if (full) { statusLabel = "Full"; statusClass = "bg-red-50 text-red-600 ring-1 ring-red-200"; }
 
   return (
-    <div className="rounded-2xl border border-[#E8E6DF] bg-white p-5">
+    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="truncate font-semibold text-[#1A1B23]">{c.name}</h3>
+            <h3 className="truncate font-semibold text-[#0F172A]">{c.name}</h3>
             <span className={`inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}>
               {statusLabel}
             </span>
           </div>
-          <p className="mt-0.5 font-mono text-xs text-[#6B6A63]">/apply/{c.slug}</p>
+          <p className="mt-0.5 font-mono text-xs text-[#64748B]">/apply/{c.slug}</p>
         </div>
 
         <button
@@ -217,9 +217,9 @@ function CampaignCard({ c, onToggle }: { c: Campaign; onToggle: (id: string, act
       </div>
 
       {/* Stats row */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#6B6A63]">
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#64748B]">
         <span>
-          <span className="font-semibold text-[#1A1B23]">{c._count.candidates}</span>
+          <span className="font-semibold text-[#0F172A]">{c._count.candidates}</span>
           {c.maxCandidates ? ` / ${c.maxCandidates}` : ""} registered
         </span>
         {c.expiresAt && (
@@ -231,11 +231,11 @@ function CampaignCard({ c, onToggle }: { c: Campaign; onToggle: (id: string, act
       </div>
 
       {/* Actions */}
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E8E6DF] pt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E2E8F0] pt-4">
         <CopyButton text={applyLink(c.slug)} />
         <Link
           href={`/admin/campaigns/${c.id}`}
-          className="rounded-lg border border-[#E8E6DF] px-3 py-1.5 text-xs font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+          className="rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-[#64748B] hover:bg-[#F1F5F9]"
         >
           Manage →
         </Link>
@@ -302,20 +302,20 @@ export default function CampaignsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAFAF8]">
-      <div className="border-b border-[#E8E6DF] bg-white">
+    <main className="min-h-screen bg-[#F8FAFC]">
+      <div className="border-b border-[#E2E8F0] bg-white">
         <div className="mx-auto max-w-5xl px-6 py-5">
-          <Link href="/admin" className="text-sm text-[#6B6A63] hover:text-[#1A1B23]">← Admin dashboard</Link>
+          <Link href="/admin" className="text-sm text-[#64748B] hover:text-[#0F172A]">← Admin dashboard</Link>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#1A1B23]">Campaigns</h1>
-              <p className="mt-0.5 text-sm text-[#6B6A63]">
+              <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Campaigns</h1>
+              <p className="mt-0.5 text-sm text-[#64748B]">
                 Each campaign has a unique link candidates use to self-register.
               </p>
             </div>
             <button
               onClick={() => setShowCreate(true)}
-              className="rounded-lg bg-[#3730A3] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#2D2785]"
+              className="rounded-lg bg-[#2E0BFC] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1E06B8]"
             >
               + New campaign
             </button>
@@ -326,7 +326,7 @@ export default function CampaignsPage() {
       <div className="mx-auto max-w-5xl px-6 py-8">
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#3730A3] border-t-transparent" />
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
           </div>
         )}
 
@@ -335,17 +335,17 @@ export default function CampaignsPage() {
         )}
 
         {!loading && !error && campaigns.length === 0 && (
-          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#E8E6DF] bg-white py-20 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F3EE]">
-              <svg className="h-7 w-7 text-[#6B6A63]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#E2E8F0] bg-white py-20 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F1F5F9]">
+              <svg className="h-7 w-7 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
               </svg>
             </div>
-            <p className="font-medium text-[#1A1B23]">No campaigns yet</p>
-            <p className="mt-1 text-sm text-[#6B6A63]">Create a campaign to get a shareable registration link.</p>
+            <p className="font-medium text-[#0F172A]">No campaigns yet</p>
+            <p className="mt-1 text-sm text-[#64748B]">Create a campaign to get a shareable registration link.</p>
             <button
               onClick={() => setShowCreate(true)}
-              className="mt-5 rounded-lg bg-[#3730A3] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#2D2785]"
+              className="mt-5 rounded-lg bg-[#2E0BFC] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#1E06B8]"
             >
               Create first campaign
             </button>

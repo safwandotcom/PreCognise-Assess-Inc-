@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
@@ -16,11 +16,11 @@ const DEFAULTS: BrandingForm = {
   orgName: "PreCognise",
   tagline: "Candidate Assessment",
   logoUrl: "",
-  primaryColour: "#3730A3",
+  primaryColour: "#2E0BFC",
 };
 
 const PRESET_COLOURS = [
-  { label: "Indigo",    value: "#3730A3" },
+  { label: "Indigo",    value: "#2E0BFC" },
   { label: "Violet",   value: "#7C3AED" },
   { label: "Rose",     value: "#E11D48" },
   { label: "Emerald",  value: "#059669" },
@@ -33,7 +33,7 @@ const PRESET_COLOURS = [
 // ─── Candidate login preview ────────────────────────────────────────────────
 
 function LoginPreview({ form }: { form: BrandingForm }) {
-  const col = form.primaryColour || "#3730A3";
+  const col = form.primaryColour || "#2E0BFC";
 
   return (
     <div
@@ -84,7 +84,7 @@ function LoginPreview({ form }: { form: BrandingForm }) {
 // ─── Waiting-room preview ───────────────────────────────────────────────────
 
 function WaitingPreview({ form }: { form: BrandingForm }) {
-  const col = form.primaryColour || "#3730A3";
+  const col = form.primaryColour || "#2E0BFC";
 
   return (
     <div className="flex min-h-[280px] flex-col items-center justify-center gap-5 bg-gray-900 px-8 text-center">
@@ -123,7 +123,7 @@ function ColourPicker({
             className="relative h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
             style={{
               backgroundColor: p.value,
-              borderColor: value === p.value ? "#1A1B23" : "transparent",
+              borderColor: value === p.value ? "#0F172A" : "transparent",
               boxShadow: value === p.value ? "0 0 0 2px white, 0 0 0 4px " + p.value : undefined,
             }}
           />
@@ -136,17 +136,17 @@ function ColourPicker({
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-9 cursor-pointer rounded-lg border border-[#E8E6DF] bg-white p-0.5"
+          className="h-9 w-9 cursor-pointer rounded-lg border border-[#E2E8F0] bg-white p-0.5"
           title="Custom colour"
         />
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="#3730A3"
-          className="w-32 rounded-lg border border-[#E8E6DF] bg-white px-3 py-2 font-mono text-sm text-[#1A1B23] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+          placeholder="#2E0BFC"
+          className="w-32 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 font-mono text-sm text-[#0F172A] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
         />
-        <span className="text-sm text-[#6B6A63]">Custom hex</span>
+        <span className="text-sm text-[#64748B]">Custom hex</span>
       </div>
     </div>
   );
@@ -221,19 +221,19 @@ export default function BrandingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAFAF8]">
+    <main className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <div className="border-b border-[#E8E6DF] bg-white">
+      <div className="border-b border-[#E2E8F0] bg-white">
         <div className="mx-auto max-w-6xl px-6 py-5">
-          <Link href="/admin" className="text-sm text-[#6B6A63] hover:text-[#1A1B23]">
+          <Link href="/admin" className="text-sm text-[#64748B] hover:text-[#0F172A]">
             ← Admin dashboard
           </Link>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#1A1B23]">
+              <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">
                 Branding Editor
               </h1>
-              <p className="mt-0.5 text-sm text-[#6B6A63]">
+              <p className="mt-0.5 text-sm text-[#64748B]">
                 Customise how your assessment portal looks to candidates.
               </p>
             </div>
@@ -242,7 +242,7 @@ export default function BrandingPage() {
                 <button
                   type="button"
                   onClick={handleDiscard}
-                  className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+                  className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
                 >
                   Discard
                 </button>
@@ -250,7 +250,7 @@ export default function BrandingPage() {
                   type="submit"
                   form="branding-form"
                   disabled={saving}
-                  className="rounded-lg bg-[#3730A3] px-5 py-2 text-sm font-medium text-white hover:bg-[#2D2785] disabled:opacity-60"
+                  className="rounded-lg bg-[#2E0BFC] px-5 py-2 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-60"
                 >
                   {saving ? "Saving…" : "Save changes"}
                 </button>
@@ -270,7 +270,7 @@ export default function BrandingPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#3730A3] border-t-transparent" />
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
         </div>
       ) : (
         <div className="mx-auto max-w-6xl px-6 py-8">
@@ -280,11 +280,11 @@ export default function BrandingPage() {
             <form id="branding-form" onSubmit={handleSave} className="space-y-8">
 
               {/* Identity */}
-              <section className="rounded-2xl border border-[#E8E6DF] bg-white p-6">
-                <h2 className="mb-5 text-base font-semibold text-[#1A1B23]">Identity</h2>
+              <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6">
+                <h2 className="mb-5 text-base font-semibold text-[#0F172A]">Identity</h2>
                 <div className="space-y-5">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">
+                    <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">
                       Organisation name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -292,27 +292,27 @@ export default function BrandingPage() {
                       value={form.orgName}
                       onChange={(e) => setField("orgName", e.target.value)}
                       placeholder="Your organisation name"
-                      className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                      className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
                     />
-                    <p className="mt-1 text-xs text-[#6B6A63]">Shown on the candidate login and waiting-room pages.</p>
+                    <p className="mt-1 text-xs text-[#64748B]">Shown on the candidate login and waiting-room pages.</p>
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1A1B23]">Tagline</label>
+                    <label className="mb-1.5 block text-sm font-medium text-[#0F172A]">Tagline</label>
                     <input
                       value={form.tagline}
                       onChange={(e) => setField("tagline", e.target.value)}
                       placeholder="e.g. Candidate Assessment"
-                      className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                      className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
                     />
                   </div>
                 </div>
               </section>
 
               {/* Logo */}
-              <section className="rounded-2xl border border-[#E8E6DF] bg-white p-6">
-                <h2 className="mb-1 text-base font-semibold text-[#1A1B23]">Logo</h2>
-                <p className="mb-5 text-sm text-[#6B6A63]">
+              <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6">
+                <h2 className="mb-1 text-base font-semibold text-[#0F172A]">Logo</h2>
+                <p className="mb-5 text-sm text-[#64748B]">
                   Paste a public image URL. Displays above the login form.
                   If blank, the organisation name is shown as text.
                 </p>
@@ -323,11 +323,11 @@ export default function BrandingPage() {
                     value={form.logoUrl}
                     onChange={(e) => setField("logoUrl", e.target.value)}
                     placeholder="https://example.com/logo.png"
-                    className="w-full rounded-lg border border-[#E8E6DF] bg-white px-3.5 py-2.5 text-sm text-[#1A1B23] placeholder-[#6B6A63] outline-none focus:border-[#3730A3] focus:ring-2 focus:ring-[#3730A3]/10"
+                    className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
                   />
 
                   {form.logoUrl && (
-                    <div className="flex items-center gap-4 rounded-xl border border-[#E8E6DF] bg-[#FAFAF8] px-4 py-3">
+                    <div className="flex items-center gap-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={form.logoUrl}
@@ -337,16 +337,16 @@ export default function BrandingPage() {
                           (e.target as HTMLImageElement).style.display = "none";
                         }}
                       />
-                      <p className="text-xs text-[#6B6A63]">Logo preview</p>
+                      <p className="text-xs text-[#64748B]">Logo preview</p>
                     </div>
                   )}
                 </div>
               </section>
 
               {/* Colour */}
-              <section className="rounded-2xl border border-[#E8E6DF] bg-white p-6">
-                <h2 className="mb-1 text-base font-semibold text-[#1A1B23]">Primary colour</h2>
-                <p className="mb-5 text-sm text-[#6B6A63]">
+              <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6">
+                <h2 className="mb-1 text-base font-semibold text-[#0F172A]">Primary colour</h2>
+                <p className="mb-5 text-sm text-[#64748B]">
                   Applied to buttons and accent elements on candidate-facing pages.
                 </p>
                 <ColourPicker
@@ -378,12 +378,12 @@ export default function BrandingPage() {
               </section>
 
               {/* Save (bottom) */}
-              <div className="flex justify-end gap-3 border-t border-[#E8E6DF] pt-4">
+              <div className="flex justify-end gap-3 border-t border-[#E2E8F0] pt-4">
                 {isDirty && (
                   <button
                     type="button"
                     onClick={handleDiscard}
-                    className="rounded-lg border border-[#E8E6DF] px-4 py-2 text-sm font-medium text-[#6B6A63] hover:bg-[#F4F3EE]"
+                    className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
                   >
                     Discard changes
                   </button>
@@ -391,7 +391,7 @@ export default function BrandingPage() {
                 <button
                   type="submit"
                   disabled={saving || !isDirty}
-                  className="rounded-lg bg-[#3730A3] px-6 py-2 text-sm font-medium text-white hover:bg-[#2D2785] disabled:opacity-50"
+                  className="rounded-lg bg-[#2E0BFC] px-6 py-2 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-50"
                 >
                   {saving ? "Saving…" : "Save branding"}
                 </button>
@@ -400,9 +400,9 @@ export default function BrandingPage() {
 
             {/* ── Right: live preview ── */}
             <div className="lg:sticky lg:top-8 lg:self-start">
-              <div className="rounded-2xl border border-[#E8E6DF] bg-white overflow-hidden">
+              <div className="rounded-2xl border border-[#E2E8F0] bg-white overflow-hidden">
                 {/* Preview tabs */}
-                <div className="flex border-b border-[#E8E6DF]">
+                <div className="flex border-b border-[#E2E8F0]">
                   {(["login", "waiting"] as PreviewTab[]).map((tab) => (
                     <button
                       key={tab}
@@ -410,8 +410,8 @@ export default function BrandingPage() {
                       onClick={() => setPreviewTab(tab)}
                       className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                         previewTab === tab
-                          ? "border-b-2 border-[#3730A3] text-[#3730A3]"
-                          : "text-[#6B6A63] hover:text-[#1A1B23]"
+                          ? "border-b-2 border-[#2E0BFC] text-[#2E0BFC]"
+                          : "text-[#64748B] hover:text-[#0F172A]"
                       }`}
                     >
                       {tab === "login" ? "Login page" : "Waiting room"}
@@ -436,8 +436,8 @@ export default function BrandingPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-[#E8E6DF] px-4 py-3">
-                  <p className="text-center text-xs text-[#6B6A63]">
+                <div className="border-t border-[#E2E8F0] px-4 py-3">
+                  <p className="text-center text-xs text-[#64748B]">
                     Live preview — updates as you type
                   </p>
                 </div>

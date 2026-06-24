@@ -8,34 +8,31 @@ export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const payload = verifyToken(token);
     const candidate = await prisma.candidate.findUnique({
       where: { id: payload.candidateId },
-      select: { sessionId: true },
+      select: { campaignId: true },
     });
-    if (!candidate?.sessionId) {
+    if (!candidate?.campaignId) {
       return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
     }
 
-    const sessionId = candidate.sessionId;
-
-    const [session, total, inWaitingRoom, joined] = await Promise.all([
-      prisma.session.findUnique({ where: { id: sessionId }, select: { title: true } }),
-      prisma.candidate.count({ where: { sessionId } }),
-      prisma.candidate.count({ where: { sessionId, status: CandidateStatus.JOINED } }),
+    const { campaignId } = candidate;
+    const [campaign, total, inWaitingRoom, joined] = await Promise.all([
+      prisma.campaign.findUnique({ where: { id: campaignId }, select: { name: true } }),
+      prisma.candidate.count({ where: { campaignId } }),
+      prisma.candidate.count({ where: { campaignId, status: CandidateStatus.JOINED } }),
       prisma.candidate.count({
         where: {
-          sessionId,
+          campaignId,
           status: { in: [CandidateStatus.JOINED, CandidateStatus.ACTIVE, CandidateStatus.COMPLETED] },
         },
       }),
     ]);
 
-    return NextResponse.json({ total, inWaitingRoom, joined, sessionTitle: session?.title ?? null });
+    return NextResponse.json({ total, inWaitingRoom, joined, sessionTitle: campaign?.name ?? null });
   } catch (err) {
     console.error("GET /api/candidate/session-stats error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });

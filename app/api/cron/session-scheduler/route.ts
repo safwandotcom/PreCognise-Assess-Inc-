@@ -1,39 +1,49 @@
+// app/api/cron/session-scheduler/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { SessionStatus } from "@prisma/client";
+import { CampaignStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  try {
-    const now = new Date();
-
-    const due = await prisma.session.findMany({
-      where: {
-        status: SessionStatus.SCHEDULED,
-        scheduledAt: { lte: now },
-      },
-    });
-
-    const results: { id: string; newStatus: SessionStatus }[] = [];
-
-    for (const session of due) {
-      const newStatus = session.autoStart ? SessionStatus.LIVE : SessionStatus.WAITING;
-      await prisma.session.update({
-        where: { id: session.id },
-        data: {
-          status: newStatus,
-          ...(session.autoStart ? { startedAt: now } : {}),
-        },
-      });
-      results.push({ id: session.id, newStatus });
+  if (cronSecret) {
+    const auth = req.headers.get("authorization");
+    if (auth !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    return NextResponse.json({ processed: results.length, results });
-  } catch (err) {
-    console.error("Cron session-scheduler error:", err);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
+
+  const now = new Date();
+
+  // Auto-start campaigns whose scheduledAt has passed
+  const toStart = await prisma.campaign.findMany({
+    where: {
+      status: CampaignStatus.SCHEDULED,
+      autoStart: true,
+      scheduledAt: { lte: now },
+    },
+  });
+  for (const c of toStart) {
+    await prisma.campaign.update({
+      where: { id: c.id },
+      data: { status: CampaignStatus.LIVE, startedAt: now },
+    });
+  }
+
+  // Auto-end campaigns that have exceeded durationSec
+  const live = await prisma.campaign.findMany({
+    where: { status: { in: [CampaignStatus.LIVE, CampaignStatus.PAUSED] }, startedAt: { not: null } },
+  });
+  const toEnd = live.filter(c => {
+    if (!c.startedAt || !c.durationSec) return false;
+    const elapsed = (now.getTime() - c.startedAt.getTime()) / 1000;
+    return elapsed >= c.durationSec;
+  });
+  for (const c of toEnd) {
+    await prisma.campaign.update({
+      where: { id: c.id },
+      data: { status: CampaignStatus.ENDED, endedAt: now },
+    });
+  }
+
+  return NextResponse.json({ started: toStart.length, ended: toEnd.length });
 }

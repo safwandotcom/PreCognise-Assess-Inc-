@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useBranding } from "@/lib/use-branding";
+import { Suspense } from "react";
 
-export default function CandidateLoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const branding = useBranding();
+  const joinToken = searchParams.get("token") ?? "";
 
   const [rollNumber, setRollNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -29,7 +32,7 @@ export default function CandidateLoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rollNumber, email, password }),
+        body: JSON.stringify({ rollNumber, email, password, joinToken: joinToken || undefined }),
       });
 
       const data = await res.json();
@@ -41,6 +44,7 @@ export default function CandidateLoginPage() {
       }
 
       sessionStorage.setItem("rollNumber", rollNumber);
+      if (joinToken) sessionStorage.setItem("joinToken", joinToken);
       router.push("/candidate/verify-otp");
     } catch (err) {
       console.error("login submit error:", err);
@@ -55,8 +59,8 @@ export default function CandidateLoginPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Brand header */}
-        <div className="mb-6 overflow-hidden rounded-2xl text-center"
+        <div
+          className="mb-6 overflow-hidden rounded-2xl text-center"
           style={{ background: `linear-gradient(135deg, ${branding.primaryColour} 0%, #6366F1 100%)` }}
         >
           <div className="px-6 py-7">
@@ -69,9 +73,7 @@ export default function CandidateLoginPage() {
               />
             ) : (
               <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                <span className="text-lg font-bold text-white">
-                  {branding.orgName.charAt(0)}
-                </span>
+                <span className="text-lg font-bold text-white">{branding.orgName.charAt(0)}</span>
               </div>
             )}
             <h1 className="text-lg font-bold text-white">{branding.orgName}</h1>
@@ -79,7 +81,6 @@ export default function CandidateLoginPage() {
           </div>
         </div>
 
-        {/* Login card */}
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
           <h2 className="mb-1 text-base font-semibold text-[#0F172A]">Candidate sign in</h2>
           <p className="mb-5 text-xs text-[#64748B]">Enter your credentials to access the assessment.</p>
@@ -87,38 +88,15 @@ export default function CandidateLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1 block text-xs font-medium text-[#0F172A]">Roll Number</label>
-              <input
-                type="text"
-                value={rollNumber}
-                onChange={(e) => setRollNumber(e.target.value)}
-                className={inputCls}
-                placeholder="e.g. PC-2026-001"
-                autoComplete="off"
-              />
+              <input type="text" value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} className={inputCls} placeholder="e.g. PC-2026-001" autoComplete="off" />
             </div>
-
             <div>
               <label className="mb-1 block text-xs font-medium text-[#0F172A]">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={inputCls}
-                placeholder="you@example.com"
-                autoComplete="off"
-              />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="you@example.com" autoComplete="off" />
             </div>
-
             <div>
               <label className="mb-1 block text-xs font-medium text-[#0F172A]">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={inputCls}
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="••••••••" autoComplete="current-password" />
             </div>
 
             {error && (
@@ -138,10 +116,16 @@ export default function CandidateLoginPage() {
           </form>
         </div>
 
-        <p className="mt-4 text-center text-xs text-[#94A3B8]">
-          Assessment platform by {branding.orgName}
-        </p>
+        <p className="mt-4 text-center text-xs text-[#94A3B8]">Assessment platform by {branding.orgName}</p>
       </div>
     </div>
+  );
+}
+
+export default function CandidateLoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

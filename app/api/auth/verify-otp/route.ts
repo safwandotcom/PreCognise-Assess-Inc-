@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { CandidateStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { signToken } from "@/lib/jwt";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,12 +30,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Invalid or expired OTP" }, { status: 401 });
     }
 
+    // Duplicate login detection: if activeToken already set, disqualify both
+    if (candidate.activeToken) {
+      await prisma.candidate.update({
+        where: { id: candidate.id },
+        data: {
+          status: CandidateStatus.DISQUALIFIED,
+          activeToken: null,
+          otpCode: null,
+          otpExpiresAt: null,
+          disqualifyReason: "Duplicate login detected — credentials used on multiple devices",
+        },
+      });
+      return NextResponse.json(
+        {
+          message:
+            "Your credentials have been used on another device — both attempts have been disqualified.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const newActiveToken = randomUUID();
+
     const updated = await prisma.candidate.update({
       where: { id: candidate.id },
       data: {
         otpCode: null,
         otpExpiresAt: null,
         status: CandidateStatus.JOINED,
+        activeToken: newActiveToken,
       },
     });
 
@@ -45,6 +70,7 @@ export async function POST(req: NextRequest) {
         token,
         name: updated.name,
         rollNumber: updated.rollNumber,
+        activeToken: newActiveToken,
       },
       { status: 200 }
     );

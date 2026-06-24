@@ -277,8 +277,28 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="px-7 py-6">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-[#0F172A]">Campaign Detail</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-[#0F172A]">{campaign.name}</h1>
+          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.04em] ${
+            campaign.active
+              ? "bg-green-50 text-green-700"
+              : "border border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]"
+          }`}>
+            {campaign.active ? "Active" : "Inactive"}
+          </span>
+        </div>
+        <button
+          onClick={handleToggleActive}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            campaign.active
+              ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+              : "text-white hover:opacity-90"
+          }`}
+          style={campaign.active ? undefined : { background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
+        >
+          {campaign.active ? "Deactivate" : "Activate"}
+        </button>
       </div>
 
       <div className="space-y-6">

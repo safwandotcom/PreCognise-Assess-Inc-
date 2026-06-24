@@ -10,7 +10,7 @@ export default function HomePage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <Image src="/precognise_logo_new.png" alt="PreCognise" width={140} height={32} priority className="h-8 w-auto" />
-            <span className="hidden border-l border-[#E2E8F0] pl-3 text-[11px] font-700 uppercase tracking-[0.06em] text-[#64748B] sm:block">
+            <span className="hidden border-l border-[#E2E8F0] pl-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#64748B] sm:block">
               Assess
             </span>
           </div>

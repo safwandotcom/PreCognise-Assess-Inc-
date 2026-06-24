@@ -61,6 +61,11 @@ export default function AdminPage() {
     fetchStats();
     fetchCandidates();
     fetchCampaigns();
+    // fetch once on mount to seed session status
+    fetch("/api/admin/session")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.status) setSessionStatus(data.status); })
+      .catch(() => {});
     const interval = setInterval(() => { fetchStats(); fetchCandidates(); }, 3000);
     return () => clearInterval(interval);
   }, [fetchStats, fetchCandidates, fetchCampaigns]);

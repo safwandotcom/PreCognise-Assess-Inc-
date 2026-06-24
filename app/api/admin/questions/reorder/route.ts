@@ -1,39 +1,27 @@
+// app/api/admin/questions/reorder/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// PATCH /api/admin/questions/reorder
-// Body: { id: string, direction: "up" | "down" }
-// Swaps orderIndex of the target question with its neighbour.
-export async function PATCH(req: NextRequest) {
-  try {
-    const { id, direction } = await req.json();
-    if (!id || !direction) {
-      return NextResponse.json({ error: "id and direction required" }, { status: 400 });
-    }
+export async function POST(req: NextRequest) {
+  const { questionId, newIndex } = await req.json();
+  const target = await prisma.question.findUnique({
+    where: { id: questionId },
+    select: { campaignId: true, orderIndex: true },
+  });
+  if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const target = await prisma.question.findUnique({ where: { id } });
-    if (!target) {
-      return NextResponse.json({ error: "Question not found" }, { status: 404 });
-    }
+  const questions = await prisma.question.findMany({
+    where: { campaignId: target.campaignId },
+    orderBy: { orderIndex: "asc" },
+    select: { id: true },
+  });
 
-    const neighbourIndex = direction === "up" ? target.orderIndex - 1 : target.orderIndex + 1;
-    const neighbour = await prisma.question.findFirst({
-      where: { sessionId: target.sessionId, orderIndex: neighbourIndex },
-    });
+  const ids = questions.map(q => q.id).filter(id => id !== questionId);
+  ids.splice(newIndex, 0, questionId);
 
-    if (!neighbour) {
-      return NextResponse.json({ error: "Already at boundary" }, { status: 400 });
-    }
+  await prisma.$transaction(
+    ids.map((id, index) => prisma.question.update({ where: { id }, data: { orderIndex: index } }))
+  );
 
-    // Swap the two orderIndex values atomically via a transaction
-    await prisma.$transaction([
-      prisma.question.update({ where: { id: target.id }, data: { orderIndex: neighbourIndex } }),
-      prisma.question.update({ where: { id: neighbour.id }, data: { orderIndex: target.orderIndex } }),
-    ]);
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("PATCH /api/admin/questions/reorder error:", err);
-    return NextResponse.json({ error: "Failed to reorder" }, { status: 500 });
-  }
+  return NextResponse.json({ ok: true });
 }

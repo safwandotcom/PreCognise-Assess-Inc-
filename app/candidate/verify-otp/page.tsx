@@ -51,13 +51,15 @@ export default function VerifyOtpPage() {
       return;
     }
 
+    const joinToken = sessionStorage.getItem("joinToken");
+
     setIsLoading(true);
 
     try {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rollNumber, otp }),
+        body: JSON.stringify({ rollNumber, otp, ...(joinToken ? { joinToken } : {}) }),
       });
 
       const data = await res.json();

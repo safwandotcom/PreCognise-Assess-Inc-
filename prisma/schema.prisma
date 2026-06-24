@@ -91,8 +91,8 @@ model Session {
 
 model Candidate {
   id                String          @id @default(cuid())
-  rollNumber        String          @unique
-  email             String          @unique
+  rollNumber        String
+  email             String
   passwordHash      String
   generatedPassword String?
   activeToken       String?         @unique
@@ -109,6 +109,9 @@ model Candidate {
   campaignId String?
   campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   responses  Response[]
+
+  @@unique([rollNumber, sessionId])
+  @@unique([email, sessionId])
 }
 
 model Question {

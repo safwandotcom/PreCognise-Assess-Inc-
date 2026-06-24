@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
-    const { rollNumber, otp } = await req.json();
+    const { rollNumber, otp, joinToken } = await req.json();
 
     if (!rollNumber || !otp) {
       return NextResponse.json(
@@ -15,9 +15,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const candidate = await prisma.candidate.findUnique({
-      where: { rollNumber },
-    });
+    let candidate;
+    if (joinToken) {
+      const session = await prisma.session.findUnique({ where: { joinToken } });
+      if (!session) {
+        return NextResponse.json({ message: "Invalid session token" }, { status: 400 });
+      }
+      candidate = await prisma.candidate.findFirst({
+        where: { rollNumber, sessionId: session.id },
+      });
+    } else {
+      candidate = await prisma.candidate.findFirst({ where: { rollNumber } });
+    }
 
     if (!candidate || !candidate.otpCode || !candidate.otpExpiresAt) {
       return NextResponse.json({ message: "Invalid or expired OTP" }, { status: 401 });

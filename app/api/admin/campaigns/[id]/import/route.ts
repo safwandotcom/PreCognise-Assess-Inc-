@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
       const email = row.email.trim().toLowerCase();
 
-      const exists = await prisma.candidate.findUnique({ where: { email } });
+      const exists = await prisma.candidate.findFirst({ where: { email, sessionId: campaign.sessionId } });
       if (exists) {
         skipped.push(`${email} — already registered`);
         continue;

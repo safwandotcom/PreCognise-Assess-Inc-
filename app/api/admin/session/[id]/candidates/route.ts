@@ -18,6 +18,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         status: true,
         disqualifyReason: true,
         tabSwitchCount: true,
+        generatedPassword: true,
       },
       orderBy: { rollNumber: "asc" },
     });

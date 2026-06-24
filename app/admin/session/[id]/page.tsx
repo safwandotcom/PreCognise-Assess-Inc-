@@ -78,6 +78,17 @@ export default function SessionDetailPage() {
     getAdminSocket().emit("admin:join");
   }, [fetchSession]);
 
+  // Poll the scheduler every 60s while SCHEDULED so the page reacts when
+  // scheduledAt arrives (Vercel hobby cron only runs daily).
+  useEffect(() => {
+    if (session?.status !== "SCHEDULED") return;
+    const interval = setInterval(async () => {
+      await fetch("/api/cron/session-scheduler");
+      fetchSession();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [session?.status, fetchSession]);
+
   async function runAction(action: "start" | "pause" | "end" | "unlock") {
     if (!session) return;
     setBusy(true);

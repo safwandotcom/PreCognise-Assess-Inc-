@@ -30,8 +30,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Invalid or expired OTP" }, { status: 401 });
     }
 
-    // Duplicate login detection: if activeToken already set, disqualify both
-    if (candidate.activeToken) {
+    const newActiveToken = randomUUID();
+
+    // Atomic claim: only updates the row if activeToken is still null.
+    // count === 0 means another concurrent request already claimed it.
+    const claim = await prisma.candidate.updateMany({
+      where: { id: candidate.id, activeToken: null },
+      data: {
+        otpCode: null,
+        otpExpiresAt: null,
+        status: CandidateStatus.JOINED,
+        activeToken: newActiveToken,
+      },
+    });
+
+    if (claim.count === 0) {
+      // Another request beat us — disqualify this candidate entirely
       await prisma.candidate.update({
         where: { id: candidate.id },
         data: {
@@ -51,25 +65,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newActiveToken = randomUUID();
-
-    const updated = await prisma.candidate.update({
-      where: { id: candidate.id },
-      data: {
-        otpCode: null,
-        otpExpiresAt: null,
-        status: CandidateStatus.JOINED,
-        activeToken: newActiveToken,
-      },
-    });
-
-    const token = signToken(updated.id, updated.rollNumber);
+    const token = signToken(candidate.id, candidate.rollNumber);
 
     return NextResponse.json(
       {
         token,
-        name: updated.name,
-        rollNumber: updated.rollNumber,
+        name: candidate.name,
+        rollNumber: candidate.rollNumber,
         activeToken: newActiveToken,
       },
       { status: 200 }

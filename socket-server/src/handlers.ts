@@ -5,7 +5,8 @@ import { handleTabSwitch, handlePageRefresh, disqualifyCandidate } from "./antic
 
 interface CandidateAuth {
   candidateId: string;
-  rollNumber: string;
+  accessId: string;
+  campaignId: string;
 }
 
 // Set up once per connected candidate (called from index.ts after their JWT
@@ -15,10 +16,10 @@ export function registerCandidateHandlers(
   socket: Socket,
   auth: CandidateAuth
 ) {
-  const { candidateId, rollNumber } = auth;
+  const { candidateId, accessId } = auth;
 
   socket.on("candidate:join", () => {
-    addCandidate(candidateId, socket.id, rollNumber);
+    addCandidate(candidateId, socket.id, accessId);
     socket.join("candidates"); // so session:start/end can reach everyone at once
     io.to("admins").emit("stats:update"); // tells dashboards "go refetch stats"
   });

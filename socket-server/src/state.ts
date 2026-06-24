@@ -3,7 +3,7 @@
 // What we track for each candidate while they're connected.
 export interface CandidateState {
   socketId: string;
-  rollNumber: string;
+  accessId: string;
   tabSwitchCount: number;
   status: "ACTIVE" | "DISQUALIFIED" | "COMPLETED";
 }
@@ -14,10 +14,10 @@ const connectedCandidates = new Map<string, CandidateState>();
 // Every admin's socket id, so we can broadcast to all open dashboards at once.
 const adminSockets = new Set<string>();
 
-export function addCandidate(candidateId: string, socketId: string, rollNumber: string) {
+export function addCandidate(candidateId: string, socketId: string, accessId: string) {
   connectedCandidates.set(candidateId, {
     socketId,
-    rollNumber,
+    accessId,
     tabSwitchCount: 0,
     status: "ACTIVE",
   });

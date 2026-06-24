@@ -17,6 +17,7 @@ interface Candidate {
   status: CandidateStatus;
   tabSwitchCount: number;
   disqualifyReason: string | null;
+  generatedPassword: string | null;
 }
 
 interface SessionDetail {
@@ -63,6 +64,16 @@ export default function SessionDetailPage() {
   const [addBusy, setAddBusy] = useState(false);
   const [addError, setAddError] = useState("");
   const [newCredential, setNewCredential] = useState<{ rollNumber: string; password: string } | null>(null);
+  const [revealedPasswords, setRevealedPasswords] = useState<Set<string>>(new Set());
+
+  function toggleReveal(candidateId: string) {
+    setRevealedPasswords((prev) => {
+      const next = new Set(prev);
+      if (next.has(candidateId)) next.delete(candidateId);
+      else next.add(candidateId);
+      return next;
+    });
+  }
 
   const fetchSession = useCallback(async () => {
     const res = await fetch(`/api/admin/session/${id}`);
@@ -74,8 +85,13 @@ export default function SessionDetailPage() {
   }, [id]);
 
   useEffect(() => {
+    const socket = getAdminSocket();
+    socket.emit("admin:join");
     fetchSession();
-    getAdminSocket().emit("admin:join");
+
+    // Refresh candidate list whenever a candidate joins
+    socket.on("stats:update", fetchSession);
+    return () => { socket.off("stats:update", fetchSession); };
   }, [fetchSession]);
 
   // Poll the scheduler every 60s while SCHEDULED so the page reacts when
@@ -185,7 +201,29 @@ export default function SessionDetailPage() {
           {/* Candidates */}
           <div className="rounded-xl border border-[#E2E8F0] bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-semibold text-[#0F172A]">Candidates ({session.candidates.length})</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-[#0F172A]">Candidates</p>
+                {(() => {
+                  const total = session.candidates.length;
+                  const joined = session.candidates.filter(
+                    (c) => c.status === "JOINED" || c.status === "ACTIVE" || c.status === "COMPLETED"
+                  ).length;
+                  const inWaiting = session.candidates.filter((c) => c.status === "JOINED").length;
+                  return (
+                    <span className="flex items-center gap-1.5 rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-xs font-medium text-[#64748B]">
+                      <span className="font-bold text-[#0F172A]">{joined}</span>
+                      <span>/</span>
+                      <span className="font-bold text-[#0F172A]">{total}</span>
+                      <span>joined</span>
+                      {inWaiting > 0 && (
+                        <span className="ml-1 rounded-full bg-blue-100 px-1.5 text-[10px] font-semibold text-blue-700">
+                          {inWaiting} waiting
+                        </span>
+                      )}
+                    </span>
+                  );
+                })()}
+              </div>
               <button onClick={() => setShowAddForm((v) => !v)}
                 className="rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-[#64748B] hover:bg-[#F8FAFC]">
                 + Add manually
@@ -219,13 +257,36 @@ export default function SessionDetailPage() {
             ) : (
               <div className="divide-y divide-[#F1F5F9]">
                 {session.candidates.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3 py-2.5">
+                  <div key={c.id} className="flex items-center gap-3 py-2.5 flex-wrap">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${CANDIDATE_STATUS_STYLES[c.status]}`}>{c.status}</span>
                     <span className="font-mono text-xs text-[#64748B]">{c.rollNumber}</span>
                     <span className="text-sm text-[#0F172A]">{c.name}</span>
                     <span className="text-xs text-[#94A3B8]">{c.email}</span>
-                    {c.tabSwitchCount > 0 && (
-                      <span className="ml-auto text-xs text-amber-600">{c.tabSwitchCount} tab switches</span>
+                    <div className="ml-auto flex items-center gap-2">
+                      {c.tabSwitchCount > 0 && (
+                        <span className="text-xs text-amber-600">{c.tabSwitchCount} tab switches</span>
+                      )}
+                      {c.generatedPassword ? (
+                        <button
+                          onClick={() => toggleReveal(c.id)}
+                          className="rounded border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-0.5 text-[10px] font-medium text-[#64748B] hover:bg-[#F1F5F9] transition"
+                        >
+                          {revealedPasswords.has(c.id) ? "Hide" : "Password"}
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-[#CBD5E1]">no password stored</span>
+                      )}
+                    </div>
+                    {revealedPasswords.has(c.id) && c.generatedPassword && (
+                      <div className="w-full mt-1 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1.5 flex items-center gap-3">
+                        <span className="text-xs font-mono text-amber-800">{c.generatedPassword}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(c.generatedPassword!)}
+                          className="text-[10px] text-amber-600 underline hover:text-amber-800"
+                        >
+                          Copy
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}

@@ -4,6 +4,7 @@
 import { useEffect, useState, useSyncExternalStore, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket-client";
+import { getToken } from "@/lib/auth-store";
 import { SocketEvents } from "@/types";
 import { useBranding } from "@/lib/use-branding";
 import BroadcastToast from "@/components/exam/BroadcastToast";
@@ -25,10 +26,26 @@ export default function WaitingRoomPage() {
   const branding = useBranding();
   const name = useSyncExternalStore(subscribeNoop, getCandidateName, getCandidateNameServer);
   const [secondsLeft, setSecondsLeft] = useState(COUNTDOWN_START);
-  const [joinedCount, setJoinedCount] = useState(12);
+  const [stats, setStats] = useState<{ inWaitingRoom: number; joined: number; total: number; sessionTitle: string | null } | null>(null);
   const [broadcastMsg, setBroadcastMsg] = useState<string | null>(null);
 
   const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
+
+  const fetchStats = useCallback(async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch("/api/candidate/session-stats", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch {
+      // non-fatal — stats are informational
+    }
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -37,12 +54,12 @@ export default function WaitingRoomPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch real session stats on mount, then poll every 10s
   useEffect(() => {
-    const interval = setInterval(() => {
-      setJoinedCount((c) => c + Math.floor(Math.random() * 2));
-    }, 4000);
+    fetchStats();
+    const interval = setInterval(fetchStats, 10_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchStats]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -112,19 +129,28 @@ export default function WaitingRoomPage() {
           </div>
 
           {/* Joined count */}
-          <div className="flex items-center justify-center gap-1.5">
-            <div className="flex -space-x-1">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-5 w-5 rounded-full border-2 border-white bg-[#E2E8F0]"
-                />
-              ))}
+          {stats && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-1.5">
+                <div className="flex -space-x-1">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-5 w-5 rounded-full border-2 border-white bg-[#E2E8F0]" />
+                  ))}
+                </div>
+                <p className="text-xs text-[#64748B]">
+                  <span className="font-semibold text-[#0F172A]">{stats.inWaitingRoom}</span>
+                  {" of "}
+                  <span className="font-semibold text-[#0F172A]">{stats.total}</span>
+                  {" candidates in the waiting room"}
+                </p>
+              </div>
+              {stats.joined > stats.inWaitingRoom && (
+                <p className="text-center text-[10px] text-[#94A3B8]">
+                  {stats.joined - stats.inWaitingRoom} already in the exam
+                </p>
+              )}
             </div>
-            <p className="text-xs text-[#64748B]">
-              {joinedCount} candidates in the waiting room
-            </p>
-          </div>
+          )}
         </div>
 
         {/* Test button */}

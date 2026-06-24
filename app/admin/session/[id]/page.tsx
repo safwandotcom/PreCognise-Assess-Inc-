@@ -85,8 +85,13 @@ export default function SessionDetailPage() {
   }, [id]);
 
   useEffect(() => {
+    const socket = getAdminSocket();
+    socket.emit("admin:join");
     fetchSession();
-    getAdminSocket().emit("admin:join");
+
+    // Refresh candidate list whenever a candidate joins
+    socket.on("stats:update", fetchSession);
+    return () => { socket.off("stats:update", fetchSession); };
   }, [fetchSession]);
 
   // Poll the scheduler every 60s while SCHEDULED so the page reacts when
@@ -196,7 +201,29 @@ export default function SessionDetailPage() {
           {/* Candidates */}
           <div className="rounded-xl border border-[#E2E8F0] bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-semibold text-[#0F172A]">Candidates ({session.candidates.length})</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-[#0F172A]">Candidates</p>
+                {(() => {
+                  const total = session.candidates.length;
+                  const joined = session.candidates.filter(
+                    (c) => c.status === "JOINED" || c.status === "ACTIVE" || c.status === "COMPLETED"
+                  ).length;
+                  const inWaiting = session.candidates.filter((c) => c.status === "JOINED").length;
+                  return (
+                    <span className="flex items-center gap-1.5 rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-xs font-medium text-[#64748B]">
+                      <span className="font-bold text-[#0F172A]">{joined}</span>
+                      <span>/</span>
+                      <span className="font-bold text-[#0F172A]">{total}</span>
+                      <span>joined</span>
+                      {inWaiting > 0 && (
+                        <span className="ml-1 rounded-full bg-blue-100 px-1.5 text-[10px] font-semibold text-blue-700">
+                          {inWaiting} waiting
+                        </span>
+                      )}
+                    </span>
+                  );
+                })()}
+              </div>
               <button onClick={() => setShowAddForm((v) => !v)}
                 className="rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-[#64748B] hover:bg-[#F8FAFC]">
                 + Add manually

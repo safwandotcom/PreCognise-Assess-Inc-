@@ -29,6 +29,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (!existing) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     const body = await req.json();
     const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor } = body;
+    if (name !== undefined && !name.trim()) {
+      return NextResponse.json({ error: "Campaign name cannot be empty" }, { status: 400 });
+    }
     const campaign = await prisma.campaign.update({
       where: { id },
       data: {

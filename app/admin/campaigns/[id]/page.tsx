@@ -258,58 +258,50 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC]">
+      <div className="flex items-center justify-center py-32">
         <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
-      </main>
+      </div>
     );
   }
 
   if (!campaign) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F8FAFC] text-center">
+      <div className="flex flex-col items-center justify-center gap-4 py-32 text-center">
         <p className="font-semibold text-[#0F172A]">Campaign not found</p>
         <Link href="/admin/campaigns" className="text-sm text-[#2E0BFC] hover:underline">← Back to campaigns</Link>
-      </main>
+      </div>
     );
   }
 
   const applyUrl = `${getBaseUrl()}/apply/${campaign.slug}`;
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC]">
-      {/* Header */}
-      <div className="border-b border-[#E2E8F0] bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-5">
-          <Link href="/admin/campaigns" className="text-sm text-[#64748B] hover:text-[#0F172A]">← All campaigns</Link>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">{campaign.name}</h1>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  campaign.active ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" : "bg-gray-100 text-gray-500"
-                }`}>
-                  {campaign.active ? "Active" : "Inactive"}
-                </span>
-              </div>
-              <p className="mt-0.5 font-mono text-sm text-[#64748B]">/apply/{campaign.slug}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <CopyButton text={applyUrl} label="Copy apply link" />
-              <button
-                type="button"
-                onClick={handleToggleActive}
-                className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                  campaign.active ? "border border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F5F9]" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                }`}
-              >
-                {campaign.active ? "Deactivate" : "Activate"}
-              </button>
-            </div>
-          </div>
+    <div className="px-7 py-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-[#0F172A]">{campaign.name}</h1>
+          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.04em] ${
+            campaign.active
+              ? "bg-green-50 text-green-700"
+              : "border border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]"
+          }`}>
+            {campaign.active ? "Active" : "Inactive"}
+          </span>
         </div>
+        <button
+          onClick={handleToggleActive}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            campaign.active
+              ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+              : "text-white hover:opacity-90"
+          }`}
+          style={campaign.active ? undefined : { background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
+        >
+          {campaign.active ? "Deactivate" : "Activate"}
+        </button>
       </div>
 
-      <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
+      <div className="space-y-6">
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4">
@@ -562,6 +554,6 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
         </section>
 
       </div>
-    </main>
+    </div>
   );
 }

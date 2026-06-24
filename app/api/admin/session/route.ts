@@ -13,6 +13,19 @@ const ACTION_TO_STATUS: Record<string, "LIVE" | "PAUSED" | "ENDED"> = {
   end: "ENDED",
 };
 
+export async function GET() {
+  try {
+    const session = await prisma.session.findFirst();
+    if (!session) {
+      return NextResponse.json({ status: "WAITING" });
+    }
+    return NextResponse.json({ status: session.status });
+  } catch (err) {
+    console.error("Admin session GET error:", err);
+    return NextResponse.json({ status: "WAITING" });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { action } = await req.json();

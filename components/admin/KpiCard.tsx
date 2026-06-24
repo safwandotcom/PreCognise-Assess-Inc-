@@ -1,26 +1,29 @@
 interface KpiCardProps {
   label: string;
-  value: number;
-  color: "blue" | "green" | "red" | "gray" | "gold";
+  value: number | string;
+  icon: React.ReactNode;
+  iconBg: string;
+  delta?: string;
+  deltaUp?: boolean;
 }
 
-const COLOR_MAP: Record<KpiCardProps["color"], { bar: string; value: string }> = {
-  blue:  { bar: "bg-blue-500",    value: "text-blue-600" },
-  green: { bar: "bg-emerald-500", value: "text-emerald-600" },
-  red:   { bar: "bg-red-500",     value: "text-red-600" },
-  gray:  { bar: "bg-slate-400",   value: "text-slate-600" },
-  gold:  { bar: "bg-amber-500",   value: "text-amber-600" },
-};
-
-export default function KpiCard({ label, value, color }: KpiCardProps) {
-  const { bar, value: valueCls } = COLOR_MAP[color];
+export default function KpiCard({ label, value, icon, iconBg, delta, deltaUp }: KpiCardProps) {
   return (
-    <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-      <div className={`mb-3 h-1 w-8 rounded-full ${bar}`} />
-      <p className="text-xs font-medium text-[#64748B] uppercase tracking-wide">{label}</p>
-      <p className={`mt-1 text-3xl font-bold ${valueCls}`}>
+    <div className="rounded-xl border border-[#E2E8F0] bg-white p-4 md:p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs font-medium text-[#64748B]">{label}</span>
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconBg}`}>
+          {icon}
+        </div>
+      </div>
+      <p className="font-[family-name:var(--font-bricolage)] text-3xl font-extrabold leading-none text-[#0F172A]">
         {value}
       </p>
+      {delta && (
+        <p className={`mt-1.5 text-[11px] font-medium ${deltaUp ? "text-green-600" : "text-red-500"}`}>
+          {deltaUp ? "↑" : "↓"} {delta}
+        </p>
+      )}
     </div>
   );
 }

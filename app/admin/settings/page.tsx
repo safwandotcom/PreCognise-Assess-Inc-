@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import { SETTINGS_DEFAULTS, type AssessmentSettings } from "@/lib/get-settings";
 
 // ─── Toggle ─────────────────────────────────────────────────────────────────
@@ -113,47 +112,10 @@ export default function SettingsPage() {
     !form.antiCheatDevTools;
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC]">
-      {/* Header */}
-      <div className="border-b border-[#E2E8F0] bg-white">
-        <div className="mx-auto max-w-3xl px-6 py-5">
-          <Link href="/admin" className="text-sm text-[#64748B] hover:text-[#0F172A]">← Admin dashboard</Link>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Settings</h1>
-              <p className="mt-0.5 text-sm text-[#64748B]">Configure anti-cheat, exam behaviour, and access rules.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {savedMsg && !isDirty && (
-                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  Saved
-                </span>
-              )}
-              {isDirty && (
-                <>
-                  <button
-                    type="button"
-                    onClick={load}
-                    className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    type="submit"
-                    form="settings-form"
-                    disabled={saving}
-                    className="rounded-lg bg-[#2E0BFC] px-5 py-2 text-sm font-medium text-white hover:bg-[#1E06B8] disabled:opacity-60"
-                  >
-                    {saving ? "Saving…" : "Save settings"}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+    <div className="px-7 py-6">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-[#0F172A]">Settings</h1>
+        <p className="text-sm text-[#64748B]">Configure assessment behaviour and platform defaults.</p>
       </div>
 
       {loading ? (
@@ -162,7 +124,7 @@ export default function SettingsPage() {
         </div>
       ) : (
         <form id="settings-form" onSubmit={handleSave}>
-          <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
+          <div className="space-y-6">
 
             {/* Anti-cheat warning */}
             {antiCheatAllOff && (
@@ -328,6 +290,6 @@ export default function SettingsPage() {
           </div>
         </form>
       )}
-    </main>
+    </div>
   );
 }

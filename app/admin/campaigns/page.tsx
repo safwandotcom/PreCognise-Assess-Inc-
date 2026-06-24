@@ -302,28 +302,21 @@ export default function CampaignsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC]">
-      <div className="border-b border-[#E2E8F0] bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-5">
-          <Link href="/admin" className="text-sm text-[#64748B] hover:text-[#0F172A]">← Admin dashboard</Link>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">Campaigns</h1>
-              <p className="mt-0.5 text-sm text-[#64748B]">
-                Each campaign has a unique link candidates use to self-register.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="rounded-lg bg-[#2E0BFC] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1E06B8]"
-            >
-              + New campaign
-            </button>
-          </div>
+    <div className="px-7 py-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#0F172A]">Campaigns</h1>
+          <p className="text-sm text-[#64748B]">Manage assessment campaigns and registration links.</p>
         </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="rounded-lg bg-[#2E0BFC] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1E06B8]"
+        >
+          + New campaign
+        </button>
       </div>
 
-      <div className="mx-auto max-w-5xl px-6 py-8">
+      <div>
         {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
@@ -364,6 +357,6 @@ export default function CampaignsPage() {
       {showCreate && (
         <CreateModal onSave={handleCreate} onClose={() => setShowCreate(false)} saving={saving} />
       )}
-    </main>
+    </div>
   );
 }

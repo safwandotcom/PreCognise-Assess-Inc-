@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { getAdminSocket, disconnectAdminSocket } from "@/lib/admin-socket-client";
 
 type SessionStatus = "WAITING" | "LIVE" | "PAUSED" | "ENDED";
@@ -58,28 +57,13 @@ export default function AdminSessionPage() {
   const s = STATUS_STYLES[status];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Header */}
-      <header
-        className="px-6 py-5"
-        style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
-      >
-        <div className="mx-auto flex max-w-2xl items-center gap-4">
-          <Link
-            href="/admin"
-            className="flex items-center gap-1.5 text-sm font-medium text-indigo-200 hover:text-white"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Dashboard
-          </Link>
-          <span className="text-indigo-300">/</span>
-          <h1 className="text-xl font-bold text-white">Session Control</h1>
-        </div>
-      </header>
+    <div className="px-7 py-6">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-[#0F172A]">Live Session</h1>
+        <p className="text-sm text-[#64748B]">Start, pause, or end the session — and broadcast messages to all candidates.</p>
+      </div>
 
-      <main className="mx-auto max-w-2xl px-6 py-8 space-y-6">
+      <main className="max-w-2xl space-y-6">
         {/* Status card */}
         <div className="rounded-xl border border-[#E2E8F0] bg-white p-6">
           <p className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
@@ -140,3 +124,4 @@ export default function AdminSessionPage() {
     </div>
   );
 }
+

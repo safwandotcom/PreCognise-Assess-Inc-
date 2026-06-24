@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -393,34 +392,21 @@ export default function QuestionsPage() {
   const totalPoints = questions.reduce((sum, q) => sum + q.basePoints + q.speedBonusMax, 0);
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC]">
-      {/* Header */}
-      <div className="border-b border-[#E2E8F0] bg-white">
-        <div className="mx-auto max-w-4xl px-6 py-5">
-          <Link href="/admin" className="text-sm text-[#64748B] hover:text-[#0F172A]">
-            ← Admin dashboard
-          </Link>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#0F172A]">
-                Question Builder
-              </h1>
-              <p className="mt-0.5 text-sm text-[#64748B]">
-                {questions.length} question{questions.length !== 1 ? "s" : ""} · {totalPoints} total points
-              </p>
-            </div>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="rounded-lg bg-[#2E0BFC] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1E06B8]"
-            >
-              + Add question
-            </button>
-          </div>
+    <div className="px-7 py-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#0F172A]">Question Builder</h1>
+          <p className="text-sm text-[#64748B]">Create and manage assessment questions.</p>
         </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="rounded-lg bg-[#2E0BFC] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1E06B8]"
+        >
+          + Add question
+        </button>
       </div>
 
-      {/* Body */}
-      <div className="mx-auto max-w-4xl px-6 py-8">
+      <div>
         {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#2E0BFC] border-t-transparent" />
@@ -589,6 +575,6 @@ export default function QuestionsPage() {
           </div>
         </Modal>
       )}
-    </main>
+    </div>
   );
 }

@@ -82,7 +82,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const exists = await prisma.candidate.findUnique({ where: { email: normalizedEmail } });
+    const exists = await prisma.candidate.findFirst({ where: { email: normalizedEmail, sessionId: campaign.sessionId } });
     if (exists) {
       return NextResponse.json({ error: "This email is already registered" }, { status: 409 });
     }

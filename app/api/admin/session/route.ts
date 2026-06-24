@@ -1,61 +1,64 @@
 // app/api/admin/session/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { SessionStatus } from "@prisma/client";
 
-// Protected by middleware.ts (Clerk) — only reachable by a logged-in admin.
-// This route only persists the Session status in the DB. The actual
-// candidate-facing broadcast (session:start / session:end) is fired
-// separately from the browser via getAdminSocket() — this route has no
-// socket connection of its own, so it can't emit anything itself.
-const ACTION_TO_STATUS: Record<string, "LIVE" | "PAUSED" | "ENDED"> = {
-  start: "LIVE",
-  pause: "PAUSED",
-  end: "ENDED",
+const ACTION_TO_STATUS: Record<string, SessionStatus> = {
+  start: SessionStatus.LIVE,
+  pause: SessionStatus.PAUSED,
+  end: SessionStatus.ENDED,
+  unlock: SessionStatus.WAITING,
 };
 
 export async function GET() {
   try {
-    const session = await prisma.session.findFirst();
-    if (!session) {
-      return NextResponse.json({ status: "WAITING" });
-    }
-    return NextResponse.json({ status: session.status });
+    const sessions = await prisma.session.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { candidates: true, questions: true } },
+      },
+    });
+    return NextResponse.json({ sessions });
   } catch (err) {
-    console.error("Admin session GET error:", err);
-    return NextResponse.json({ status: "WAITING" });
+    console.error("GET /api/admin/session error:", err);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { action } = await req.json();
-    const status = ACTION_TO_STATUS[action];
+    const body = await req.json();
+    const { title, scheduledAt, autoStart, action, id } = body;
 
-    if (!status) {
-      return NextResponse.json(
-        { error: "action must be 'start', 'pause', or 'end'" },
-        { status: 400 }
-      );
+    // Legacy live-control action (start/pause/end/unlock) on a specific session
+    if (action && id) {
+      const status = ACTION_TO_STATUS[action];
+      if (!status) {
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+      }
+      const session = await prisma.session.update({
+        where: { id },
+        data: {
+          status,
+          ...(action === "start" ? { startedAt: new Date() } : {}),
+        },
+      });
+      return NextResponse.json({ ok: true, status: session.status });
     }
 
-    // Demo seeds exactly one Session row — grab it rather than requiring
-    // the admin UI to know/track a sessionId.
-    const session = await prisma.session.findFirst();
-    if (!session) {
-      return NextResponse.json({ error: "No session found" }, { status: 404 });
-    }
-
-    await prisma.session.update({
-      where: { id: session.id },
+    // Create new session
+    const session = await prisma.session.create({
       data: {
-        status,
-        ...(action === "start" ? { startedAt: new Date() } : {}),
+        title: title?.trim() || "Untitled Session",
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        autoStart: autoStart ?? false,
+        status: scheduledAt ? SessionStatus.SCHEDULED : SessionStatus.WAITING,
       },
     });
 
-    return NextResponse.json({ ok: true, status });
+    return NextResponse.json({ session }, { status: 201 });
   } catch (err) {
-    console.error("Admin session route error:", err);
+    console.error("POST /api/admin/session error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }

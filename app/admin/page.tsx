@@ -61,10 +61,14 @@ export default function AdminPage() {
     fetchStats();
     fetchCandidates();
     fetchCampaigns();
-    // fetch once on mount to seed session status
+    // fetch most recent session status for dashboard badge
     fetch("/api/admin/session")
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data?.status) setSessionStatus(data.status); })
+      .then((data) => {
+        const sessions: { status: string }[] = data?.sessions ?? [];
+        const live = sessions.find((s) => s.status === "LIVE") ?? sessions.find((s) => s.status === "PAUSED") ?? sessions[0];
+        if (live?.status) setSessionStatus(live.status as typeof sessionStatus);
+      })
       .catch(() => {});
     const interval = setInterval(() => { fetchStats(); fetchCandidates(); }, 3000);
     return () => clearInterval(interval);

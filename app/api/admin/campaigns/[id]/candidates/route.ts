@@ -44,6 +44,11 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const count = await prisma.candidate.count({ where: { campaignId: id } });
+
+  if (campaign.maxCandidates && count >= campaign.maxCandidates) {
+    return NextResponse.json({ error: "Campaign is at maximum candidate capacity" }, { status: 422 });
+  }
+
   const accessId = makeAccessId(campaign.name, count + 1);
   const plainPassword = generatePassword();
   const passwordHash = await hashPassword(plainPassword);

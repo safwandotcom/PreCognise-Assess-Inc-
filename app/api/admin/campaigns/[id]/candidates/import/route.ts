@@ -18,13 +18,6 @@ export async function POST(req: NextRequest, { params }: Params) {
   const campaign = await prisma.campaign.findUnique({ where: { id } });
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
-  if (campaign.maxCandidates && rows.length > campaign.maxCandidates) {
-    return NextResponse.json(
-      { error: `Row count ${rows.length} exceeds maxCandidates ${campaign.maxCandidates}` },
-      { status: 422 }
-    );
-  }
-
   // Detect duplicate emails within the uploaded file
   const emailsSeen = new Set<string>();
   const dupes: number[] = [];
@@ -38,6 +31,25 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const existingCount = await prisma.candidate.count({ where: { campaignId: id } });
+
+  if (campaign.maxCandidates && (existingCount + rows.length) > campaign.maxCandidates) {
+    return NextResponse.json(
+      { error: `Import would exceed maxCandidates (${campaign.maxCandidates}). Currently ${existingCount} candidates registered.` },
+      { status: 422 }
+    );
+  }
+
+  const emailList = rows.map(r => r.email.trim().toLowerCase());
+  const existingInDb = await prisma.candidate.findMany({
+    where: { campaignId: id, email: { in: emailList } },
+    select: { email: true },
+  });
+  if (existingInDb.length > 0) {
+    return NextResponse.json(
+      { error: `These emails are already registered: ${existingInDb.map(c => c.email).join(", ")}` },
+      { status: 422 }
+    );
+  }
 
   // Hash passwords in batches of 100 to avoid timeout
   const BATCH = 100;
@@ -56,16 +68,17 @@ export async function POST(req: NextRequest, { params }: Params) {
     credentials.push(...hashed);
   }
 
-  await prisma.candidate.createMany({
-    data: credentials.map(c => ({
-      accessId: c.accessId,
-      email: c.email,
-      name: c.name,
-      passwordHash: c.passwordHash,
-      generatedPassword: c.password,
-      campaignId: id,
-    })),
-    skipDuplicates: true,
+  await prisma.$transaction(async (tx) => {
+    await tx.candidate.createMany({
+      data: credentials.map(c => ({
+        accessId: c.accessId,
+        email: c.email,
+        name: c.name,
+        passwordHash: c.passwordHash,
+        generatedPassword: c.password,
+        campaignId: id,
+      })),
+    });
   });
 
   const imported = credentials.length;

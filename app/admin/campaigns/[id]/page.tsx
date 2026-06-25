@@ -320,12 +320,20 @@ function OverviewTab({
                 This campaign has ended. View the full candidate results and scores below.
               </p>
             </div>
-            <Link
-              href={`/admin/campaigns/${campaign.id}/results`}
-              className="shrink-0 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 transition-colors"
-            >
-              View Results →
-            </Link>
+            <div className="flex gap-2 shrink-0">
+              <Link
+                href={`/admin/campaigns/${campaign.id}/analytics`}
+                className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+              >
+                Analytics
+              </Link>
+              <Link
+                href={`/admin/campaigns/${campaign.id}/results`}
+                className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 transition-colors"
+              >
+                View Results →
+              </Link>
+            </div>
           </div>
         </section>
       )}

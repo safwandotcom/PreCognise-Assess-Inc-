@@ -48,18 +48,31 @@ export async function POST(req: NextRequest) {
       data: { activeToken: "pending", status: CandidateStatus.JOINED },
     });
 
-    let token: string;
     if (claimed.count === 0) {
-      // Already has an active session — return existing token
-      const refreshed = await prisma.candidate.findUnique({ where: { id: candidate.id } });
-      if (!refreshed?.activeToken || refreshed.activeToken === "pending") {
-        return NextResponse.json({ error: "Already logged in from another device" }, { status: 409 });
+      if (campaign.disqualifyOnDuplicateLogin) {
+        // Disqualify and kill both sessions
+        await prisma.candidate.update({
+          where: { id: candidate.id },
+          data: {
+            status: CandidateStatus.DISQUALIFIED,
+            disqualifyReason: "Duplicate login detected — assessment rules prohibit logging in from multiple devices.",
+            activeToken: null,
+          },
+        });
+        return NextResponse.json(
+          { error: "You have been disqualified: login attempted from a second device." },
+          { status: 403 }
+        );
       }
-      token = refreshed.activeToken;
-    } else {
-      token = signToken({ candidateId: candidate.id, campaignId: campaign.id });
-      await prisma.candidate.update({ where: { id: candidate.id }, data: { activeToken: token } });
+      // Soft block — just reject the second device, first session continues
+      return NextResponse.json(
+        { error: "You are already logged in from another device." },
+        { status: 409 }
+      );
     }
+
+    const token = signToken({ candidateId: candidate.id, campaignId: campaign.id });
+    await prisma.candidate.update({ where: { id: candidate.id }, data: { activeToken: token } });
 
     return NextResponse.json({ token, candidateName: candidate.name });
   } catch (err) {

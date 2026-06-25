@@ -9,6 +9,9 @@ export type AssessmentSettings = {
   speedBonusEnabled: boolean;
   gracePeriodSec: number;
   geoRestriction: string;
+  tabSwitchLimit: number;
+  antiCheatFullscreen: boolean;
+  antiCheatRightClick: boolean;
 };
 
 export const SETTINGS_DEFAULTS: AssessmentSettings = {
@@ -20,6 +23,9 @@ export const SETTINGS_DEFAULTS: AssessmentSettings = {
   speedBonusEnabled: true,
   gracePeriodSec: 0,
   geoRestriction: "",
+  tabSwitchLimit: 3,
+  antiCheatFullscreen: false,
+  antiCheatRightClick: true,
 };
 
 export async function getSettings(): Promise<AssessmentSettings> {
@@ -36,5 +42,8 @@ export async function getSettings(): Promise<AssessmentSettings> {
     speedBonusEnabled: row.speedBonusEnabled,
     gracePeriodSec: row.gracePeriodSec,
     geoRestriction: row.geoRestriction,
+    tabSwitchLimit: SETTINGS_DEFAULTS.tabSwitchLimit,
+    antiCheatFullscreen: SETTINGS_DEFAULTS.antiCheatFullscreen,
+    antiCheatRightClick: SETTINGS_DEFAULTS.antiCheatRightClick,
   };
 }

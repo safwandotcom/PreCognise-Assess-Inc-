@@ -77,16 +77,27 @@ export async function GET(req: NextRequest) {
 
   // ── Aggregate totals ────────────────────────────────────────────────────────
 
-  // Apply negative marking deduction if campaign has it enabled.
-  // For each wrong scored-type answer, deduct basePoints * negativeMarkingValue,
-  // floored at 0 overall.
   let totalScore = responses.reduce((sum, r) => sum + r.score, 0);
+
+  const speedBonusTotal = responses.reduce((sum, r) => {
+    if (!isScoredType(r.question.type)) return sum;
+    const bonus = r.score - r.question.basePoints;
+    return sum + (bonus > 0 ? bonus : 0);
+  }, 0);
+
+  // baseScoreTotal = base points earned, excluding speed bonus and penalty
+  const baseScoreTotal = totalScore - speedBonusTotal;
+
+  // Apply negative marking deduction if campaign has it enabled.
+  // Only penalize explicitly wrong answers — skipped/blank (null) answers are not penalized.
+  // Deduction is floored at 0 overall.
   if (campaign?.negativeMarking) {
     let penalty = 0;
     for (const r of responses) {
       if (
         isScoredType(r.question.type) &&
         r.question.correctOption !== null &&
+        r.answer !== null &&
         r.answer !== r.question.correctOption &&
         r.score === 0
       ) {
@@ -95,15 +106,8 @@ export async function GET(req: NextRequest) {
     }
     totalScore = Math.max(0, totalScore - penalty);
   }
+
   const questionsAnswered = responses.length;
-
-  const speedBonusTotal = responses.reduce((sum, r) => {
-    if (!isScoredType(r.question.type)) return sum;
-    const bonus = r.score - r.question.basePoints;
-    return sum + (bonus > 0 ? bonus : 0);
-  }, 0);
-
-  const baseScoreTotal = totalScore - speedBonusTotal;
 
   const questionsCorrect = responses.filter(
     (r) => isScoredType(r.question.type) && r.score > 0

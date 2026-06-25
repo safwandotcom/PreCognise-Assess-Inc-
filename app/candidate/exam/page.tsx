@@ -24,6 +24,7 @@ export default function ExamPage() {
   const [showWarning, setShowWarning] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState<string | null>(null);
   const [screenshotFlash, setScreenshotFlash] = useState(false);
+  const [fullscreenWarning, setFullscreenWarning] = useState(false);
 
   const startTimeRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
@@ -32,6 +33,8 @@ export default function ExamPage() {
   const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Settings loaded async; event handlers read from this ref without re-binding
   const settingsRef = useRef<AssessmentSettings>(SETTINGS_DEFAULTS);
+  // Set to true once campaign config has loaded — triggers fullscreen request
+  const configLoadedRef = useRef(false);
 
   const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
 
@@ -125,9 +128,17 @@ export default function ExamPage() {
   // Initial load — settings and first question in parallel
   useEffect(() => {
     mountedRef.current = true;
-    fetch("/api/settings")
+    fetch("/api/candidate/campaign-config", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
       .then((r) => r.json())
-      .then((data: AssessmentSettings) => { settingsRef.current = { ...SETTINGS_DEFAULTS, ...data }; })
+      .then((data) => {
+        settingsRef.current = { ...SETTINGS_DEFAULTS, ...data };
+        configLoadedRef.current = true;
+        if (settingsRef.current.antiCheatFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNext();
@@ -162,12 +173,35 @@ export default function ExamPage() {
   useEffect(() => {
     const socket = getSocket();
 
+    const handleTabSwitch = async () => {
+      if (!settingsRef.current.antiCheatTabSwitch) return;
+      try {
+        const res = await fetch("/api/candidate/tab-switch", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        if (data.disqualified) {
+          sessionStorage.setItem(
+            "disqualifyReason",
+            data.disqualifyReason ?? `Disqualified: exceeded tab switch limit.`
+          );
+          disconnectSocket();
+          router.push("/candidate/disqualified");
+          return;
+        }
+      } catch {
+        // network error — still emit socket event so admin can see it
+      }
+      socket.emit(SocketEvents.TAB_SWITCH);
+    };
+
     const onVisibilityChange = () => {
       if (!settingsRef.current.antiCheatTabSwitch) return;
-      if (document.visibilityState === "hidden") socket.emit(SocketEvents.TAB_SWITCH);
+      if (document.visibilityState === "hidden") handleTabSwitch();
     };
     const onBlur = () => {
-      if (settingsRef.current.antiCheatTabSwitch) socket.emit(SocketEvents.TAB_SWITCH);
+      handleTabSwitch();
     };
     const onBeforeUnload = () => socket.emit(SocketEvents.PAGE_REFRESH);
     const onContextMenu = (e: MouseEvent) => {
@@ -215,6 +249,13 @@ export default function ExamPage() {
       if (ctrl && (e.key === "p" || e.key === "P")) { e.preventDefault(); }
     };
 
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement && settingsRef.current.antiCheatFullscreen) {
+        setFullscreenWarning(true);
+        handleTabSwitch();
+      }
+    };
+
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("blur", onBlur);
     window.addEventListener("beforeunload", onBeforeUnload);
@@ -223,6 +264,7 @@ export default function ExamPage() {
     document.addEventListener("copy", onCopy);
     document.addEventListener("cut", onCut);
     document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -233,8 +275,9 @@ export default function ExamPage() {
       document.removeEventListener("copy", onCopy);
       document.removeEventListener("cut", onCut);
       document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, []);
+  }, [router]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -257,6 +300,26 @@ export default function ExamPage() {
           </svg>
           <p className="text-base font-semibold text-white">Screenshots are not permitted</p>
           <p className="text-sm text-gray-400">This attempt has been recorded.</p>
+        </div>
+      )}
+
+      {fullscreenWarning && (
+        <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center gap-4 bg-black/90">
+          <svg className="h-10 w-10 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+          </svg>
+          <p className="text-lg font-semibold text-white">You exited fullscreen</p>
+          <p className="text-sm text-gray-400">This assessment requires fullscreen mode.</p>
+          <button
+            type="button"
+            onClick={() => {
+              document.documentElement.requestFullscreen().catch(() => {});
+              setFullscreenWarning(false);
+            }}
+            className="mt-2 rounded-lg bg-[#6366F1] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#4F46E5]"
+          >
+            Return to fullscreen
+          </button>
         </div>
       )}
 

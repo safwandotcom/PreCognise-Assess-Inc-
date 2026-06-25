@@ -77,6 +77,13 @@ model Campaign {
   negativeMarkingValue Float          @default(0.25)
   gracePeriodMin              Int            @default(10)
   disqualifyOnDuplicateLogin  Boolean        @default(true)
+  antiCheatTabSwitch          Boolean        @default(true)
+  tabSwitchLimit              Int            @default(3)
+  antiCheatFullscreen         Boolean        @default(false)
+  antiCheatCopyPaste          Boolean        @default(true)
+  antiCheatRightClick         Boolean        @default(true)
+  antiCheatScreenshot         Boolean        @default(true)
+  antiCheatDevTools           Boolean        @default(true)
   createdAt                   DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   candidates           Candidate[]

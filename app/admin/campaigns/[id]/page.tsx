@@ -44,6 +44,13 @@ interface Campaign {
   negativeMarkingValue: number;
   gracePeriodMin: number;
   disqualifyOnDuplicateLogin: boolean;
+  antiCheatTabSwitch: boolean;
+  tabSwitchLimit: number;
+  antiCheatFullscreen: boolean;
+  antiCheatCopyPaste: boolean;
+  antiCheatRightClick: boolean;
+  antiCheatScreenshot: boolean;
+  antiCheatDevTools: boolean;
   createdAt: string;
   questions: Question[];
   _count: { candidates: number; questions: number };
@@ -180,6 +187,13 @@ function OverviewTab({
   );
   const [gracePeriodMin, setGracePeriodMin] = useState(campaign.gracePeriodMin);
   const [disqualifyOnDuplicateLogin, setDisqualifyOnDuplicateLogin] = useState(campaign.disqualifyOnDuplicateLogin);
+  const [antiCheatTabSwitch, setAntiCheatTabSwitch] = useState(campaign.antiCheatTabSwitch);
+  const [tabSwitchLimit, setTabSwitchLimit] = useState(campaign.tabSwitchLimit);
+  const [antiCheatFullscreen, setAntiCheatFullscreen] = useState(campaign.antiCheatFullscreen);
+  const [antiCheatCopyPaste, setAntiCheatCopyPaste] = useState(campaign.antiCheatCopyPaste);
+  const [antiCheatRightClick, setAntiCheatRightClick] = useState(campaign.antiCheatRightClick);
+  const [antiCheatScreenshot, setAntiCheatScreenshot] = useState(campaign.antiCheatScreenshot);
+  const [antiCheatDevTools, setAntiCheatDevTools] = useState(campaign.antiCheatDevTools);
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -196,6 +210,13 @@ function OverviewTab({
     setNegativeMarkingValue(campaign.negativeMarkingValue.toString());
     setGracePeriodMin(campaign.gracePeriodMin);
     setDisqualifyOnDuplicateLogin(campaign.disqualifyOnDuplicateLogin);
+    setAntiCheatTabSwitch(campaign.antiCheatTabSwitch);
+    setTabSwitchLimit(campaign.tabSwitchLimit);
+    setAntiCheatFullscreen(campaign.antiCheatFullscreen);
+    setAntiCheatCopyPaste(campaign.antiCheatCopyPaste);
+    setAntiCheatRightClick(campaign.antiCheatRightClick);
+    setAntiCheatScreenshot(campaign.antiCheatScreenshot);
+    setAntiCheatDevTools(campaign.antiCheatDevTools);
   }, [campaign]);
 
   async function handleSave(e: React.FormEvent) {
@@ -216,6 +237,13 @@ function OverviewTab({
           negativeMarkingValue: Number(negativeMarkingValue),
           gracePeriodMin,
           disqualifyOnDuplicateLogin,
+          antiCheatTabSwitch,
+          tabSwitchLimit,
+          antiCheatFullscreen,
+          antiCheatCopyPaste,
+          antiCheatRightClick,
+          antiCheatScreenshot,
+          antiCheatDevTools,
         }),
       });
       if (!res.ok) {
@@ -484,6 +512,178 @@ function OverviewTab({
                   {min === 0 ? "No late entry" : `${min} min`}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Anti-cheat & Security */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+              Anti-cheat &amp; Security
+            </p>
+            <div className="flex flex-col gap-3">
+              {/* Tab switch detection */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">Tab switch detection</p>
+                  <p className="text-xs text-[#64748B]">Warn or disqualify candidates who leave the exam tab</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatTabSwitch}
+                  onClick={() => setAntiCheatTabSwitch((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatTabSwitch ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatTabSwitch ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Tab switch limit — shown only when tab switch detection is on */}
+              {antiCheatTabSwitch && (
+                <div className="ml-4 pl-4 border-l-2 border-[#E2E8F0]">
+                  <p className="mb-2 text-xs font-medium text-[#0F172A]">Tab switch limit</p>
+                  <p className="mb-2 text-xs text-[#64748B]">
+                    Disqualify after this many switches. 0 = disqualify on 1st switch.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[0, 1, 2, 3, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setTabSwitchLimit(n)}
+                        className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                          tabSwitchLimit === n
+                            ? "border-[#6366F1] bg-[#6366F1] text-white"
+                            : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1] hover:text-[#6366F1]"
+                        }`}
+                      >
+                        {n === 0 ? "Disqualify on 1st switch" : `After ${n} switch${n !== 1 ? "es" : ""}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fullscreen enforcement */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">Fullscreen enforcement</p>
+                  <p className="text-xs text-[#64748B]">Require candidates to stay in fullscreen during the exam</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatFullscreen}
+                  onClick={() => setAntiCheatFullscreen((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatFullscreen ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatFullscreen ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Disable copy/paste */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">Disable copy/paste</p>
+                  <p className="text-xs text-[#64748B]">Block clipboard operations and text selection</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatCopyPaste}
+                  onClick={() => setAntiCheatCopyPaste((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatCopyPaste ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatCopyPaste ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Disable right-click */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">Disable right-click</p>
+                  <p className="text-xs text-[#64748B]">Block the browser context menu</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatRightClick}
+                  onClick={() => setAntiCheatRightClick((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatRightClick ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatRightClick ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Block screenshot keys */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">Block screenshot keys</p>
+                  <p className="text-xs text-[#64748B]">Intercept PrintScreen and macOS screenshot shortcuts</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatScreenshot}
+                  onClick={() => setAntiCheatScreenshot((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatScreenshot ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatScreenshot ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Block DevTools shortcuts */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">Block DevTools shortcuts</p>
+                  <p className="text-xs text-[#64748B]">Prevent F12, Ctrl+Shift+I/J/C and Ctrl+U</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatDevTools}
+                  onClick={() => setAntiCheatDevTools((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatDevTools ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatDevTools ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
             </div>
           </div>
 

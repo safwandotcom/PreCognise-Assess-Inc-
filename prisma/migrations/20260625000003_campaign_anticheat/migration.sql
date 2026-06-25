@@ -1,0 +1,7 @@
+ALTER TABLE "Campaign" ADD COLUMN "antiCheatTabSwitch" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Campaign" ADD COLUMN "tabSwitchLimit" INTEGER NOT NULL DEFAULT 3;
+ALTER TABLE "Campaign" ADD COLUMN "antiCheatFullscreen" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Campaign" ADD COLUMN "antiCheatCopyPaste" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Campaign" ADD COLUMN "antiCheatRightClick" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Campaign" ADD COLUMN "antiCheatScreenshot" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Campaign" ADD COLUMN "antiCheatDevTools" BOOLEAN NOT NULL DEFAULT true;

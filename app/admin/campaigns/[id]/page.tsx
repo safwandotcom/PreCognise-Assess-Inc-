@@ -43,6 +43,7 @@ interface Campaign {
   negativeMarking: boolean;
   negativeMarkingValue: number;
   gracePeriodMin: number;
+  disqualifyOnDuplicateLogin: boolean;
   createdAt: string;
   questions: Question[];
   _count: { candidates: number; questions: number };
@@ -178,6 +179,7 @@ function OverviewTab({
     campaign.negativeMarkingValue.toString()
   );
   const [gracePeriodMin, setGracePeriodMin] = useState(campaign.gracePeriodMin);
+  const [disqualifyOnDuplicateLogin, setDisqualifyOnDuplicateLogin] = useState(campaign.disqualifyOnDuplicateLogin);
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -193,6 +195,7 @@ function OverviewTab({
     setNegativeMarking(campaign.negativeMarking);
     setNegativeMarkingValue(campaign.negativeMarkingValue.toString());
     setGracePeriodMin(campaign.gracePeriodMin);
+    setDisqualifyOnDuplicateLogin(campaign.disqualifyOnDuplicateLogin);
   }, [campaign]);
 
   async function handleSave(e: React.FormEvent) {
@@ -212,6 +215,7 @@ function OverviewTab({
           negativeMarking,
           negativeMarkingValue: Number(negativeMarkingValue),
           gracePeriodMin,
+          disqualifyOnDuplicateLogin,
         }),
       });
       if (!res.ok) {
@@ -430,6 +434,32 @@ function OverviewTab({
               </div>
             )}
           </div>
+
+          {/* Duplicate login */}
+          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-[#0F172A]">Disqualify on duplicate login</p>
+              <p className="text-xs text-[#64748B]">
+                If a candidate logs in from a second device, disqualify them and end both sessions.
+                When off, the second device is simply blocked.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={disqualifyOnDuplicateLogin}
+              onClick={() => setDisqualifyOnDuplicateLogin((v) => !v)}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                disqualifyOnDuplicateLogin ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                  disqualifyOnDuplicateLogin ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </label>
 
           {/* Candidate entry grace period */}
           <div>

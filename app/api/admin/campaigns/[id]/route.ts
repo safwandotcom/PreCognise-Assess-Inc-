@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const existing = await prisma.campaign.findUnique({ where: { id }, select: { id: true } });
     if (!existing) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     const body = await req.json();
-    const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor, gracePeriodMin } = body;
+    const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor, gracePeriodMin, disqualifyOnDuplicateLogin } = body;
     if (name !== undefined && !name.trim()) {
       return NextResponse.json({ error: "Campaign name cannot be empty" }, { status: 400 });
     }
@@ -44,6 +44,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         ...(logoUrl !== undefined && { logoUrl: logoUrl?.trim() || null }),
         ...(bgColor !== undefined && { bgColor: bgColor?.trim() || "#F8FAFC" }),
         ...(gracePeriodMin !== undefined && { gracePeriodMin: Number(gracePeriodMin) }),
+        ...(disqualifyOnDuplicateLogin !== undefined && { disqualifyOnDuplicateLogin }),
       },
     });
     return NextResponse.json({ campaign });

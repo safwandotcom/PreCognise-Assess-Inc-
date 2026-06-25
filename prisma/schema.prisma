@@ -75,8 +75,9 @@ model Campaign {
   maxCandidates        Int?
   negativeMarking      Boolean        @default(false)
   negativeMarkingValue Float          @default(0.25)
-  gracePeriodMin       Int            @default(10)
-  createdAt            DateTime       @default(now())
+  gracePeriodMin              Int            @default(10)
+  disqualifyOnDuplicateLogin  Boolean        @default(true)
+  createdAt                   DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   candidates           Candidate[]
   questions            Question[]

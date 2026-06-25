@@ -49,18 +49,25 @@ export async function POST(req: NextRequest) {
     });
 
     if (claimed.count === 0) {
-      // Another session is active — disqualify the candidate and kill both sessions
-      await prisma.candidate.update({
-        where: { id: candidate.id },
-        data: {
-          status: CandidateStatus.DISQUALIFIED,
-          disqualifyReason: "Duplicate login detected — assessment rules prohibit logging in from multiple devices.",
-          activeToken: null,
-        },
-      });
+      if (campaign.disqualifyOnDuplicateLogin) {
+        // Disqualify and kill both sessions
+        await prisma.candidate.update({
+          where: { id: candidate.id },
+          data: {
+            status: CandidateStatus.DISQUALIFIED,
+            disqualifyReason: "Duplicate login detected — assessment rules prohibit logging in from multiple devices.",
+            activeToken: null,
+          },
+        });
+        return NextResponse.json(
+          { error: "You have been disqualified: login attempted from a second device." },
+          { status: 403 }
+        );
+      }
+      // Soft block — just reject the second device, first session continues
       return NextResponse.json(
-        { error: "You have been disqualified: login attempted from a second device." },
-        { status: 403 }
+        { error: "You are already logged in from another device." },
+        { status: 409 }
       );
     }
 

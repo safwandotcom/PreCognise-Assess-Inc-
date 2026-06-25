@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     const candidate = await prisma.candidate.findUnique({
         where: { id: candidateId },
-        select: { campaignId: true, status: true, country: true },
+        select: { campaignId: true, status: true, country: true, campaign: { select: { completionMessage: true } } },
     });
 
     if (!candidate) {
@@ -62,6 +62,11 @@ export async function GET(req: NextRequest) {
     });
     const answeredIds = answered.map((r) => r.questionId);
 
+    // Total questions in this campaign
+    const totalQuestions = await prisma.question.count({
+        where: { campaignId: candidate.campaignId },
+    });
+
     const next = await prisma.question.findFirst({
         where: {
             campaignId: candidate.campaignId,
@@ -75,7 +80,11 @@ export async function GET(req: NextRequest) {
             where: { id: candidateId },
             data: { status: "COMPLETED" },
         });
-        return NextResponse.json({ done: true });
+        return NextResponse.json({
+            done: true,
+            completionMessage: candidate.campaign?.completionMessage ?? null,
+            totalQuestions,
+        });
     }
 
     const question: PublicQuestion = {
@@ -91,5 +100,10 @@ export async function GET(req: NextRequest) {
         orderIndex: next.orderIndex,
     };
 
-    return NextResponse.json({ done: false, question });
+    return NextResponse.json({
+        done: false,
+        question,
+        answeredCount: answeredIds.length,
+        totalQuestions,
+    });
 }

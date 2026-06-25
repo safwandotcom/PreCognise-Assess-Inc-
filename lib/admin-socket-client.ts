@@ -11,7 +11,12 @@ export function getAdminSocket(): Socket {
   if (!adminSocket) {
     adminSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
       auth: { isAdmin: true },
-      reconnection: false,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+    });
+    adminSocket.on("connect", () => {
+      adminSocket?.emit("admin:join");
     });
   }
   return adminSocket;

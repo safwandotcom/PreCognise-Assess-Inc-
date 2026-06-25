@@ -177,6 +177,7 @@ function OverviewTab({
     campaign.negativeMarkingValue.toString()
   );
   const [saving, setSaving] = useState(false);
+  const [deploying, setDeploying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // Sync form when campaign changes (e.g. after reload)
@@ -220,6 +221,25 @@ function OverviewTab({
     }
   }
 
+  async function handleDeploy() {
+    setDeploying(true);
+    try {
+      const res = await fetch(`/api/admin/campaigns/${campaign.id}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ delayMinutes: 0 }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        alert(d.error ?? "Failed to deploy campaign");
+        return;
+      }
+      window.location.href = "/admin/session";
+    } finally {
+      setDeploying(false);
+    }
+  }
+
   async function handleDelete() {
     await fetch(`/api/admin/campaigns/${campaign.id}`, { method: "DELETE" });
     window.location.href = "/admin/campaigns";
@@ -232,6 +252,28 @@ function OverviewTab({
 
   return (
     <div className="space-y-6">
+      {/* Deploy banner — only shown while campaign is DRAFT */}
+      {campaign.status === "DRAFT" && (
+        <section className="rounded-2xl border border-[#6366F1]/30 bg-gradient-to-br from-[#6366F1]/5 to-indigo-50 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-[#0F172A]">Ready to go live?</h2>
+              <p className="mt-1 text-sm text-[#64748B]">
+                Deploy this campaign to make it live. You can pause, resume, or end it any time from the Live Session page.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleDeploy}
+              disabled={deploying}
+              className="shrink-0 rounded-lg bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#4F46E5] disabled:opacity-60 transition-colors"
+            >
+              {deploying ? "Deploying…" : "Deploy Campaign"}
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Join link */}
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[#0F172A]">Candidate join link</h2>

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState, useCallback } from "react";
+import React, { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -1170,9 +1170,8 @@ function CandidatesTab({
               </thead>
               <tbody>
                 {candidates.map((c, i) => (
-                  <>
+                  <React.Fragment key={c.id}>
                     <tr
-                      key={c.id}
                       className={`border-b border-[#E2E8F0] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
                     >
                       <td className="px-5 py-3 font-mono text-xs font-semibold text-[#0F172A]">
@@ -1235,7 +1234,7 @@ function CandidatesTab({
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

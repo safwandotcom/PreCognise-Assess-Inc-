@@ -42,6 +42,7 @@ interface Campaign {
   maxCandidates: number | null;
   negativeMarking: boolean;
   negativeMarkingValue: number;
+  gracePeriodMin: number;
   createdAt: string;
   questions: Question[];
   _count: { candidates: number; questions: number };
@@ -176,6 +177,7 @@ function OverviewTab({
   const [negativeMarkingValue, setNegativeMarkingValue] = useState(
     campaign.negativeMarkingValue.toString()
   );
+  const [gracePeriodMin, setGracePeriodMin] = useState(campaign.gracePeriodMin);
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -190,6 +192,7 @@ function OverviewTab({
     setMaxCandidates(campaign.maxCandidates?.toString() ?? "");
     setNegativeMarking(campaign.negativeMarking);
     setNegativeMarkingValue(campaign.negativeMarkingValue.toString());
+    setGracePeriodMin(campaign.gracePeriodMin);
   }, [campaign]);
 
   async function handleSave(e: React.FormEvent) {
@@ -208,6 +211,7 @@ function OverviewTab({
           maxCandidates: maxCandidates ? Number(maxCandidates) : null,
           negativeMarking,
           negativeMarkingValue: Number(negativeMarkingValue),
+          gracePeriodMin,
         }),
       });
       if (!res.ok) {
@@ -425,6 +429,32 @@ function OverviewTab({
                 />
               </div>
             )}
+          </div>
+
+          {/* Candidate entry grace period */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+              Candidate entry grace period
+            </label>
+            <p className="mb-2 text-xs text-[#64748B]">
+              How long after the assessment starts candidates can still join. Set to 0 to allow no late entry.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[0, 5, 10, 15, 20, 30, 60].map((min) => (
+                <button
+                  key={min}
+                  type="button"
+                  onClick={() => setGracePeriodMin(min)}
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                    gracePeriodMin === min
+                      ? "border-[#6366F1] bg-[#6366F1] text-white"
+                      : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1] hover:text-[#6366F1]"
+                  }`}
+                >
+                  {min === 0 ? "No late entry" : `${min} min`}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex justify-end">

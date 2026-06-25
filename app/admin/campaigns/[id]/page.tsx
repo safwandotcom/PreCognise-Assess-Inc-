@@ -464,22 +464,25 @@ function QuestionsTab({
   const [qType, setQType] = useState<"mcq" | "psychometric" | "rating" | "image">("mcq");
   const [qText, setQText] = useState("");
   const [qImageUrl, setQImageUrl] = useState("");
-  const [qOptionsRaw, setQOptionsRaw] = useState('["Option A","Option B","Option C","Option D"]');
-  const [qCorrect, setQCorrect] = useState("0");
+  const [qOptions, setQOptions] = useState<string[]>(["", "", "", ""]);
+  const [qCorrect, setQCorrect] = useState<number>(0);
   const [qTime, setQTime] = useState("60");
   const [qPoints, setQPoints] = useState("10");
   const [qSpeedBonus, setQSpeedBonus] = useState("0");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
 
+  const needsOptions = qType === "mcq" || qType === "image";
+
+  function setOption(index: number, value: string) {
+    setQOptions((prev) => { const next = [...prev]; next[index] = value; return next; });
+  }
+
   async function handleAddQuestion(e: React.FormEvent) {
     e.preventDefault();
     setAddError("");
-    let parsedOptions: unknown;
-    try {
-      parsedOptions = JSON.parse(qOptionsRaw);
-    } catch {
-      setAddError("Options must be valid JSON (e.g. [\"A\",\"B\",\"C\"])");
+    if (needsOptions && qOptions.some((o) => !o.trim())) {
+      setAddError("All options must be filled in.");
       return;
     }
     setAdding(true);
@@ -491,8 +494,8 @@ function QuestionsTab({
           type: qType,
           text: qText.trim(),
           imageUrl: qImageUrl.trim() || null,
-          options: parsedOptions,
-          correctOption: qCorrect !== "" ? Number(qCorrect) : null,
+          options: needsOptions ? qOptions : [],
+          correctOption: needsOptions ? qCorrect : null,
           timeLimitSec: Number(qTime),
           basePoints: Number(qPoints),
           speedBonusMax: Number(qSpeedBonus),
@@ -506,8 +509,8 @@ function QuestionsTab({
       // Reset form
       setQText("");
       setQImageUrl("");
-      setQOptionsRaw('["Option A","Option B","Option C","Option D"]');
-      setQCorrect("0");
+      setQOptions(["", "", "", ""]);
+      setQCorrect(0);
       setQTime("60");
       setQPoints("10");
       setQSpeedBonus("0");
@@ -659,34 +662,28 @@ function QuestionsTab({
         <section className="rounded-2xl border border-[#6366F1]/30 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-[#0F172A]">New question</h3>
           <form onSubmit={handleAddQuestion} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Type</label>
-                <select
-                  value={qType}
-                  onChange={(e) => setQType(e.target.value as typeof qType)}
-                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#6366F1]"
-                >
-                  {QUESTION_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-                  Correct option index (0-based)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={qCorrect}
-                  onChange={(e) => setQCorrect(e.target.value)}
-                  placeholder="e.g. 0"
-                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#6366F1]"
-                />
+            {/* Question type buttons */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Question type</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {QUESTION_TYPES.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setQType(t.value as typeof qType)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                      qType === t.value
+                        ? "border-[#6366F1] bg-[#6366F1] text-white"
+                        : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1] hover:text-[#6366F1]"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
             </div>
 
+            {/* Question text */}
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Question text</label>
               <textarea
@@ -699,7 +696,8 @@ function QuestionsTab({
               />
             </div>
 
-            {(qType === "image") && (
+            {/* Image URL — image MCQ only */}
+            {qType === "image" && (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Image URL</label>
                 <input
@@ -712,18 +710,57 @@ function QuestionsTab({
               </div>
             )}
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-                Options (JSON array)
-              </label>
-              <textarea
-                required
-                rows={2}
-                value={qOptionsRaw}
-                onChange={(e) => setQOptionsRaw(e.target.value)}
-                className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 font-mono text-sm text-[#0F172A] outline-none focus:border-[#6366F1] resize-none"
-              />
-            </div>
+            {/* Options — MCQ and Image MCQ */}
+            {needsOptions && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Options</label>
+                <div className="space-y-2">
+                  {qOptions.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#E2E8F0] bg-[#F1F5F9] text-xs font-semibold text-[#64748B]">
+                        {String.fromCharCode(65 + i)}
+                      </span>
+                      <input
+                        required
+                        value={opt}
+                        onChange={(e) => setOption(i, e.target.value)}
+                        placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                        className="flex-1 rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Correct answer selector */}
+            {needsOptions && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Correct answer</label>
+                <div className="flex gap-2">
+                  {qOptions.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setQCorrect(i)}
+                      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                        qCorrect === i
+                          ? "bg-[#6366F1] text-white"
+                          : "border border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1]"
+                      }`}
+                    >
+                      {String.fromCharCode(65 + i)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(qType === "psychometric" || qType === "rating") && (
+              <p className="rounded-lg bg-purple-50 px-3.5 py-2.5 text-xs text-purple-700 ring-1 ring-purple-200">
+                This question type always awards base points on any answer — there is no wrong answer.
+              </p>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <div>

@@ -51,6 +51,7 @@ interface Campaign {
   antiCheatRightClick: boolean;
   antiCheatScreenshot: boolean;
   antiCheatDevTools: boolean;
+  completionMessage: string | null;
   createdAt: string;
   questions: Question[];
   _count: { candidates: number; questions: number };
@@ -194,6 +195,7 @@ function OverviewTab({
   const [antiCheatRightClick, setAntiCheatRightClick] = useState(campaign.antiCheatRightClick);
   const [antiCheatScreenshot, setAntiCheatScreenshot] = useState(campaign.antiCheatScreenshot);
   const [antiCheatDevTools, setAntiCheatDevTools] = useState(campaign.antiCheatDevTools);
+  const [completionMessage, setCompletionMessage] = useState(campaign.completionMessage ?? "");
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -217,6 +219,7 @@ function OverviewTab({
     setAntiCheatRightClick(campaign.antiCheatRightClick);
     setAntiCheatScreenshot(campaign.antiCheatScreenshot);
     setAntiCheatDevTools(campaign.antiCheatDevTools);
+    setCompletionMessage(campaign.completionMessage ?? "");
   }, [campaign]);
 
   async function handleSave(e: React.FormEvent) {
@@ -244,6 +247,7 @@ function OverviewTab({
           antiCheatRightClick,
           antiCheatScreenshot,
           antiCheatDevTools,
+          completionMessage: completionMessage.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -541,6 +545,23 @@ function OverviewTab({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Completion message */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+              Completion message
+            </label>
+            <p className="mb-2 text-xs text-[#64748B]">
+              Shown to candidates on a full-screen card after they submit their last answer. Leave blank to use the default message.
+            </p>
+            <textarea
+              rows={4}
+              placeholder={`Thank you for completing the assessment. Results will be communicated to you shortly.`}
+              value={completionMessage}
+              onChange={(e) => setCompletionMessage(e.target.value)}
+              className="w-full resize-none rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1] placeholder:text-[#94A3B8]"
+            />
           </div>
 
           {/* Anti-cheat & Security */}

@@ -13,6 +13,7 @@ import PsychometricCard from "@/components/exam/PsychometricCard";
 import RatingCard from "@/components/exam/RatingCard";
 import TabSwitchModal from "@/components/exam/TabSwitchModal";
 import BroadcastToast from "@/components/exam/BroadcastToast";
+import QuestionProgress from "@/components/exam/QuestionProgress";
 
 const SCREENSHOT_TRIGGER_KEYS = new Set(["PrintScreen", "F13"]);
 const MAC_SCREENSHOT_SHIFT_KEYS = new Set(["3", "4", "5", "s", "S"]);
@@ -23,6 +24,7 @@ export default function ExamPage() {
   const [loading, setLoading] = useState(true);
   const [showWarning, setShowWarning] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ answered: number; total: number } | null>(null);
   const [screenshotFlash, setScreenshotFlash] = useState(false);
   const [fullscreenWarning, setFullscreenWarning] = useState(false);
 
@@ -85,11 +87,20 @@ export default function ExamPage() {
     if (!mountedRef.current) return;
 
     if (data.done) {
+      if (data.completionMessage) {
+        sessionStorage.setItem("completionMessage", data.completionMessage);
+      } else {
+        sessionStorage.removeItem("completionMessage");
+      }
+      if (data.totalQuestions) {
+        sessionStorage.setItem("totalQuestions", String(data.totalQuestions));
+      }
       disconnectSocket();
       router.push("/candidate/result");
       return;
     }
     setQuestion(data.question as PublicQuestion);
+    setProgress({ answered: data.answeredCount ?? 0, total: data.totalQuestions ?? 0 });
     startTimeRef.current = Date.now();
     setLoading(false);
   }, [router]);
@@ -351,9 +362,17 @@ export default function ExamPage() {
       <BroadcastToast message={broadcastMsg} onDismiss={clearBroadcast} />
 
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="flex justify-between items-center mb-8">
-          <span className="text-gray-400 text-sm">Question {question.orderIndex + 1}</span>
-          <TimerRing timeLimit={question.timeLimitSec} onExpire={handleTimerExpire} />
+        <div className="flex items-end gap-6 mb-8">
+          {progress && (
+            <QuestionProgress
+              answered={progress.answered}
+              total={progress.total}
+              currentIndex={question.orderIndex}
+            />
+          )}
+          <div className="shrink-0">
+            <TimerRing key={question.id} timeLimit={question.timeLimitSec} onExpire={handleTimerExpire} />
+          </div>
         </div>
 
         <h2 className="text-white text-xl font-semibold mb-6">{question.text}</h2>

@@ -310,6 +310,26 @@ function OverviewTab({
         </section>
       )}
 
+      {/* Results banner — only shown when campaign is ENDED */}
+      {campaign.status === "ENDED" && (
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-[#0F172A]">Campaign ended</h2>
+              <p className="mt-1 text-sm text-[#64748B]">
+                This campaign has ended. View the full candidate results and scores below.
+              </p>
+            </div>
+            <Link
+              href={`/admin/campaigns/${campaign.id}/results`}
+              className="shrink-0 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 transition-colors"
+            >
+              View Results →
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* Join link */}
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[#0F172A]">Candidate join link</h2>

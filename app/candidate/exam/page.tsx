@@ -167,6 +167,30 @@ export default function ExamPage() {
     };
   }, [router]);
 
+  // Poll DB-backed broadcasts every 20 s (reliable path that works even without sockets)
+  useEffect(() => {
+    let lastSentAt: string | null = null;
+    let active = true;
+    const poll = async () => {
+      if (!active) return;
+      try {
+        const res = await fetch("/api/candidate/broadcast", {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.message && data.sentAt && data.sentAt !== lastSentAt) {
+          lastSentAt = data.sentAt;
+          setBroadcastMsg(data.message);
+        }
+      } catch { /* silent */ }
+    };
+    poll();
+    const id = setInterval(poll, 20_000);
+    return () => { active = false; clearInterval(id); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Anti-cheat ─────────────────────────────────────────────────────────────
   // All guards run from mount. Event handlers read settingsRef.current at call
   // time so they respect the latest settings without needing to be re-bound.

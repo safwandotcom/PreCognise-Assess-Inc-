@@ -29,6 +29,7 @@ export default function LiveSessionPage() {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [liveCandidates, setLiveCandidates] = useState<Candidate[]>([]);
   const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [broadcastStatus, setBroadcastStatus] = useState<"idle" | "sent" | "error">("idle");
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchCampaigns = useCallback(async () => {
@@ -84,9 +85,27 @@ export default function LiveSessionPage() {
 
   async function sendBroadcast(campaignId: string) {
     if (!broadcastMsg.trim()) return;
-    const socket = getAdminSocket();
-    socket.emit("admin:broadcast", { campaignId, message: broadcastMsg });
+    const msg = broadcastMsg.trim();
     setBroadcastMsg("");
+    setBroadcastStatus("idle");
+    try {
+      // Primary: HTTP path — stores in DB so candidates see it even without a socket
+      const res = await fetch(`/api/admin/campaigns/${campaignId}/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg }),
+      });
+      if (!res.ok) throw new Error("HTTP broadcast failed");
+      setBroadcastStatus("sent");
+      // Fast path: also emit via socket so candidates get it instantly (best-effort)
+      try {
+        const socket = getAdminSocket();
+        socket.emit("admin:broadcast", { campaignId, message: msg });
+      } catch { /* ignore socket errors — HTTP is the reliable path */ }
+    } catch {
+      setBroadcastStatus("error");
+    }
+    setTimeout(() => setBroadcastStatus("idle"), 3000);
   }
 
   async function removeCandidate(campaignId: string, candidateId: string) {
@@ -160,20 +179,29 @@ export default function LiveSessionPage() {
           )}
 
           {/* Broadcast */}
-          <div className="flex gap-2 mb-4">
-            <input
-              className="flex-1 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-sm"
-              placeholder="Broadcast message to all candidates…"
-              value={broadcastMsg}
-              onChange={e => setBroadcastMsg(e.target.value)}
-            />
-            <button
-              onClick={() => sendBroadcast(liveCampaign.id)}
-              disabled={!broadcastMsg.trim()}
-              className="rounded-lg bg-[#6366F1] px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            >
-              Send
-            </button>
+          <div className="flex flex-col gap-1.5 mb-4">
+            <div className="flex gap-2">
+              <input
+                className="flex-1 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-sm"
+                placeholder="Broadcast message to all candidates…"
+                value={broadcastMsg}
+                onChange={e => { setBroadcastMsg(e.target.value); setBroadcastStatus("idle"); }}
+                onKeyDown={e => { if (e.key === "Enter" && broadcastMsg.trim()) sendBroadcast(liveCampaign.id); }}
+              />
+              <button
+                onClick={() => sendBroadcast(liveCampaign.id)}
+                disabled={!broadcastMsg.trim()}
+                className="rounded-lg bg-[#6366F1] px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+              >
+                Send
+              </button>
+            </div>
+            {broadcastStatus === "sent" && (
+              <p className="text-xs text-green-600 font-medium">Message sent — candidates will see it within 20 seconds.</p>
+            )}
+            {broadcastStatus === "error" && (
+              <p className="text-xs text-red-500 font-medium">Failed to send. Please try again.</p>
+            )}
           </div>
 
           {/* Candidate table */}

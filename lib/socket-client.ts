@@ -8,7 +8,9 @@ export function getSocket(): Socket {
   if (!socket) {
     socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
       auth: { token: getToken() },
-      reconnection: false,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
     });
   }
   return socket;

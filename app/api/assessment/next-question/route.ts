@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     const candidate = await prisma.candidate.findUnique({
         where: { id: candidateId },
-        select: { sessionId: true, status: true, country: true },
+        select: { campaignId: true, status: true, country: true },
     });
 
     if (!candidate) {
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
 
     const next = await prisma.question.findFirst({
         where: {
-            sessionId: candidate.sessionId,
+            campaignId: candidate.campaignId,
             id: { notIn: answeredIds },
         },
         orderBy: { orderIndex: "asc" },

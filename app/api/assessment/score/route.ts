@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
   const candidate = await prisma.candidate.findUnique({
     where: { id: candidateId },
-    select: { sessionId: true, status: true },
+    select: { campaignId: true, status: true },
   });
   if (!candidate) {
     return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
@@ -37,10 +37,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "You have been disqualified" }, { status: 403 });
   }
 
-  // Fetch all questions in this session (ordered) and this candidate's responses
+  // Fetch campaign for negative marking config, all questions in this campaign (ordered) and this candidate's responses
+  const campaign = await prisma.campaign.findUnique({
+    where: { id: candidate.campaignId },
+    select: { negativeMarking: true, negativeMarkingValue: true },
+  });
+
   const [allQuestions, responses] = await Promise.all([
     prisma.question.findMany({
-      where: { sessionId: candidate.sessionId },
+      where: { campaignId: candidate.campaignId },
       orderBy: { orderIndex: "asc" },
       select: {
         id: true,
@@ -56,12 +61,14 @@ export async function GET(req: NextRequest) {
       where: { candidateId },
       select: {
         score: true,
+        answer: true,
         responseTimeMs: true,
         question: {
           select: {
             id: true,
             type: true,
             basePoints: true,
+            correctOption: true,
           },
         },
       },
@@ -70,8 +77,7 @@ export async function GET(req: NextRequest) {
 
   // ── Aggregate totals ────────────────────────────────────────────────────────
 
-  const totalScore = responses.reduce((sum, r) => sum + r.score, 0);
-  const questionsAnswered = responses.length;
+  let totalScore = responses.reduce((sum, r) => sum + r.score, 0);
 
   const speedBonusTotal = responses.reduce((sum, r) => {
     if (!isScoredType(r.question.type)) return sum;
@@ -79,7 +85,29 @@ export async function GET(req: NextRequest) {
     return sum + (bonus > 0 ? bonus : 0);
   }, 0);
 
+  // baseScoreTotal = base points earned, excluding speed bonus and penalty
   const baseScoreTotal = totalScore - speedBonusTotal;
+
+  // Apply negative marking deduction if campaign has it enabled.
+  // Only penalize explicitly wrong answers — skipped/blank (null) answers are not penalized.
+  // Deduction is floored at 0 overall.
+  if (campaign?.negativeMarking) {
+    let penalty = 0;
+    for (const r of responses) {
+      if (
+        isScoredType(r.question.type) &&
+        r.question.correctOption !== null &&
+        r.answer !== null &&
+        r.answer !== r.question.correctOption &&
+        r.score === 0
+      ) {
+        penalty += r.question.basePoints * (campaign.negativeMarkingValue ?? 0.25);
+      }
+    }
+    totalScore = Math.max(0, totalScore - penalty);
+  }
+
+  const questionsAnswered = responses.length;
 
   const questionsCorrect = responses.filter(
     (r) => isScoredType(r.question.type) && r.score > 0
@@ -101,7 +129,7 @@ export async function GET(req: NextRequest) {
     by: ["candidateId"],
     where: {
       candidate: {
-        sessionId: candidate.sessionId,
+        campaignId: candidate.campaignId,
         status: "COMPLETED",
         NOT: { id: candidateId },
       },

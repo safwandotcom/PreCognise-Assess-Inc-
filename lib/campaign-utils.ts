@@ -12,9 +12,13 @@ export async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, 10);
 }
 
-// Roll number: SLUG-0001, SLUG-0002 ...
-// slug is the campaign slug, seq is 1-based candidate count for this campaign
-export function makeRollNumber(slug: string, seq: number): string {
-  const prefix = slug.toUpperCase().replace(/-/g, "").slice(0, 8);
-  return `${prefix}-${String(seq).padStart(4, "0")}`;
+// Access ID: first 4 alpha chars of campaign name uppercased, padded to 4 with 'X', then '-', then 6-digit zero-padded seq
+// Example: "Relationship Manager RBC" → "RELA-000001"
+export function makeAccessId(campaignName: string, seq: number): string {
+  const prefix = campaignName
+    .replace(/[^A-Za-z0-9]/g, '')
+    .toUpperCase()
+    .slice(0, 4)
+    .padEnd(4, 'X');
+  return `${prefix}-${String(seq).padStart(6, '0')}`;
 }

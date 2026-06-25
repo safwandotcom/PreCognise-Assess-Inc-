@@ -1,56 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
+import { signToken } from "@/lib/jwt";
+import { CampaignStatus, CandidateStatus } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   try {
-    const { rollNumber, email, password, joinToken } = await req.json();
+    const { accessId, password, joinToken } = await req.json();
 
-    if (!rollNumber || !email || !password) {
-      return NextResponse.json(
-        { message: "rollNumber, email and password are required" },
-        { status: 400 }
-      );
+    if (!accessId?.trim() || !password?.trim()) {
+      return NextResponse.json({ error: "Access ID and password are required" }, { status: 400 });
     }
 
-    // If joinToken provided, scope lookup to that session
-    let candidate;
-    if (joinToken) {
-      const session = await prisma.session.findUnique({
-        where: { joinToken },
-        select: { id: true },
-      });
-      if (!session) {
-        return NextResponse.json({ message: "Invalid session link" }, { status: 401 });
-      }
-      candidate = await prisma.candidate.findFirst({
-        where: { rollNumber, email, sessionId: session.id },
-      });
-    } else {
-      candidate = await prisma.candidate.findFirst({
-        where: { rollNumber, email },
-      });
+    // Resolve campaign from joinToken
+    const campaign = joinToken
+      ? await prisma.campaign.findUnique({ where: { joinToken } })
+      : null;
+
+    if (!campaign) {
+      return NextResponse.json({ error: "Invalid join link" }, { status: 400 });
     }
 
-    if (!candidate) {
-      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
+    if (campaign.status !== CampaignStatus.LIVE && campaign.status !== CampaignStatus.PAUSED) {
+      return NextResponse.json({ error: "This assessment is not currently open" }, { status: 403 });
     }
 
-    const passwordMatches = await bcrypt.compare(password, candidate.passwordHash);
-    if (!passwordMatches) {
-      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
-    }
-
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    await prisma.candidate.update({
-      where: { id: candidate.id },
-      data: { otpCode: "123456", otpExpiresAt },
+    const candidate = await prisma.candidate.findFirst({
+      where: { accessId: accessId.trim().toUpperCase(), campaignId: campaign.id },
     });
 
-    return NextResponse.json({ message: "OTP sent" }, { status: 200 });
+    if (!candidate) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    if (candidate.status === CandidateStatus.DISQUALIFIED) {
+      return NextResponse.json({ error: "You have been disqualified from this assessment" }, { status: 403 });
+    }
+
+    const valid = await bcrypt.compare(password, candidate.passwordHash);
+    if (!valid) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    // Atomic single-session enforcement
+    const claimed = await prisma.candidate.updateMany({
+      where: { id: candidate.id, activeToken: null },
+      data: { activeToken: "pending", status: CandidateStatus.JOINED },
+    });
+
+    let token: string;
+    if (claimed.count === 0) {
+      // Already has an active session — return existing token
+      const refreshed = await prisma.candidate.findUnique({ where: { id: candidate.id } });
+      if (!refreshed?.activeToken || refreshed.activeToken === "pending") {
+        return NextResponse.json({ error: "Already logged in from another device" }, { status: 409 });
+      }
+      token = refreshed.activeToken;
+    } else {
+      token = signToken({ candidateId: candidate.id, campaignId: campaign.id });
+      await prisma.candidate.update({ where: { id: candidate.id }, data: { activeToken: token } });
+    }
+
+    return NextResponse.json({ token, candidateName: candidate.name });
   } catch (err) {
-    console.error("login error:", err);
-    return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
+    console.error("POST /api/auth/login error:", err);
+    return NextResponse.json({ error: "Login failed" }, { status: 500 });
   }
 }

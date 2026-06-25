@@ -1,122 +1,95 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { setToken } from "@/lib/auth-store";
 import { useBranding } from "@/lib/use-branding";
-import { Suspense } from "react";
 
 function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const branding = useBranding();
-  const joinToken = searchParams.get("token") ?? "";
+  const params = useSearchParams();
+  const joinToken = params.get("token") ?? "";
+  const branding = useBranding(joinToken);
 
-  const [rollNumber, setRollNumber] = useState("");
-  const [email, setEmail] = useState("");
+  const [accessId, setAccessId] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-
-    if (!rollNumber || !email || !password) {
-      setError("Please fill in all fields");
-      return;
-    }
-
-    setIsLoading(true);
-
+    setError(null);
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rollNumber, email, password, joinToken: joinToken || undefined }),
+        body: JSON.stringify({ accessId, password, joinToken }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
-        setError(data.message || "Login failed");
-        setIsLoading(false);
+        setError(data.error ?? "Login failed");
         return;
       }
-
-      sessionStorage.setItem("rollNumber", rollNumber);
-      if (joinToken) sessionStorage.setItem("joinToken", joinToken);
-      router.push("/candidate/verify-otp");
-    } catch (err) {
-      console.error("login submit error:", err);
-      setError("Something went wrong. Please try again.");
-      setIsLoading(false);
+      setToken(data.token);
+      if (data.candidateName) {
+        sessionStorage.setItem("candidateName", data.candidateName);
+      }
+      router.replace("/candidate/waiting-room");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  const inputCls =
-    "w-full rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2.5 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none transition focus:border-[#2E0BFC] focus:bg-white focus:ring-1 focus:ring-[#2E0BFC]";
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div
-          className="mb-6 overflow-hidden rounded-2xl text-center"
-          style={{ background: `linear-gradient(135deg, ${branding.primaryColour} 0%, #6366F1 100%)` }}
-        >
-          <div className="px-6 py-7">
-            {branding.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={branding.logoUrl}
-                alt={branding.orgName}
-                className="mx-auto mb-2 h-8 max-w-[180px] object-contain"
-              />
-            ) : (
-              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                <span className="text-lg font-bold text-white">{branding.orgName.charAt(0)}</span>
-              </div>
-            )}
-            <h1 className="text-lg font-bold text-white">{branding.orgName}</h1>
-            <p className="mt-0.5 text-sm text-white/70">{branding.tagline}</p>
+        <div className="mb-6 flex flex-col items-center">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-xl mb-3"
+            style={{ background: `linear-gradient(135deg, ${branding.primaryColour} 0%, #6366F1 100%)` }}
+          >
+            <span className="text-xl font-bold text-white">{branding.orgName.charAt(0)}</span>
           </div>
+          <p className="text-xs font-medium uppercase tracking-widest text-[#64748B]">{branding.orgName}</p>
         </div>
 
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-[#0F172A]">Candidate sign in</h2>
-          <p className="mb-5 text-xs text-[#64748B]">Enter your credentials to access the assessment.</p>
-
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-sm">
+          <h1 className="text-xl font-semibold text-[#0F172A] mb-6">Candidate Login</h1>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-[#0F172A]">Roll Number</label>
-              <input type="text" value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} className={inputCls} placeholder="e.g. PC-2026-001" autoComplete="off" />
+              <label className="block text-sm font-medium text-[#0F172A] mb-1">Access ID</label>
+              <input
+                type="text"
+                value={accessId}
+                onChange={e => setAccessId(e.target.value.toUpperCase())}
+                placeholder="RELA-000001"
+                required
+                className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
+              />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-[#0F172A]">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="you@example.com" autoComplete="off" />
+              <label className="block text-sm font-medium text-[#0F172A] mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
+              />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[#0F172A]">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="••••••••" autoComplete="current-password" />
-            </div>
-
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                <p className="text-xs text-red-600">{error}</p>
-              </div>
-            )}
-
+            {error && <p className="text-sm text-red-500">{error}</p>}
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full rounded-lg py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: `linear-gradient(115deg, ${branding.primaryColour} 0%, #6366F1 100%)` }}
+              disabled={loading}
+              className="w-full rounded-lg bg-[#6366F1] py-2 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {isLoading ? "Sending OTP..." : "Continue →"}
+              {loading ? "Signing in…" : "Sign In"}
             </button>
           </form>
         </div>
-
-        <p className="mt-4 text-center text-xs text-[#94A3B8]">Assessment platform by {branding.orgName}</p>
       </div>
     </div>
   );

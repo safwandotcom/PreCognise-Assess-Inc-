@@ -44,7 +44,8 @@ io.on("connection", (socket) => {
   try {
     const payload = jwt.verify(token, JWT_SECRET) as {
       candidateId: string;
-      rollNumber: string;
+      accessId: string;
+      campaignId: string;
     };
 
     socket.join(payload.candidateId); // a private room named after their own id

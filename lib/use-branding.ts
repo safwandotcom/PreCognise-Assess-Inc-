@@ -7,24 +7,27 @@ export interface Branding {
   tagline: string;
   logoUrl: string | null;
   primaryColour: string;
+  bgColor: string;
 }
 
 const DEFAULT: Branding = {
-  orgName: "PreCognise",
+  orgName: "PreCognize",
   tagline: "Candidate Assessment",
   logoUrl: null,
-  primaryColour: "#2E0BFC",
+  primaryColour: "#6366F1",
+  bgColor: "#F8FAFC",
 };
 
-export function useBranding(): Branding {
+export function useBranding(joinToken?: string): Branding {
   const [branding, setBranding] = useState<Branding>(DEFAULT);
 
   useEffect(() => {
-    fetch("/api/branding")
+    const url = joinToken ? `/api/branding?token=${encodeURIComponent(joinToken)}` : "/api/branding";
+    fetch(url)
       .then((r) => r.json())
       .then((data) => setBranding({ ...DEFAULT, ...data }))
       .catch(() => {});
-  }, []);
+  }, [joinToken]);
 
   return branding;
 }

@@ -8,9 +8,9 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum SessionStatus {
+enum CampaignStatus {
+  DRAFT
   SCHEDULED
-  WAITING
   LIVE
   PAUSED
   ENDED
@@ -61,57 +61,44 @@ model OrgBranding {
 }
 
 model Campaign {
-  id            String    @id @default(cuid())
-  name          String
-  slug          String    @unique
-  active        Boolean   @default(true)
-  expiresAt     DateTime?
-  maxCandidates Int?
-  createdAt     DateTime  @default(now())
-
-  sessionId  String
-  session    Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  candidates Candidate[]
-}
-
-model Session {
-  id          String        @id @default(cuid())
-  title       String        @default("Untitled Session")
-  joinToken   String        @unique @default(cuid())
-  status      SessionStatus @default(WAITING)
-  scheduledAt DateTime?
-  autoStart   Boolean       @default(false)
-  startedAt   DateTime?
-  createdAt   DateTime      @default(now())
-
-  candidates Candidate[]
-  questions  Question[]
-  campaigns  Campaign[]
+  id                   String         @id @default(cuid())
+  name                 String
+  status               CampaignStatus @default(DRAFT)
+  joinToken            String         @unique @default(cuid())
+  scheduledAt          DateTime?
+  autoStart            Boolean        @default(false)
+  startedAt            DateTime?
+  endedAt              DateTime?
+  durationSec          Int            @default(0)
+  logoUrl              String?
+  bgColor              String         @default("#F8FAFC")
+  maxCandidates        Int?
+  negativeMarking      Boolean        @default(false)
+  negativeMarkingValue Float          @default(0.25)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  candidates           Candidate[]
+  questions            Question[]
 }
 
 model Candidate {
   id                String          @id @default(cuid())
-  rollNumber        String
+  accessId          String
   email             String
+  name              String
   passwordHash      String
   generatedPassword String?
   activeToken       String?         @unique
-  name              String
   country           String?
   status            CandidateStatus @default(REGISTERED)
   disqualifyReason  String?
   tabSwitchCount    Int             @default(0)
-  otpCode           String?
-  otpExpiresAt      DateTime?
+  campaignId        String
+  campaign          Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  responses         Response[]
 
-  sessionId  String
-  session    Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  campaignId String?
-  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  responses  Response[]
-
-  @@unique([rollNumber, sessionId])
-  @@unique([email, sessionId])
+  @@unique([accessId, campaignId])
+  @@unique([email, campaignId])
 }
 
 model Question {
@@ -125,10 +112,9 @@ model Question {
   basePoints    Int
   speedBonusMax Int          @default(0)
   orderIndex    Int
-
-  sessionId String
-  session   Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  responses Response[]
+  campaignId    String
+  campaign      Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  responses     Response[]
 }
 
 model Response {

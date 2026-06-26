@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/campaign-utils";
 import { sendOTP } from "@/lib/email";
+import { randomInt } from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const rawCode = String(Math.floor(100000 + Math.random() * 900000));
+    const rawCode = String(randomInt(100000, 1000000));
     const otpHash = await hashPassword(rawCode);
     const otpExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 

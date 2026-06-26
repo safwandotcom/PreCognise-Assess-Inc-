@@ -1,7 +1,7 @@
-// app/api/candidate/session-stats/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
+import { redis } from "@/lib/redis";
 import { CandidateStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -20,6 +20,10 @@ export async function GET(req: NextRequest) {
     }
 
     const { campaignId } = candidate;
+    const cacheKey = `session-stats:${campaignId}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) return NextResponse.json(JSON.parse(cached));
+
     const [campaign, total, inWaitingRoom, joined] = await Promise.all([
       prisma.campaign.findUnique({ where: { id: campaignId }, select: { name: true } }),
       prisma.candidate.count({ where: { campaignId } }),
@@ -32,7 +36,10 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({ total, inWaitingRoom, joined, sessionTitle: campaign?.name ?? null });
+    const result = { total, inWaitingRoom, joined, sessionTitle: campaign?.name ?? null };
+    await redis.set(cacheKey, JSON.stringify(result), "EX", 15);
+
+    return NextResponse.json(result);
   } catch (err) {
     console.error("GET /api/candidate/session-stats error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });

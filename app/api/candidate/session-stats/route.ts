@@ -1,7 +1,7 @@
-// app/api/candidate/session-stats/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
+import { redis } from "@/lib/redis";
 import { CandidateStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -10,16 +10,14 @@ export async function GET(req: NextRequest) {
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const payload = verifyToken(token);
-    const candidate = await prisma.candidate.findUnique({
-      where: { id: payload.candidateId },
-      select: { campaignId: true },
-    });
-    if (!candidate?.campaignId) {
-      return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
-    }
+    const { campaignId } = verifyToken(token);
 
-    const { campaignId } = candidate;
+    const cacheKey = `session-stats:${campaignId}`;
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) return NextResponse.json(JSON.parse(cached));
+    } catch { /* Redis unavailable — fall through to DB */ }
+
     const [campaign, total, inWaitingRoom, joined] = await Promise.all([
       prisma.campaign.findUnique({ where: { id: campaignId }, select: { name: true } }),
       prisma.candidate.count({ where: { campaignId } }),
@@ -32,7 +30,12 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({ total, inWaitingRoom, joined, sessionTitle: campaign?.name ?? null });
+    const result = { total, inWaitingRoom, joined, sessionTitle: campaign?.name ?? null };
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 15);
+    } catch { /* Redis unavailable — serve uncached */ }
+
+    return NextResponse.json(result);
   } catch (err) {
     console.error("GET /api/candidate/session-stats error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });

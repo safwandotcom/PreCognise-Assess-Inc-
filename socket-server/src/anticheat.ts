@@ -1,18 +1,9 @@
-// socket-server/src/anticheat.ts
 import { Server, Socket } from "socket.io";
 import { getCandidate, updateStatus, incrementTabSwitch } from "./state";
 
-// The Next.js app's URL — needed so this server can call back and persist
-// the disqualification to the database. Add NEXT_APP_URL to socket-server's
-// own .env file (this is separate from the Next.js .env.local).
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-
-// Shared secret so /api/admin/disqualify knows this call came from us and
-// not an arbitrary POST from the internet. Same value must be set in both
-// socket-server's env and the Next.js app's .env.local / Vercel env.
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 
-// anticheat.ts — change this one line
 export type DisqualifyReason = "TAB_SWITCH_2" | "PAGE_REFRESH" | string;
 
 export async function disqualifyCandidate(
@@ -20,21 +11,14 @@ export async function disqualifyCandidate(
   candidateId: string,
   reason: DisqualifyReason
 ) {
-  const candidate = getCandidate(candidateId);
+  const candidate = await getCandidate(candidateId);
 
-  // Update our in-memory record right away so other code (like the
-  // disconnect handler) sees the correct status immediately.
-  updateStatus(candidateId, "DISQUALIFIED");
+  await updateStatus(candidateId, "DISQUALIFIED");
 
-  // Tell that candidate's own browser tab — this is what makes their
-  // screen redirect to /candidate/disqualified.
-  if (candidate) {
-    io.to(candidate.socketId).emit("disqualified", { reason });
-  }
+  // Emit to the candidate's private room (named after candidateId in index.ts).
+  // With Redis adapter, this reaches the socket regardless of which replica it is on.
+  io.to(candidateId).emit("disqualified", { reason });
 
-  // Tell every open admin dashboard so the grid tile turns red live.
-  // Shape matches AdminCandidate from components/admin/CandidateGrid.tsx
-  // (id, not candidateId) so app/admin/page.tsx's merge-by-id actually matches.
   io.to("admins").emit("candidate:event", {
     id: candidateId,
     status: "DISQUALIFIED",
@@ -42,9 +26,6 @@ export async function disqualifyCandidate(
     tabSwitchCount: candidate?.tabSwitchCount,
   });
 
-  // Persist to the database. Sockets are memory-only, so without this,
-  // a page refresh on the admin side (or a server restart) would lose
-  // the fact that this person got disqualified.
   try {
     const res = await fetch(`${FRONTEND_URL}/api/admin/disqualify`, {
       method: "POST",
@@ -60,20 +41,18 @@ export async function disqualifyCandidate(
   }
 }
 
-export function handleTabSwitch(io: Server, socket: Socket, candidateId: string) {
-  const count = incrementTabSwitch(candidateId);
+export async function handleTabSwitch(io: Server, socket: Socket, candidateId: string) {
+  const count = await incrementTabSwitch(candidateId);
 
   if (count === 1) {
-    // First offense — just warn this one candidate. We have their `socket`
-    // directly here since this only ever runs from their own connection.
     socket.emit("warning", {
       message: "Tab switch detected. Next switch will disqualify you.",
     });
-  } else if (count >= 2) {
-    disqualifyCandidate(io, candidateId, "TAB_SWITCH_2");
+  } else if (count === 2) {
+    await disqualifyCandidate(io, candidateId, "TAB_SWITCH_2");
   }
 }
 
-export function handlePageRefresh(io: Server, socket: Socket, candidateId: string) {
-  disqualifyCandidate(io, candidateId, "PAGE_REFRESH");
+export async function handlePageRefresh(io: Server, socket: Socket, candidateId: string) {
+  await disqualifyCandidate(io, candidateId, "PAGE_REFRESH");
 }

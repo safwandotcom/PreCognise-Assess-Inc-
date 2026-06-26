@@ -1,6 +1,7 @@
 // app/api/admin/campaigns/[id]/start/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 import { CampaignStatus } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -33,6 +34,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       where: { id },
       data: { status: CampaignStatus.LIVE, startedAt: startAt },
     });
+    // Invalidate polling cache so candidates see LIVE status within their next poll cycle
+    try { await redis.del(`session-stats:${id}`); } catch { /* non-fatal */ }
     return NextResponse.json({ campaign: updated });
   } catch (err) {
     console.error("POST /api/admin/campaigns/[id]/start error:", err);

@@ -152,17 +152,6 @@ export default function WaitingRoomPage() {
             </div>
           )}
         </div>
-
-        {/* Test button */}
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={() => router.replace("/candidate/exam")}
-            className="text-xs text-[#94A3B8] underline-offset-2 hover:text-[#64748B] hover:underline"
-          >
-            Continue to exam (test only)
-          </button>
-        </div>
       </div>
     </div>
   );

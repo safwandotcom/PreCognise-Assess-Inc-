@@ -1,10 +1,11 @@
-// socket-server/src/index.ts
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+import { redis } from "./redis-client";
 import { registerCandidateHandlers, registerAdminHandlers } from "./handlers";
 
 const PORT = process.env.PORT || 4000;
@@ -23,6 +24,10 @@ const io = new Server(httpServer, {
   cors: { origin: FRONTEND_URL },
 });
 
+// Attach Redis adapter. pub client = existing connection; sub = dedicated duplicate.
+const subClient = redis.duplicate();
+io.adapter(createAdapter(redis, subClient));
+
 io.on("connection", (socket) => {
   const { token, isAdmin } = socket.handshake.auth as {
     token?: string;
@@ -40,7 +45,6 @@ io.on("connection", (socket) => {
     return;
   }
 
-  // Candidate connection — must present a valid JWT or we drop it.
   try {
     const payload = jwt.verify(token, JWT_SECRET) as {
       candidateId: string;
@@ -48,7 +52,7 @@ io.on("connection", (socket) => {
       campaignId: string;
     };
 
-    socket.join(payload.candidateId); // a private room named after their own id
+    socket.join(payload.candidateId); // private room — used by adapter for cross-replica emit
     registerCandidateHandlers(io, socket, payload);
   } catch {
     console.log(`Rejected socket ${socket.id}: invalid or expired token`);

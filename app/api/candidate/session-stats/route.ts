@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     } catch { /* Redis unavailable — fall through to DB */ }
 
     const [campaign, total, inWaitingRoom, joined] = await Promise.all([
-      prisma.campaign.findUnique({ where: { id: campaignId }, select: { name: true } }),
+      prisma.campaign.findUnique({ where: { id: campaignId }, select: { name: true, status: true } }),
       prisma.candidate.count({ where: { campaignId } }),
       prisma.candidate.count({ where: { campaignId, status: CandidateStatus.JOINED } }),
       prisma.candidate.count({
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    const result = { total, inWaitingRoom, joined, sessionTitle: campaign?.name ?? null };
+    const result = { total, inWaitingRoom, joined, sessionTitle: campaign?.name ?? null, sessionStatus: campaign?.status ?? null };
     try {
       await redis.set(cacheKey, JSON.stringify(result), "EX", 15);
     } catch { /* Redis unavailable — serve uncached */ }

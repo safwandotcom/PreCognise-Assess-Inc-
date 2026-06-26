@@ -68,6 +68,10 @@ export default function LiveSessionPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ delayMinutes }),
     });
+    // Notify all candidates in the waiting room immediately via socket
+    if (delayMinutes === 0) {
+      try { getAdminSocket().emit("session:start"); } catch { /* non-fatal */ }
+    }
     fetchCampaigns();
   }
 

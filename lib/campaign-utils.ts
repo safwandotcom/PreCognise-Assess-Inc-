@@ -22,3 +22,11 @@ export function makeAccessId(campaignName: string, seq: number): string {
     .padEnd(4, 'X');
   return `${prefix}-${String(seq).padStart(6, '0')}`;
 }
+
+export function formatExamDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "America/Toronto",
+  }).format(date);
+}

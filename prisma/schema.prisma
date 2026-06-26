@@ -105,6 +105,8 @@ model Candidate {
   status            CandidateStatus @default(REGISTERED)
   disqualifyReason  String?
   tabSwitchCount    Int             @default(0)
+  otpHash           String?
+  otpExpiresAt      DateTime?
   campaignId        String
   campaign          Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   responses         Response[]

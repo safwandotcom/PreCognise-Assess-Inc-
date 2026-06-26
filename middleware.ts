@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export function middleware() {
-  return NextResponse.next();
-}
+const isAdminRoute = createRouteMatcher(["/admin(.*)", "/api/admin(.*)"]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isAdminRoute(req)) await auth.protect();
+});
 
 export const config = {
-  matcher: [],
+  matcher: ["/((?!_next|.*\\..*).*)"],
 };

@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { setToken } from "@/lib/auth-store";
 import { useBranding } from "@/lib/use-branding";
 
@@ -88,6 +89,14 @@ function LoginForm() {
             >
               {loading ? "Signing in…" : "Sign In"}
             </button>
+            <div className="text-right">
+              <Link
+                href={joinToken ? `/candidate/forgot-password?token=${joinToken}` : "/candidate/forgot-password"}
+                className="text-xs text-[#64748B] hover:text-[#6366F1] hover:underline underline-offset-2"
+              >
+                Forgot your password?
+              </Link>
+            </div>
           </form>
         </div>
       </div>

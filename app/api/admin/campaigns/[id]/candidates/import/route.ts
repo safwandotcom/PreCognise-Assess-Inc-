@@ -1,14 +1,13 @@
-// app/api/admin/campaigns/[id]/candidates/import/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generatePassword, hashPassword, makeAccessId } from "@/lib/campaign-utils";
+import { generatePassword, hashPassword, makeAccessId, formatExamDate } from "@/lib/campaign-utils";
+import { sendCredentials } from "@/lib/email";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
-  // body.rows: Array<{ name: string; email: string }>
   const rows: { name: string; email: string }[] = body.rows ?? [];
 
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -18,7 +17,6 @@ export async function POST(req: NextRequest, { params }: Params) {
   const campaign = await prisma.campaign.findUnique({ where: { id } });
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
-  // Detect duplicate emails within the uploaded file
   const emailsSeen = new Set<string>();
   const dupes: number[] = [];
   rows.forEach((r, i) => {
@@ -32,26 +30,25 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const existingCount = await prisma.candidate.count({ where: { campaignId: id } });
 
-  if (campaign.maxCandidates && (existingCount + rows.length) > campaign.maxCandidates) {
+  if (campaign.maxCandidates && existingCount + rows.length > campaign.maxCandidates) {
     return NextResponse.json(
       { error: `Import would exceed maxCandidates (${campaign.maxCandidates}). Currently ${existingCount} candidates registered.` },
       { status: 422 }
     );
   }
 
-  const emailList = rows.map(r => r.email.trim().toLowerCase());
+  const emailList = rows.map((r) => r.email.trim().toLowerCase());
   const existingInDb = await prisma.candidate.findMany({
     where: { campaignId: id, email: { in: emailList } },
     select: { email: true },
   });
   if (existingInDb.length > 0) {
     return NextResponse.json(
-      { error: `These emails are already registered: ${existingInDb.map(c => c.email).join(", ")}` },
+      { error: `These emails are already registered: ${existingInDb.map((c) => c.email).join(", ")}` },
       { status: 422 }
     );
   }
 
-  // Hash passwords in batches of 100 to avoid timeout
   const BATCH = 100;
   const credentials: { name: string; email: string; accessId: string; password: string; passwordHash: string }[] = [];
   for (let i = 0; i < rows.length; i += BATCH) {
@@ -70,7 +67,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   await prisma.$transaction(async (tx) => {
     await tx.candidate.createMany({
-      data: credentials.map(c => ({
+      data: credentials.map((c) => ({
         accessId: c.accessId,
         email: c.email,
         name: c.name,
@@ -81,9 +78,38 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
   });
 
-  const imported = credentials.length;
-  return NextResponse.json({
-    imported,
-    credentials: credentials.map(c => ({ name: c.name, accessId: c.accessId, email: c.email, password: c.password })),
-  }, { status: 201 });
+  // Fetch org branding for email template
+  const branding = await prisma.orgBranding.findFirst();
+  const orgName = branding?.orgName ?? "PreCognise";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) throw new Error("NEXT_PUBLIC_APP_URL environment variable is not set");
+  const loginUrl = `${appUrl}/candidate/login`;
+  const examDate = campaign.scheduledAt ? formatExamDate(campaign.scheduledAt) : undefined;
+
+  const emailResults = await Promise.allSettled(
+    credentials.map((c) =>
+      sendCredentials({
+        to: c.email,
+        name: c.name,
+        accessId: c.accessId,
+        password: c.password,
+        loginUrl,
+        examDate,
+        orgName,
+      })
+    )
+  );
+
+  const emailFailures = emailResults
+    .map((r, i) => (r.status === "rejected" ? credentials[i].email : null))
+    .filter((e): e is string => e !== null);
+
+  return NextResponse.json(
+    {
+      imported: credentials.length,
+      emailFailures,
+      credentials: credentials.map((c) => ({ name: c.name, accessId: c.accessId, email: c.email, password: c.password })),
+    },
+    { status: 201 }
+  );
 }

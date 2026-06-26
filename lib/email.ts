@@ -44,7 +44,8 @@ export async function sendCredentials(opts: SendCredentialsOpts): Promise<void> 
   <p style="color:#94A3B8;font-size:12px;margin:0;">Save this email — your credentials are shown here only once.</p>
 </body></html>`;
 
-  await resend.emails.send({ from: FROM, to, subject: `Your ${orgName} Assessment Credentials`, html });
+  const { error } = await resend.emails.send({ from: FROM, to, subject: `Your ${orgName} Assessment Credentials`, html });
+  if (error) throw new Error(`Resend error: ${error.message}`);
 }
 
 export interface SendOTPOpts {
@@ -67,7 +68,8 @@ export async function sendOTP(opts: SendOTPOpts): Promise<void> {
   <p style="color:#94A3B8;font-size:12px;margin:0;">If you did not request a password reset, ignore this email.</p>
 </body></html>`;
 
-  await resend.emails.send({ from: FROM, to, subject: "Your password reset code", html });
+  const { error } = await resend.emails.send({ from: FROM, to, subject: "Your password reset code", html });
+  if (error) throw new Error(`Resend error: ${error.message}`);
 }
 
 export interface SendPasswordChangedOpts {
@@ -84,5 +86,6 @@ export async function sendPasswordChanged(opts: SendPasswordChangedOpts): Promis
   <p style="color:#64748B;margin:0;font-size:14px;">Hi ${name}, your password has been successfully updated. You can now log in with your new password.</p>
 </body></html>`;
 
-  await resend.emails.send({ from: FROM, to, subject: "Your password has been updated", html });
+  const { error } = await resend.emails.send({ from: FROM, to, subject: "Your password has been updated", html });
+  if (error) throw new Error(`Resend error: ${error.message}`);
 }

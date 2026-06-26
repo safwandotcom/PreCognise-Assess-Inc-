@@ -21,8 +21,10 @@ export async function GET(req: NextRequest) {
 
     const { campaignId } = candidate;
     const cacheKey = `session-stats:${campaignId}`;
-    const cached = await redis.get(cacheKey);
-    if (cached) return NextResponse.json(JSON.parse(cached));
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) return NextResponse.json(JSON.parse(cached));
+    } catch { /* Redis unavailable — fall through to DB */ }
 
     const [campaign, total, inWaitingRoom, joined] = await Promise.all([
       prisma.campaign.findUnique({ where: { id: campaignId }, select: { name: true } }),
@@ -37,7 +39,9 @@ export async function GET(req: NextRequest) {
     ]);
 
     const result = { total, inWaitingRoom, joined, sessionTitle: campaign?.name ?? null };
-    await redis.set(cacheKey, JSON.stringify(result), "EX", 15);
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 15);
+    } catch { /* Redis unavailable — serve uncached */ }
 
     return NextResponse.json(result);
   } catch (err) {

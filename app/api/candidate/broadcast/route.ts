@@ -10,8 +10,10 @@ export async function GET(req: NextRequest) {
     const { campaignId } = verifyToken(token);
 
     const cacheKey = `broadcast:${campaignId}`;
-    const cached = await redis.get(cacheKey);
-    if (cached) return NextResponse.json(JSON.parse(cached));
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) return NextResponse.json(JSON.parse(cached));
+    } catch { /* Redis unavailable — fall through to DB */ }
 
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId },
@@ -23,7 +25,9 @@ export async function GET(req: NextRequest) {
       message: campaign.lastBroadcast,
       sentAt: campaign.lastBroadcastAt?.toISOString() ?? null,
     };
-    await redis.set(cacheKey, JSON.stringify(payload), "EX", 15);
+    try {
+      await redis.set(cacheKey, JSON.stringify(payload), "EX", 15);
+    } catch { /* Redis unavailable — serve uncached */ }
 
     return NextResponse.json(payload);
   } catch (err) {

@@ -18,6 +18,7 @@ export async function addCandidate(
     tabSwitchCount: 0,
     status: "ACTIVE",
   });
+  await redis.expire(`candidate:${candidateId}`, 86400);
 }
 
 export async function removeCandidate(candidateId: string): Promise<void> {

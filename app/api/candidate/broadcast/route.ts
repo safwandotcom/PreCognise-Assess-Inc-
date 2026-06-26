@@ -5,7 +5,8 @@ import { redis } from "@/lib/redis";
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.headers.get("authorization")?.slice(7);
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { campaignId } = verifyToken(token);
 

@@ -10,16 +10,8 @@ export async function GET(req: NextRequest) {
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const payload = verifyToken(token);
-    const candidate = await prisma.candidate.findUnique({
-      where: { id: payload.candidateId },
-      select: { campaignId: true },
-    });
-    if (!candidate?.campaignId) {
-      return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
-    }
+    const { campaignId } = verifyToken(token);
 
-    const { campaignId } = candidate;
     const cacheKey = `session-stats:${campaignId}`;
     try {
       const cached = await redis.get(cacheKey);

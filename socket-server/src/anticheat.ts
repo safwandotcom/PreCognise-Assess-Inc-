@@ -48,7 +48,7 @@ export async function handleTabSwitch(io: Server, socket: Socket, candidateId: s
     socket.emit("warning", {
       message: "Tab switch detected. Next switch will disqualify you.",
     });
-  } else if (count >= 2) {
+  } else if (count === 2) {
     await disqualifyCandidate(io, candidateId, "TAB_SWITCH_2");
   }
 }

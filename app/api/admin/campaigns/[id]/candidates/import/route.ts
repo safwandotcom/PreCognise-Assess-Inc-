@@ -81,7 +81,9 @@ export async function POST(req: NextRequest, { params }: Params) {
   // Fetch org branding for email template
   const branding = await prisma.orgBranding.findFirst();
   const orgName = branding?.orgName ?? "PreCognise";
-  const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/candidate/login`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) throw new Error("NEXT_PUBLIC_APP_URL environment variable is not set");
+  const loginUrl = `${appUrl}/candidate/login`;
   const examDate = campaign.scheduledAt ? formatExamDate(campaign.scheduledAt) : undefined;
 
   const emailResults = await Promise.allSettled(

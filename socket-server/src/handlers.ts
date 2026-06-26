@@ -69,8 +69,12 @@ export function registerAdminHandlers(io: Server, socket: Socket) {
     io.to("candidates").emit("session:end");
   });
 
-  socket.on("admin:disqualify", ({ candidateId, reason }: { candidateId: string; reason: string }) => {
-    disqualifyCandidate(io, candidateId, reason);
+  socket.on("admin:disqualify", async ({ candidateId, reason }: { candidateId: string; reason: string }) => {
+    try {
+      await disqualifyCandidate(io, candidateId, reason);
+    } catch (err) {
+      console.error("admin:disqualify error:", err);
+    }
   });
 
   socket.on("admin:broadcast", ({ message }: { message: string }) => {

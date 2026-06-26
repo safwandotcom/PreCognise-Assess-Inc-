@@ -11,6 +11,7 @@ module.exports = {
           moduleResolution: "node",
           esModuleInterop: true,
           skipLibCheck: true,
+          ignoreDeprecations: "6.0",
         },
       },
     ],

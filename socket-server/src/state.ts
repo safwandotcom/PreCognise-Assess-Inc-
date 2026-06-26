@@ -1,6 +1,5 @@
-// socket-server/src/state.ts
+import { redis } from "./redis-client";
 
-// What we track for each candidate while they're connected.
 export interface CandidateState {
   socketId: string;
   accessId: string;
@@ -8,14 +7,12 @@ export interface CandidateState {
   status: "ACTIVE" | "DISQUALIFIED" | "COMPLETED";
 }
 
-// candidateId -> their live state. Lives only in RAM.
-const connectedCandidates = new Map<string, CandidateState>();
-
-// Every admin's socket id, so we can broadcast to all open dashboards at once.
-const adminSockets = new Set<string>();
-
-export function addCandidate(candidateId: string, socketId: string, accessId: string) {
-  connectedCandidates.set(candidateId, {
+export async function addCandidate(
+  candidateId: string,
+  socketId: string,
+  accessId: string
+): Promise<void> {
+  await redis.hset(`candidate:${candidateId}`, {
     socketId,
     accessId,
     tabSwitchCount: 0,
@@ -23,36 +20,42 @@ export function addCandidate(candidateId: string, socketId: string, accessId: st
   });
 }
 
-export function removeCandidate(candidateId: string) {
-  connectedCandidates.delete(candidateId);
+export async function removeCandidate(candidateId: string): Promise<void> {
+  await redis.del(`candidate:${candidateId}`);
 }
 
-export function getCandidate(candidateId: string): CandidateState | undefined {
-  return connectedCandidates.get(candidateId);
+export async function getCandidate(
+  candidateId: string
+): Promise<CandidateState | undefined> {
+  const data = await redis.hgetall(`candidate:${candidateId}`);
+  if (!data || Object.keys(data).length === 0) return undefined;
+  return {
+    socketId: data["socketId"]!,
+    accessId: data["accessId"]!,
+    tabSwitchCount: parseInt(data["tabSwitchCount"]!, 10),
+    status: data["status"]! as CandidateState["status"],
+  };
 }
 
-export function updateStatus(candidateId: string, status: CandidateState["status"]) {
-  const candidate = connectedCandidates.get(candidateId);
-  if (candidate) candidate.status = status;
+export async function updateStatus(
+  candidateId: string,
+  status: CandidateState["status"]
+): Promise<void> {
+  await redis.hset(`candidate:${candidateId}`, "status", status);
 }
 
-// Bumps the count and hands back the new value, so anticheat.ts can decide
-// "warn" vs "disqualify" in one call without a separate lookup.
-export function incrementTabSwitch(candidateId: string): number {
-  const candidate = connectedCandidates.get(candidateId);
-  if (!candidate) return 0;
-  candidate.tabSwitchCount += 1;
-  return candidate.tabSwitchCount;
+export async function incrementTabSwitch(candidateId: string): Promise<number> {
+  return redis.hincrby(`candidate:${candidateId}`, "tabSwitchCount", 1);
 }
 
-export function addAdminSocket(socketId: string) {
-  adminSockets.add(socketId);
+export async function addAdminSocket(socketId: string): Promise<void> {
+  await redis.sadd("admin:sockets", socketId);
 }
 
-export function removeAdminSocket(socketId: string) {
-  adminSockets.delete(socketId);
+export async function removeAdminSocket(socketId: string): Promise<void> {
+  await redis.srem("admin:sockets", socketId);
 }
 
-export function getAdminSockets(): string[] {
-  return Array.from(adminSockets);
+export async function getAdminSockets(): Promise<string[]> {
+  return redis.smembers("admin:sockets");
 }

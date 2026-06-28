@@ -96,7 +96,7 @@ export default function AdminSidebar() {
     <aside className="flex h-screen w-[232px] shrink-0 flex-col overflow-hidden border-r border-[#E2E8F0] bg-white">
       {/* Logo */}
       <div className="flex flex-col gap-1.5 border-b border-[#E2E8F0] px-4 py-4">
-        <Image src="/precognise_logo_new.png" alt="PreCognise" width={110} height={26} className="h-7" style={{ width: "auto" }} />
+        <Image src="/precognise_logo_new.png" alt="PreCognise" width={110} height={26} className="block" style={{ height: "1.75rem", width: "auto" }} />
         <span className="inline-flex w-fit rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.05em] text-[#2E0BFC]">
           Assess
         </span>

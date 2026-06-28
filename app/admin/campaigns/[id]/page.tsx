@@ -822,11 +822,25 @@ function QuestionsTab({
   const [qSpeedBonus, setQSpeedBonus] = useState("0");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
 
   const needsOptions = qType === "mcq" || qType === "image";
 
   function setOption(index: number, value: string) {
     setQOptions((prev) => { const next = [...prev]; next[index] = value; return next; });
+  }
+
+  function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setQImageUrl(ev.target?.result as string);
+      setImageUploading(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   }
 
   async function handleAddQuestion(e: React.FormEvent) {
@@ -865,6 +879,7 @@ function QuestionsTab({
       setQTime("60");
       setQPoints("10");
       setQSpeedBonus("0");
+      setImageUploading(false);
       setShowAdd(false);
       onChanged();
     } finally {
@@ -1047,17 +1062,70 @@ function QuestionsTab({
               />
             </div>
 
-            {/* Image URL — image MCQ only */}
+            {/* Image upload — image MCQ only */}
             {qType === "image" && (
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Image URL</label>
-                <input
-                  type="url"
-                  value={qImageUrl}
-                  onChange={(e) => setQImageUrl(e.target.value)}
-                  placeholder="https://…"
-                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#6366F1]"
-                />
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Question Image</label>
+                <div className="space-y-3">
+                  {/* File upload drop zone */}
+                  {!qImageUrl && (
+                    <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-[#E2E8F0] bg-[#F8FAFC] py-7 text-center transition-colors hover:border-[#6366F1] hover:bg-indigo-50/30">
+                      {imageUploading ? (
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#6366F1] border-t-transparent" />
+                      ) : (
+                        <svg className="h-7 w-7 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5z" />
+                        </svg>
+                      )}
+                      <span className="text-sm font-medium text-[#0F172A]">Click to upload image</span>
+                      <span className="text-xs text-[#64748B]">PNG, JPG, GIF, WebP — up to 5 MB</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleImageFileChange}
+                        disabled={imageUploading}
+                      />
+                    </label>
+                  )}
+
+                  {/* Preview with remove */}
+                  {qImageUrl && (
+                    <div className="relative inline-block">
+                      <img
+                        src={qImageUrl}
+                        alt="Question image preview"
+                        className="max-h-48 rounded-lg border border-[#E2E8F0] object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setQImageUrl("")}
+                        className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600"
+                        title="Remove image"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Divider */}
+                  <div className="relative flex items-center gap-3">
+                    <span className="h-px flex-1 bg-[#E2E8F0]" />
+                    <span className="text-xs text-[#94A3B8]">or paste URL</span>
+                    <span className="h-px flex-1 bg-[#E2E8F0]" />
+                  </div>
+
+                  {/* URL fallback */}
+                  <input
+                    type="url"
+                    value={qImageUrl.startsWith("data:") ? "" : qImageUrl}
+                    onChange={(e) => setQImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.png"
+                    className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#6366F1]"
+                  />
+                </div>
               </div>
             )}
 

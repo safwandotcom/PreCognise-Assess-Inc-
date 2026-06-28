@@ -9,7 +9,7 @@ export default function HomePage() {
       <nav className="sticky top-0 z-50 border-b border-[#E2E8F0] bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <Image src="/precognise_logo_new.png" alt="PreCognise" width={140} height={32} priority className="block" style={{ height: "2rem", width: "auto" }} />
+            <Image src="/precognise_logo_new.png" alt="PreCognise" width={140} height={32} priority />
             <span className="hidden border-l border-[#E2E8F0] pl-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#64748B] sm:block">
               Assess
             </span>
@@ -63,7 +63,7 @@ export default function HomePage() {
           {/* Quote side */}
           <div>
             <div className="mb-6 flex items-center gap-2.5">
-              <Image src="/precognise_logo_new.png" alt="PreCognise" width={120} height={28} className="block" style={{ height: "1.75rem", width: "auto" }} />
+              <Image src="/precognise_logo_new.png" alt="PreCognise" width={120} height={28} />
               <span className="h-5 w-px bg-[#E2E8F0]" />
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">Assessment Platform</span>
             </div>
@@ -216,7 +216,7 @@ export default function HomePage() {
       <section className="border-y border-[rgba(46,11,252,0.1)] bg-[#EEF2FF] px-6 py-20">
         <div className="mx-auto grid max-w-6xl gap-20 md:grid-cols-2">
           <div className="flex flex-col gap-5">
-            <Image src="/precognise_logo_new.png" alt="PreCognise" width={140} height={32} className="block" style={{ height: "2.5rem", width: "auto" }} />
+            <Image src="/precognise_logo_new.png" alt="PreCognise" width={140} height={32} />
             <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[rgba(46,11,252,0.15)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#2E0BFC]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
               Professional credentialing platform
@@ -253,7 +253,7 @@ export default function HomePage() {
       <footer className="bg-[#0F172A] px-6 py-9">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2.5">
-            <Image src="/precognise_logo_new.png" alt="PreCognise" width={110} height={26} className="block brightness-0 invert opacity-60" style={{ height: "1.5rem", width: "auto" }} />
+            <Image src="/precognise_logo_new.png" alt="PreCognise" width={110} height={26} className="brightness-0 invert opacity-60" />
             <span className="text-sm font-semibold text-white/55">PreCognise Assess</span>
           </div>
           <span className="text-xs text-white/30">&copy; {new Date().getFullYear()} PreCognise. All rights reserved.</span>

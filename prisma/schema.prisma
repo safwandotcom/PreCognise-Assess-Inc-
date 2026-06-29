@@ -32,23 +32,23 @@ enum QuestionType {
 }
 
 model AssessmentSettings {
-  id                   String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Anti-cheat toggles
-  antiCheatTabSwitch   Boolean  @default(true)
-  antiCheatContextMenu Boolean  @default(true)
-  antiCheatCopyPaste   Boolean  @default(true)
-  antiCheatScreenshot  Boolean  @default(true)
-  antiCheatDevTools    Boolean  @default(true)
+  antiCheatTabSwitch   Boolean @default(true)
+  antiCheatContextMenu Boolean @default(true)
+  antiCheatCopyPaste   Boolean @default(true)
+  antiCheatScreenshot  Boolean @default(true)
+  antiCheatDevTools    Boolean @default(true)
 
   // Exam behaviour
-  speedBonusEnabled    Boolean  @default(true)
-  gracePeriodSec       Int      @default(0)
+  speedBonusEnabled Boolean @default(true)
+  gracePeriodSec    Int     @default(0)
 
   // Geo-restriction: comma-separated ISO-3166-1 alpha-2 codes (empty = no restriction)
-  geoRestriction       String   @default("")
+  geoRestriction String @default("")
 
-  updatedAt            DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 model OrgBranding {
@@ -61,36 +61,37 @@ model OrgBranding {
 }
 
 model Campaign {
-  id                   String         @id @default(cuid())
-  name                 String
-  status               CampaignStatus @default(DRAFT)
-  joinToken            String         @unique @default(cuid())
-  scheduledAt          DateTime?
-  autoStart            Boolean        @default(false)
-  startedAt            DateTime?
-  endedAt              DateTime?
-  durationSec          Int            @default(0)
-  logoUrl              String?
-  bgColor              String         @default("#F8FAFC")
-  maxCandidates        Int?
-  negativeMarking      Boolean        @default(false)
-  negativeMarkingValue Float          @default(0.25)
-  gracePeriodMin              Int            @default(10)
-  disqualifyOnDuplicateLogin  Boolean        @default(true)
-  antiCheatTabSwitch          Boolean        @default(true)
-  tabSwitchLimit              Int            @default(3)
-  antiCheatFullscreen         Boolean        @default(false)
-  antiCheatCopyPaste          Boolean        @default(true)
-  antiCheatRightClick         Boolean        @default(true)
-  antiCheatScreenshot         Boolean        @default(true)
-  antiCheatDevTools           Boolean        @default(true)
-  lastBroadcast               String?
-  lastBroadcastAt             DateTime?
-  completionMessage           String?
-  createdAt                   DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  candidates           Candidate[]
-  questions            Question[]
+  id                         String         @id @default(cuid())
+  name                       String
+  status                     CampaignStatus @default(DRAFT)
+  joinToken                  String         @unique @default(cuid())
+  scheduledAt                DateTime?
+  autoStart                  Boolean        @default(false)
+  startedAt                  DateTime?
+  endedAt                    DateTime?
+  durationSec                Int            @default(0)
+  logoUrl                    String?
+  bgColor                    String         @default("#F8FAFC")
+  maxCandidates              Int?
+  negativeMarking            Boolean        @default(false)
+  negativeMarkingValue       Float          @default(0.25)
+  gracePeriodMin             Int            @default(10)
+  disqualifyOnDuplicateLogin Boolean        @default(true)
+  antiCheatTabSwitch         Boolean        @default(true)
+  tabSwitchLimit             Int            @default(3)
+  antiCheatFullscreen        Boolean        @default(false)
+  antiCheatCopyPaste         Boolean        @default(true)
+  antiCheatRightClick        Boolean        @default(true)
+  antiCheatScreenshot        Boolean        @default(true)
+  antiCheatDevTools          Boolean        @default(true)
+  lastBroadcast              String?
+  lastBroadcastAt            DateTime?
+  completionMessage          String?
+  instructionsHtml           String?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+  candidates                 Candidate[]
+  questions                  Question[]
 }
 
 model Candidate {
@@ -107,6 +108,7 @@ model Candidate {
   tabSwitchCount    Int             @default(0)
   otpHash           String?
   otpExpiresAt      DateTime?
+  acknowledgedAt    DateTime?
   campaignId        String
   campaign          Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   responses         Response[]

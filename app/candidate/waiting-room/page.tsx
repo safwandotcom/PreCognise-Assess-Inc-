@@ -38,7 +38,7 @@ export default function WaitingRoomPage() {
   const goToExam = useCallback(() => {
     if (navigatingRef.current) return;
     navigatingRef.current = true;
-    router.replace("/candidate/exam");
+    router.replace("/candidate/instructions");
   }, [router]);
 
   const fetchStats = useCallback(async () => {

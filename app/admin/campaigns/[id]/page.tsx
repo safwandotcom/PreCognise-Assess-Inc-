@@ -52,6 +52,7 @@ interface Campaign {
   antiCheatScreenshot: boolean;
   antiCheatDevTools: boolean;
   completionMessage: string | null;
+  instructionsHtml: string | null;
   createdAt: string;
   questions: Question[];
   _count: { candidates: number; questions: number };
@@ -75,7 +76,10 @@ function formatDuration(sec: number) {
 function parseCSV(text: string): { name: string; email: string }[] {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
-  const header = lines[0].toLowerCase().split(",").map((h) => h.trim());
+  const header = lines[0]
+    .toLowerCase()
+    .split(",")
+    .map((h) => h.trim());
   const nameIdx = header.indexOf("name");
   const emailIdx = header.indexOf("email");
   if (nameIdx === -1 || emailIdx === -1) return [];
@@ -88,7 +92,10 @@ function parseCSV(text: string): { name: string; email: string }[] {
     .filter((r) => r.name && r.email);
 }
 
-async function downloadExcel(credentials: ImportCredential[], filename: string) {
+async function downloadExcel(
+  credentials: ImportCredential[],
+  filename: string,
+) {
   // Dynamic import so ExcelJS only loads client-side when needed
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
@@ -115,7 +122,13 @@ async function downloadExcel(credentials: ImportCredential[], filename: string) 
 
 // ─── Shared micro-components ────────────────────────────────────────────────
 
-function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+function CopyButton({
+  text,
+  label = "Copy",
+}: {
+  text: string;
+  label?: string;
+}) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     await navigator.clipboard.writeText(text);
@@ -130,15 +143,35 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
     >
       {copied ? (
         <>
-          <svg className="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          <svg
+            className="h-3.5 w-3.5 text-emerald-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 12.75l6 6 9-13.5"
+            />
           </svg>
           Copied
         </>
       ) : (
         <>
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+          <svg
+            className="h-3.5 w-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
+            />
           </svg>
           {label}
         </>
@@ -176,26 +209,47 @@ function OverviewTab({
   const [logoUrl, setLogoUrl] = useState(campaign.logoUrl ?? "");
   const [bgColor, setBgColor] = useState(campaign.bgColor ?? "#F8FAFC");
   const [scheduledAt, setScheduledAt] = useState(
-    campaign.scheduledAt ? campaign.scheduledAt.slice(0, 16) : ""
+    campaign.scheduledAt ? campaign.scheduledAt.slice(0, 16) : "",
   );
   const [autoStart, setAutoStart] = useState(campaign.autoStart);
   const [maxCandidates, setMaxCandidates] = useState(
-    campaign.maxCandidates?.toString() ?? ""
+    campaign.maxCandidates?.toString() ?? "",
   );
-  const [negativeMarking, setNegativeMarking] = useState(campaign.negativeMarking);
+  const [negativeMarking, setNegativeMarking] = useState(
+    campaign.negativeMarking,
+  );
   const [negativeMarkingValue, setNegativeMarkingValue] = useState(
-    campaign.negativeMarkingValue.toString()
+    campaign.negativeMarkingValue.toString(),
   );
   const [gracePeriodMin, setGracePeriodMin] = useState(campaign.gracePeriodMin);
-  const [disqualifyOnDuplicateLogin, setDisqualifyOnDuplicateLogin] = useState(campaign.disqualifyOnDuplicateLogin);
-  const [antiCheatTabSwitch, setAntiCheatTabSwitch] = useState(campaign.antiCheatTabSwitch);
+  const [disqualifyOnDuplicateLogin, setDisqualifyOnDuplicateLogin] = useState(
+    campaign.disqualifyOnDuplicateLogin,
+  );
+  const [antiCheatTabSwitch, setAntiCheatTabSwitch] = useState(
+    campaign.antiCheatTabSwitch,
+  );
   const [tabSwitchLimit, setTabSwitchLimit] = useState(campaign.tabSwitchLimit);
-  const [antiCheatFullscreen, setAntiCheatFullscreen] = useState(campaign.antiCheatFullscreen);
-  const [antiCheatCopyPaste, setAntiCheatCopyPaste] = useState(campaign.antiCheatCopyPaste);
-  const [antiCheatRightClick, setAntiCheatRightClick] = useState(campaign.antiCheatRightClick);
-  const [antiCheatScreenshot, setAntiCheatScreenshot] = useState(campaign.antiCheatScreenshot);
-  const [antiCheatDevTools, setAntiCheatDevTools] = useState(campaign.antiCheatDevTools);
-  const [completionMessage, setCompletionMessage] = useState(campaign.completionMessage ?? "");
+  const [antiCheatFullscreen, setAntiCheatFullscreen] = useState(
+    campaign.antiCheatFullscreen,
+  );
+  const [antiCheatCopyPaste, setAntiCheatCopyPaste] = useState(
+    campaign.antiCheatCopyPaste,
+  );
+  const [antiCheatRightClick, setAntiCheatRightClick] = useState(
+    campaign.antiCheatRightClick,
+  );
+  const [antiCheatScreenshot, setAntiCheatScreenshot] = useState(
+    campaign.antiCheatScreenshot,
+  );
+  const [antiCheatDevTools, setAntiCheatDevTools] = useState(
+    campaign.antiCheatDevTools,
+  );
+  const [completionMessage, setCompletionMessage] = useState(
+    campaign.completionMessage ?? "",
+  );
+  const [instructionsHtml, setInstructionsHtml] = useState(
+    campaign.instructionsHtml ?? "",
+  );
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -205,7 +259,9 @@ function OverviewTab({
     setName(campaign.name);
     setLogoUrl(campaign.logoUrl ?? "");
     setBgColor(campaign.bgColor ?? "#F8FAFC");
-    setScheduledAt(campaign.scheduledAt ? campaign.scheduledAt.slice(0, 16) : "");
+    setScheduledAt(
+      campaign.scheduledAt ? campaign.scheduledAt.slice(0, 16) : "",
+    );
     setAutoStart(campaign.autoStart);
     setMaxCandidates(campaign.maxCandidates?.toString() ?? "");
     setNegativeMarking(campaign.negativeMarking);
@@ -220,6 +276,7 @@ function OverviewTab({
     setAntiCheatScreenshot(campaign.antiCheatScreenshot);
     setAntiCheatDevTools(campaign.antiCheatDevTools);
     setCompletionMessage(campaign.completionMessage ?? "");
+    setInstructionsHtml(campaign.instructionsHtml ?? "");
   }, [campaign]);
 
   async function handleSave(e: React.FormEvent) {
@@ -248,6 +305,7 @@ function OverviewTab({
           antiCheatScreenshot,
           antiCheatDevTools,
           completionMessage: completionMessage.trim() || null,
+          instructionsHtml: instructionsHtml.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -297,9 +355,12 @@ function OverviewTab({
         <section className="rounded-2xl border border-[#6366F1]/30 bg-gradient-to-br from-[#6366F1]/5 to-indigo-50 p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-sm font-semibold text-[#0F172A]">Ready to go live?</h2>
+              <h2 className="text-sm font-semibold text-[#0F172A]">
+                Ready to go live?
+              </h2>
               <p className="mt-1 text-sm text-[#64748B]">
-                Deploy this campaign to make it live. You can pause, resume, or end it any time from the Live Session page.
+                Deploy this campaign to make it live. You can pause, resume, or
+                end it any time from the Live Session page.
               </p>
             </div>
             <button
@@ -319,9 +380,12 @@ function OverviewTab({
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-sm font-semibold text-[#0F172A]">Campaign ended</h2>
+              <h2 className="text-sm font-semibold text-[#0F172A]">
+                Campaign ended
+              </h2>
               <p className="mt-1 text-sm text-[#64748B]">
-                This campaign has ended. View the full candidate results and scores below.
+                This campaign has ended. View the full candidate results and
+                scores below.
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -344,23 +408,32 @@ function OverviewTab({
 
       {/* Join link */}
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-[#0F172A]">Candidate join link</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[#0F172A]">
+          Candidate join link
+        </h2>
         <div className="flex items-center gap-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
-          <p className="flex-1 truncate font-mono text-sm text-[#6366F1]">{joinLink}</p>
+          <p className="flex-1 truncate font-mono text-sm text-[#6366F1]">
+            {joinLink}
+          </p>
           <CopyButton text={joinLink} />
         </div>
         <p className="mt-2 text-xs text-[#64748B]">
-          Share this link with candidates. They can log in using their Access ID and password.
+          Share this link with candidates. They can log in using their Access ID
+          and password.
         </p>
       </section>
 
       {/* Settings form */}
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
-        <h2 className="mb-4 text-sm font-semibold text-[#0F172A]">Campaign settings</h2>
+        <h2 className="mb-4 text-sm font-semibold text-[#0F172A]">
+          Campaign settings
+        </h2>
         <form onSubmit={handleSave} className="space-y-5">
           {/* Name */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Campaign name</label>
+            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+              Campaign name
+            </label>
             <input
               required
               value={name}
@@ -372,7 +445,9 @@ function OverviewTab({
           {/* Logo + BgColor */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Logo URL</label>
+              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                Logo URL
+              </label>
               <input
                 type="url"
                 value={logoUrl}
@@ -457,8 +532,12 @@ function OverviewTab({
 
             <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
               <div>
-                <p className="text-sm font-medium text-[#0F172A]">Negative marking</p>
-                <p className="text-xs text-[#64748B]">Deduct points for wrong answers</p>
+                <p className="text-sm font-medium text-[#0F172A]">
+                  Negative marking
+                </p>
+                <p className="text-xs text-[#64748B]">
+                  Deduct points for wrong answers
+                </p>
               </div>
               <button
                 type="button"
@@ -498,10 +577,13 @@ function OverviewTab({
           {/* Duplicate login */}
           <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-[#0F172A]">Disqualify on duplicate login</p>
+              <p className="text-sm font-medium text-[#0F172A]">
+                Disqualify on duplicate login
+              </p>
               <p className="text-xs text-[#64748B]">
-                If a candidate logs in from a second device, disqualify them and end both sessions.
-                When off, the second device is simply blocked.
+                If a candidate logs in from a second device, disqualify them and
+                end both sessions. When off, the second device is simply
+                blocked.
               </p>
             </div>
             <button
@@ -527,7 +609,8 @@ function OverviewTab({
               Candidate entry grace period
             </label>
             <p className="mb-2 text-xs text-[#64748B]">
-              How long after the assessment starts candidates can still join. Set to 0 to allow no late entry.
+              How long after the assessment starts candidates can still join.
+              Set to 0 to allow no late entry.
             </p>
             <div className="flex flex-wrap gap-2">
               {[0, 5, 10, 15, 20, 30, 60].map((min) => (
@@ -553,7 +636,8 @@ function OverviewTab({
               Completion message
             </label>
             <p className="mb-2 text-xs text-[#64748B]">
-              Shown to candidates on a full-screen card after they submit their last answer. Leave blank to use the default message.
+              Shown to candidates on a full-screen card after they submit their
+              last answer. Leave blank to use the default message.
             </p>
             <textarea
               rows={4}
@@ -573,8 +657,12 @@ function OverviewTab({
               {/* Tab switch detection */}
               <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-[#0F172A]">Tab switch detection</p>
-                  <p className="text-xs text-[#64748B]">Warn or disqualify candidates who leave the exam tab</p>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Tab switch detection
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Warn or disqualify candidates who leave the exam tab
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -596,9 +684,12 @@ function OverviewTab({
               {/* Tab switch limit — shown only when tab switch detection is on */}
               {antiCheatTabSwitch && (
                 <div className="ml-4 pl-4 border-l-2 border-[#E2E8F0]">
-                  <p className="mb-2 text-xs font-medium text-[#0F172A]">Tab switch limit</p>
+                  <p className="mb-2 text-xs font-medium text-[#0F172A]">
+                    Tab switch limit
+                  </p>
                   <p className="mb-2 text-xs text-[#64748B]">
-                    Disqualify after this many switches. 0 = disqualify on 1st switch.
+                    Disqualify after this many switches. 0 = disqualify on 1st
+                    switch.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {[0, 1, 2, 3, 5].map((n) => (
@@ -612,7 +703,9 @@ function OverviewTab({
                             : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1] hover:text-[#6366F1]"
                         }`}
                       >
-                        {n === 0 ? "Disqualify on 1st switch" : `After ${n} switch${n !== 1 ? "es" : ""}`}
+                        {n === 0
+                          ? "Disqualify on 1st switch"
+                          : `After ${n} switch${n !== 1 ? "es" : ""}`}
                       </button>
                     ))}
                   </div>
@@ -622,8 +715,12 @@ function OverviewTab({
               {/* Fullscreen enforcement */}
               <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-[#0F172A]">Fullscreen enforcement</p>
-                  <p className="text-xs text-[#64748B]">Require candidates to stay in fullscreen during the exam</p>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Fullscreen enforcement
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Require candidates to stay in fullscreen during the exam
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -645,8 +742,12 @@ function OverviewTab({
               {/* Disable copy/paste */}
               <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-[#0F172A]">Disable copy/paste</p>
-                  <p className="text-xs text-[#64748B]">Block clipboard operations and text selection</p>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Disable copy/paste
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Block clipboard operations and text selection
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -668,8 +769,12 @@ function OverviewTab({
               {/* Disable right-click */}
               <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-[#0F172A]">Disable right-click</p>
-                  <p className="text-xs text-[#64748B]">Block the browser context menu</p>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Disable right-click
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Block the browser context menu
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -691,8 +796,12 @@ function OverviewTab({
               {/* Block screenshot keys */}
               <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-[#0F172A]">Block screenshot keys</p>
-                  <p className="text-xs text-[#64748B]">Intercept PrintScreen and macOS screenshot shortcuts</p>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Block screenshot keys
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Intercept PrintScreen and macOS screenshot shortcuts
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -714,8 +823,12 @@ function OverviewTab({
               {/* Block DevTools shortcuts */}
               <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-[#0F172A]">Block DevTools shortcuts</p>
-                  <p className="text-xs text-[#64748B]">Prevent F12, Ctrl+Shift+I/J/C and Ctrl+U</p>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Block DevTools shortcuts
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Prevent F12, Ctrl+Shift+I/J/C and Ctrl+U
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -735,7 +848,27 @@ function OverviewTab({
               </label>
             </div>
           </div>
-
+          {/* Pre-exam instructions */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+              Pre-exam instructions
+            </label>
+            <p className="mb-2 text-xs text-[#64748B]">
+              Shown to candidates on the instructions screen before they start.
+              Supports basic HTML like{" "}
+              <code className="font-mono">&lt;b&gt;</code>,{" "}
+              <code className="font-mono">&lt;ul&gt;</code>,{" "}
+              <code className="font-mono">&lt;li&gt;</code>. Leave blank to show
+              only the auto-generated anti-cheat rules.
+            </p>
+            <textarea
+              rows={5}
+              value={instructionsHtml}
+              onChange={(e) => setInstructionsHtml(e.target.value)}
+              placeholder={`e.g. This assessment tests your verbal reasoning and situational judgement.\n\nAnswer all questions to the best of your ability. There are no trick questions.`}
+              className="w-full resize-y rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]"
+            />
+          </div>
           <div className="flex justify-end">
             <button
               type="submit"
@@ -812,7 +945,9 @@ function QuestionsTab({
   const [reordering, setReordering] = useState(false);
 
   // Add form state
-  const [qType, setQType] = useState<"mcq" | "psychometric" | "rating" | "image">("mcq");
+  const [qType, setQType] = useState<
+    "mcq" | "psychometric" | "rating" | "image"
+  >("mcq");
   const [qText, setQText] = useState("");
   const [qImageUrl, setQImageUrl] = useState("");
   const [qOptions, setQOptions] = useState<string[]>(["", "", "", ""]);
@@ -827,7 +962,11 @@ function QuestionsTab({
   const needsOptions = qType === "mcq" || qType === "image";
 
   function setOption(index: number, value: string) {
-    setQOptions((prev) => { const next = [...prev]; next[index] = value; return next; });
+    setQOptions((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
   }
 
   function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -924,8 +1063,18 @@ function QuestionsTab({
       {/* Duration banner */}
       {durationSec > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
-          <svg className="h-4 w-4 text-[#6366F1] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="h-4 w-4 text-[#6366F1] shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <p className="text-sm text-[#0F172A]">
             <span className="font-semibold">Total assessment time:</span>{" "}
@@ -937,7 +1086,9 @@ function QuestionsTab({
       {/* Question list */}
       {questions.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#E2E8F0] p-10 text-center">
-          <p className="text-sm text-[#64748B]">No questions yet. Add your first question below.</p>
+          <p className="text-sm text-[#64748B]">
+            No questions yet. Add your first question below.
+          </p>
         </div>
       ) : (
         <div className="rounded-2xl border border-[#E2E8F0] bg-white overflow-hidden">
@@ -958,19 +1109,41 @@ function QuestionsTab({
                     className="rounded p-0.5 text-[#94A3B8] hover:bg-[#F1F5F9] disabled:opacity-30"
                     title="Move up"
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                      />
                     </svg>
                   </button>
                   <button
                     type="button"
-                    disabled={reordering || q.orderIndex >= questions.length - 1}
+                    disabled={
+                      reordering || q.orderIndex >= questions.length - 1
+                    }
                     onClick={() => handleMoveDown(q, questions.length)}
                     className="rounded p-0.5 text-[#94A3B8] hover:bg-[#F1F5F9] disabled:opacity-30"
                     title="Move down"
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -991,7 +1164,9 @@ function QuestionsTab({
                       {q.speedBonusMax > 0 && ` · +${q.speedBonusMax} speed`}
                     </span>
                   </div>
-                  <p className="text-sm text-[#0F172A] line-clamp-2 leading-snug">{q.text}</p>
+                  <p className="text-sm text-[#0F172A] line-clamp-2 leading-snug">
+                    {q.text}
+                  </p>
                 </div>
 
                 {/* Delete */}
@@ -1002,8 +1177,18 @@ function QuestionsTab({
                   className="shrink-0 rounded-lg border border-red-100 p-1.5 text-red-400 hover:bg-red-50 disabled:opacity-50"
                   title="Delete question"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                    />
                   </svg>
                 </button>
               </li>
@@ -1019,18 +1204,32 @@ function QuestionsTab({
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-2 rounded-xl border-2 border-dashed border-[#E2E8F0] px-5 py-3 text-sm font-medium text-[#6366F1] hover:border-[#6366F1] hover:bg-indigo-50/30 transition-colors"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 4.5v15m7.5-7.5h-15"
+            />
           </svg>
           Add question
         </button>
       ) : (
         <section className="rounded-2xl border border-[#6366F1]/30 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-[#0F172A]">New question</h3>
+          <h3 className="mb-4 text-sm font-semibold text-[#0F172A]">
+            New question
+          </h3>
           <form onSubmit={handleAddQuestion} className="space-y-4">
             {/* Question type buttons */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Question type</label>
+              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                Question type
+              </label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {QUESTION_TYPES.map((t) => (
                   <button
@@ -1051,7 +1250,9 @@ function QuestionsTab({
 
             {/* Question text */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Question text</label>
+              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                Question text
+              </label>
               <textarea
                 required
                 rows={3}
@@ -1065,7 +1266,9 @@ function QuestionsTab({
             {/* Image upload — image MCQ only */}
             {qType === "image" && (
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Question Image</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                  Question Image
+                </label>
                 <div className="space-y-3">
                   {/* File upload drop zone */}
                   {!qImageUrl && (
@@ -1073,12 +1276,26 @@ function QuestionsTab({
                       {imageUploading ? (
                         <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#6366F1] border-t-transparent" />
                       ) : (
-                        <svg className="h-7 w-7 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5z" />
+                        <svg
+                          className="h-7 w-7 text-[#94A3B8]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5z"
+                          />
                         </svg>
                       )}
-                      <span className="text-sm font-medium text-[#0F172A]">Click to upload image</span>
-                      <span className="text-xs text-[#64748B]">PNG, JPG, GIF, WebP — up to 5 MB</span>
+                      <span className="text-sm font-medium text-[#0F172A]">
+                        Click to upload image
+                      </span>
+                      <span className="text-xs text-[#64748B]">
+                        PNG, JPG, GIF, WebP — up to 5 MB
+                      </span>
                       <input
                         type="file"
                         accept="image/*"
@@ -1103,8 +1320,18 @@ function QuestionsTab({
                         className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600"
                         title="Remove image"
                       >
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -1132,7 +1359,9 @@ function QuestionsTab({
             {/* Options — MCQ and Image MCQ */}
             {needsOptions && (
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Options</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                  Options
+                </label>
                 <div className="space-y-2">
                   {qOptions.map((opt, i) => (
                     <div key={i} className="flex items-center gap-3">
@@ -1155,7 +1384,9 @@ function QuestionsTab({
             {/* Correct answer selector */}
             {needsOptions && (
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Correct answer</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                  Correct answer
+                </label>
                 <div className="flex gap-2">
                   {qOptions.map((_, i) => (
                     <button
@@ -1177,7 +1408,8 @@ function QuestionsTab({
 
             {(qType === "psychometric" || qType === "rating") && (
               <p className="rounded-lg bg-purple-50 px-3.5 py-2.5 text-xs text-purple-700 ring-1 ring-purple-200">
-                This question type always awards base points on any answer — there is no wrong answer.
+                This question type always awards base points on any answer —
+                there is no wrong answer.
               </p>
             )}
 
@@ -1231,7 +1463,10 @@ function QuestionsTab({
             <div className="flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => { setShowAdd(false); setAddError(""); }}
+                onClick={() => {
+                  setShowAdd(false);
+                  setAddError("");
+                }}
                 className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
               >
                 Cancel
@@ -1271,11 +1506,16 @@ function CandidatesTab({
   const [manualName, setManualName] = useState("");
   const [manualEmail, setManualEmail] = useState("");
   const [manualAdding, setManualAdding] = useState(false);
-  const [manualCred, setManualCred] = useState<{ accessId: string; password: string } | null>(null);
+  const [manualCred, setManualCred] = useState<{
+    accessId: string;
+    password: string;
+  } | null>(null);
   const [manualError, setManualError] = useState("");
 
   // CSV import
-  const [importRows, setImportRows] = useState<{ name: string; email: string }[]>([]);
+  const [importRows, setImportRows] = useState<
+    { name: string; email: string }[]
+  >([]);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     imported: number;
@@ -1308,14 +1548,20 @@ function CandidatesTab({
       const res = await fetch(`/api/admin/campaigns/${campaignId}/candidates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: manualName.trim(), email: manualEmail.trim() }),
+        body: JSON.stringify({
+          name: manualName.trim(),
+          email: manualEmail.trim(),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setManualError(data.error ?? "Failed to add candidate");
         return;
       }
-      setManualCred({ accessId: data.candidate.accessId, password: data.password });
+      setManualCred({
+        accessId: data.candidate.accessId,
+        password: data.password,
+      });
       setManualName("");
       setManualEmail("");
       onChanged();
@@ -1345,11 +1591,14 @@ function CandidatesTab({
     setImporting(true);
     setImportError("");
     try {
-      const res = await fetch(`/api/admin/campaigns/${campaignId}/candidates/import`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: importRows }),
-      });
+      const res = await fetch(
+        `/api/admin/campaigns/${campaignId}/candidates/import`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows: importRows }),
+        },
+      );
       const data = await res.json();
       if (!res.ok) {
         setImportError(data.error ?? "Import failed");
@@ -1366,9 +1615,12 @@ function CandidatesTab({
   async function handleRemove(candidateId: string) {
     if (!confirm("Remove this candidate?")) return;
     setRemoving(candidateId);
-    await fetch(`/api/admin/campaigns/${campaignId}/candidates/${candidateId}`, {
-      method: "DELETE",
-    });
+    await fetch(
+      `/api/admin/campaigns/${campaignId}/candidates/${candidateId}`,
+      {
+        method: "DELETE",
+      },
+    );
     setRemoving(null);
     onChanged();
   }
@@ -1380,8 +1632,8 @@ function CandidatesTab({
         candidates.map((c) =>
           fetch(`/api/admin/campaigns/${campaignId}/candidates/${c.id}`, {
             method: "DELETE",
-          })
-        )
+          }),
+        ),
       );
       setRemoveAllConfirm(false);
       onChanged();
@@ -1394,10 +1646,17 @@ function CandidatesTab({
     <div className="space-y-6">
       {/* ── Add manually ── */}
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
-        <h2 className="mb-4 text-sm font-semibold text-[#0F172A]">Add candidate manually</h2>
-        <form onSubmit={handleManualAdd} className="flex flex-wrap items-end gap-3">
+        <h2 className="mb-4 text-sm font-semibold text-[#0F172A]">
+          Add candidate manually
+        </h2>
+        <form
+          onSubmit={handleManualAdd}
+          className="flex flex-wrap items-end gap-3"
+        >
           <div className="flex-1 min-w-[160px]">
-            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Name</label>
+            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+              Name
+            </label>
             <input
               required
               value={manualName}
@@ -1407,7 +1666,9 @@ function CandidatesTab({
             />
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">Email</label>
+            <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+              Email
+            </label>
             <input
               required
               type="email"
@@ -1438,14 +1699,18 @@ function CandidatesTab({
               One-time credentials — save these now
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-[#0F172A] w-20 shrink-0">Access ID</span>
+              <span className="text-xs font-medium text-[#0F172A] w-20 shrink-0">
+                Access ID
+              </span>
               <code className="flex-1 rounded bg-white border border-[#E2E8F0] px-2.5 py-1 text-sm font-mono text-[#0F172A]">
                 {manualCred.accessId}
               </code>
               <CopyButton text={manualCred.accessId} label="Copy" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-[#0F172A] w-20 shrink-0">Password</span>
+              <span className="text-xs font-medium text-[#0F172A] w-20 shrink-0">
+                Password
+              </span>
               <code className="flex-1 rounded bg-white border border-[#E2E8F0] px-2.5 py-1 text-sm font-mono text-[#0F172A]">
                 {manualCred.password}
               </code>
@@ -1466,7 +1731,9 @@ function CandidatesTab({
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-[#0F172A]">Bulk import via CSV</h2>
+            <h2 className="text-sm font-semibold text-[#0F172A]">
+              Bulk import via CSV
+            </h2>
             <p className="mt-0.5 text-xs text-[#64748B]">
               Columns required: <code className="font-mono">name, email</code>
             </p>
@@ -1474,19 +1741,39 @@ function CandidatesTab({
         </div>
 
         <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#E2E8F0] bg-[#F8FAFC] py-8 text-center hover:border-[#6366F1] hover:bg-indigo-50/30 transition-colors">
-          <svg className="mb-2 h-7 w-7 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          <svg
+            className="mb-2 h-7 w-7 text-[#64748B]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+            />
           </svg>
-          <span className="text-sm font-medium text-[#0F172A]">Click to upload CSV</span>
-          <span className="mt-0.5 text-xs text-[#64748B]">name, email columns required</span>
-          <input type="file" accept=".csv,text/csv" className="sr-only" onChange={handleFileChange} />
+          <span className="text-sm font-medium text-[#0F172A]">
+            Click to upload CSV
+          </span>
+          <span className="mt-0.5 text-xs text-[#64748B]">
+            name, email columns required
+          </span>
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            className="sr-only"
+            onChange={handleFileChange}
+          />
         </label>
 
         {importRows.length > 0 && (
           <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-medium text-[#0F172A]">
-                {importRows.length} row{importRows.length !== 1 ? "s" : ""} parsed
+                {importRows.length} row{importRows.length !== 1 ? "s" : ""}{" "}
+                parsed
               </p>
               <button
                 type="button"
@@ -1504,7 +1791,9 @@ function CandidatesTab({
                 </p>
               ))}
               {importRows.length > 5 && (
-                <p className="text-xs text-[#64748B]">…and {importRows.length - 5} more</p>
+                <p className="text-xs text-[#64748B]">
+                  …and {importRows.length - 5} more
+                </p>
               )}
             </div>
           </div>
@@ -1518,11 +1807,22 @@ function CandidatesTab({
 
         {importResult && (
           <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <svg className="h-5 w-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            <svg
+              className="h-5 w-5 text-emerald-600 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4.5 12.75l6 6 9-13.5"
+              />
             </svg>
             <p className="text-sm text-emerald-700 flex-1">
-              <span className="font-semibold">{importResult.imported}</span> candidate
+              <span className="font-semibold">{importResult.imported}</span>{" "}
+              candidate
               {importResult.imported !== 1 ? "s" : ""} imported
             </p>
             {importResult.credentials.length > 0 && (
@@ -1531,13 +1831,23 @@ function CandidatesTab({
                 onClick={() =>
                   downloadExcel(
                     importResult.credentials,
-                    `credentials-${campaignName.toLowerCase().replace(/\s+/g, "-")}.xlsx`
+                    `credentials-${campaignName.toLowerCase().replace(/\s+/g, "-")}.xlsx`,
                   )
                 }
                 className="flex items-center gap-1.5 rounded-lg border border-emerald-300 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
               >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                  />
                 </svg>
                 Download Excel
               </button>
@@ -1564,13 +1874,23 @@ function CandidatesTab({
                       email: c.email,
                       password: c.generatedPassword ?? "—",
                     })),
-                    `credentials-${campaignName.toLowerCase().replace(/\s+/g, "-")}.xlsx`
+                    `credentials-${campaignName.toLowerCase().replace(/\s+/g, "-")}.xlsx`,
                   )
                 }
                 className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-[#64748B] hover:bg-[#F1F5F9]"
               >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                  />
                 </svg>
                 Download credentials
               </button>
@@ -1586,7 +1906,9 @@ function CandidatesTab({
             )}
             {removeAllConfirm && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#64748B]">Remove all {candidates.length}?</span>
+                <span className="text-xs text-[#64748B]">
+                  Remove all {candidates.length}?
+                </span>
                 <button
                   type="button"
                   onClick={handleRemoveAll}
@@ -1638,7 +1960,8 @@ function CandidatesTab({
                       <td className="px-5 py-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            CANDIDATE_STATUS_STYLES[c.status] ?? "bg-gray-100 text-gray-600"
+                            CANDIDATE_STATUS_STYLES[c.status] ??
+                            "bg-gray-100 text-gray-600"
                           }`}
                         >
                           {c.status}
@@ -1669,23 +1992,49 @@ function CandidatesTab({
                           className="rounded-lg border border-red-100 p-1.5 text-red-400 hover:bg-red-50 disabled:opacity-50"
                           title="Remove candidate"
                         >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </td>
                     </tr>
                     {revealedIds.has(c.id) && c.generatedPassword && (
-                      <tr key={`${c.id}-reveal`} className={i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}>
+                      <tr
+                        key={`${c.id}-reveal`}
+                        className={i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}
+                      >
                         <td colSpan={6} className="px-5 pb-3">
                           <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5">
-                            <svg className="h-4 w-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            <svg
+                              className="h-4 w-4 text-amber-500 shrink-0"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                              />
                             </svg>
                             <code className="flex-1 font-mono text-sm text-amber-900">
                               {c.generatedPassword}
                             </code>
-                            <CopyButton text={c.generatedPassword} label="Copy" />
+                            <CopyButton
+                              text={c.generatedPassword}
+                              label="Copy"
+                            />
                           </div>
                         </td>
                       </tr>
@@ -1709,7 +2058,9 @@ export default function CampaignManagePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [tab, setTab] = useState<"overview" | "questions" | "candidates">("overview");
+  const [tab, setTab] = useState<"overview" | "questions" | "candidates">(
+    "overview",
+  );
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
 
@@ -1783,8 +2134,10 @@ export default function CampaignManagePage({
                 : "border-transparent text-[#64748B] hover:text-[#0F172A]"
             }`}
           >
-            {t === "candidates" && `Candidates (${campaign._count?.candidates ?? 0})`}
-            {t === "questions" && `Questions (${campaign._count?.questions ?? 0})`}
+            {t === "candidates" &&
+              `Candidates (${campaign._count?.candidates ?? 0})`}
+            {t === "questions" &&
+              `Questions (${campaign._count?.questions ?? 0})`}
             {t === "overview" && "Overview"}
           </button>
         ))}

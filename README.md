@@ -190,7 +190,7 @@ JWT_SECRET=your-secret-here
 # Socket server URL (browser-accessible)
 NEXT_PUBLIC_SOCKET_URL=http://localhost:4000
 
-# Clerk (admin auth) — optional; middleware is a no-op if not set
+# Clerk (admin auth) — required; clerkMiddleware protects /admin and /api/admin
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 
@@ -290,4 +290,5 @@ The message is written to `Campaign.lastBroadcast` via `POST /api/admin/campaign
 - **Next.js** — deploy to Vercel. Set all environment variables in the Vercel dashboard.
 - **Socket server** — deploy to a service with persistent processes. Set `FRONTEND_URL` to your Vercel deployment URL.
 - **Database migrations** — run `npx prisma migrate deploy` as part of your CI/CD pipeline or Vercel build command.
-- The Clerk middleware is currently a no-op; to enable admin auth, set the Clerk env vars and update `middleware.ts`.
+- **Database provisioning** — see [docs/neon-db-and-clerk-setup.md](docs/neon-db-and-clerk-setup.md) for how to connect a new Neon project and apply existing migrations.
+- Admin auth via Clerk is active (`clerkMiddleware` protects `/admin` and `/api/admin`); `ClerkProvider` is mounted inside `<body>` in `app/layout.tsx`.

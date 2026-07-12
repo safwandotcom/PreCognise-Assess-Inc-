@@ -84,6 +84,8 @@ model Campaign {
   antiCheatRightClick        Boolean        @default(true)
   antiCheatScreenshot        Boolean        @default(true)
   antiCheatDevTools          Boolean        @default(true)
+  antiCheatShuffleQuestions  Boolean        @default(false)
+  antiCheatShuffleAnswers    Boolean        @default(false)
   lastBroadcast              String?
   lastBroadcastAt            DateTime?
   completionMessage          String?

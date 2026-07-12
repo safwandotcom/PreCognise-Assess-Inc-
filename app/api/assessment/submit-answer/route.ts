@@ -5,6 +5,7 @@ import { verifyToken } from "@/lib/jwt";
 import { calculateScore } from "@/lib/scoring";
 import { getSettings } from "@/lib/get-settings";
 import { AnswerPayload, QuestionType } from "@/types";
+import { translateDisplayIndexToCanonical } from "@/lib/shuffle";
 
 function getBearerToken(req: NextRequest): string | null {
   const header = req.headers.get("authorization");
@@ -54,7 +55,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Question already answered" }, { status: 409 });
   }
 
-  const question = await prisma.question.findUnique({ where: { id: questionId } });
+  const question = await prisma.question.findUnique({
+    where: { id: questionId },
+    include: { campaign: { select: { antiCheatShuffleAnswers: true } } },
+  });
   if (!question) {
     return NextResponse.json({ error: "Question not found" }, { status: 404 });
   }
@@ -63,7 +67,24 @@ export async function POST(req: NextRequest) {
   const settings = await getSettings();
   const effectiveSpeedBonusMax = settings.speedBonusEnabled ? question.speedBonusMax : 0;
 
-  const isCorrect = question.correctOption !== null && value === question.correctOption;
+  // If answer-shuffling is on for this campaign, `value` is the index the
+  // candidate clicked in *their* shuffled view — translate it back to the
+  // canonical index stored in `question.correctOption` before scoring, and
+  // before persisting, so analytics stay meaningful regardless of shuffling.
+  const shouldUnshuffle =
+    question.campaign.antiCheatShuffleAnswers &&
+    (question.type === "mcq" || question.type === "image");
+
+  const canonicalValue =
+    shouldUnshuffle && typeof value === "number"
+      ? translateDisplayIndexToCanonical(
+          value,
+          (question.options as unknown[]).length,
+          `${candidateId}:${questionId}`,
+        )
+      : value;
+
+  const isCorrect = question.correctOption !== null && canonicalValue === question.correctOption;
   const scoreEarned = calculateScore(
     isCorrect,
     question.type as unknown as QuestionType,
@@ -77,7 +98,7 @@ export async function POST(req: NextRequest) {
     data: {
       candidateId,
       questionId,
-      answer: value === null || value === undefined ? Prisma.JsonNull : value,
+      answer: canonicalValue === null || canonicalValue === undefined ? Prisma.JsonNull : canonicalValue,
       score: scoreEarned,
       responseTimeMs,
     },

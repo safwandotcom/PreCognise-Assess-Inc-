@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
 import { getSettings } from "@/lib/get-settings";
 import { PublicQuestion, QuestionType } from "@/types";
+import { pickNextQuestion, applySeededShuffle } from "@/lib/shuffle";
 
 function getBearerToken(req: NextRequest): string | null {
     const header = req.headers.get("authorization");
@@ -25,7 +26,18 @@ export async function GET(req: NextRequest) {
 
     const candidate = await prisma.candidate.findUnique({
         where: { id: candidateId },
-        select: { campaignId: true, status: true, country: true, campaign: { select: { completionMessage: true } } },
+        select: {
+            campaignId: true,
+            status: true,
+            country: true,
+            campaign: {
+                select: {
+                    completionMessage: true,
+                    antiCheatShuffleQuestions: true,
+                    antiCheatShuffleAnswers: true,
+                },
+            },
+        },
     });
 
     if (!candidate) {
@@ -62,18 +74,19 @@ export async function GET(req: NextRequest) {
     });
     const answeredIds = answered.map((r) => r.questionId);
 
-    // Total questions in this campaign
-    const totalQuestions = await prisma.question.count({
+    // All questions in this campaign, canonical order
+    const allQuestions = await prisma.question.findMany({
         where: { campaignId: candidate.campaignId },
-    });
-
-    const next = await prisma.question.findFirst({
-        where: {
-            campaignId: candidate.campaignId,
-            id: { notIn: answeredIds },
-        },
         orderBy: { orderIndex: "asc" },
     });
+    const totalQuestions = allQuestions.length;
+
+    const next = pickNextQuestion(
+        allQuestions,
+        answeredIds,
+        candidateId,
+        candidate.campaign?.antiCheatShuffleQuestions ?? false,
+    );
 
     if (!next) {
         await prisma.candidate.update({
@@ -87,12 +100,20 @@ export async function GET(req: NextRequest) {
         });
     }
 
+    const rawOptions = next.options as (string | number)[];
+    const shouldShuffleOptions =
+        (candidate.campaign?.antiCheatShuffleAnswers ?? false) &&
+        (next.type === "mcq" || next.type === "image");
+    const displayOptions = shouldShuffleOptions
+        ? applySeededShuffle(rawOptions, `${candidateId}:${next.id}`)
+        : rawOptions;
+
     const question: PublicQuestion = {
         id: next.id,
         type: next.type as unknown as QuestionType,
         text: next.text,
         imageUrl: next.imageUrl,
-        options: next.options as (string | number)[],
+        options: displayOptions,
         timeLimitSec: next.timeLimitSec,
         basePoints: next.basePoints,
         // Respect global speed bonus toggle — zero it out if disabled

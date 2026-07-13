@@ -1,0 +1,181 @@
+REMAINING GAP ANALYSIS TASKS
+precognise-assess platform
+Last updated: 2026-07-13
+============================================================
+
+COMPLETED (5/21)
+  [x] 1.  Clerk admin auth on /admin routes
+  [x] 2.  Remove test-only button from waiting room
+  [x] 3.  Email delivery of credentials on CSV import
+  [x] 8.  Password recovery via email OTP (forgot-password flow)
+  [x] 21. Question order / answer option shuffling (anti-cheat)
+          Added per-campaign toggles: shuffle question order, and
+          shuffle MCQ/Image answer options, per candidate. Seeded
+          deterministically from candidateId (+questionId for options) —
+          no new per-candidate state. Scoring unshuffles before checking
+          correctness and always stores the canonical option index, so
+          existing analytics (P-value, discrimination index, option
+          frequency) stay accurate regardless of shuffling. See
+          docs/superpowers/specs/2026-07-12-question-answer-shuffle-design.md
+          and docs/superpowers/plans/2026-07-12-question-answer-shuffle.md.
+
+============================================================
+
+PHASE 2 — Scale Hardening (before 15k load)
+------------------------------------------------------------
+
+[ ] 4. Redis adapter for Socket.IO
+        Problem : socket-server/src/state.ts holds all candidates in
+                  process memory. Cannot handle 15k+ concurrent
+                  WebSocket connections. No horizontal scaling.
+        Fix     : Add @socket.io/redis-adapter backed by a Redis
+                  instance. Run multiple socket server replicas behind
+                  a load balancer with sticky sessions.
+
+[ ] 5. Redis cache for DB polling endpoints
+        Problem : /api/candidate/broadcast (polled every 20s) and
+                  /api/candidate/session-stats (polled every 10s)
+                  generate 750-1500 DB reads/sec at 15k candidates.
+        Fix (short-term) : Add Redis cache in front of both endpoints
+                           with a 15-second TTL.
+        Fix (long-term)  : Replace polling with SSE or Socket.IO push.
+
+[ ] 6. Load test before launch
+        Run realistic concurrency test (15k simulated candidates)
+        against the Redis-hardened stack before going live.
+
+============================================================
+
+PHASE 3 — Compliance + Candidate Experience
+------------------------------------------------------------
+
+[ ] 7. PIPEDA consent on registration form
+        Problem : /apply/[slug] collects name, email, country with no
+                  privacy notice or consent checkbox. Required by
+                  Canadian law (PIPEDA).
+        Fix     : Add required consent checkbox with link to privacy
+                  policy. Store consent timestamp and IP on Candidate.
+
+[ ] 9. Pre-exam instruction + acknowledgment screen
+        Problem : Candidates go login -> waiting room -> first question
+                  with no screen showing rules, duration, or anti-cheat
+                  warnings.
+        Fix     : Add instruction screen between waiting room and exam.
+                  Show: duration, question count, anti-cheat rules,
+                  "I understand, start the exam" button.
+                  Record acknowledgment timestamp on Candidate.
+                  Allow admin to edit instructions per campaign.
+
+[ ] 10. Waiting room countdown from real scheduledAt
+        Problem : app/candidate/waiting-room/page.tsx line 12 —
+                  COUNTDOWN_START = 60 is hardcoded. Not connected to
+                  the actual scheduled start time.
+        Fix     : Pass scheduledAt from campaign config to the waiting
+                  room. Derive countdown from scheduledAt - Date.now().
+
+[ ] 11. Geo-restriction per campaign with admin UI
+        Problem : AssessmentSettings.geoRestriction exists in schema
+                  but has no admin UI and is global (not per-campaign).
+        Fix     : Add geo-restriction field to Campaign model. Add
+                  controls to campaign edit page. Move restriction
+                  check from AssessmentSettings to campaign level.
+
+============================================================
+
+PHASE 4 — Operational Completeness
+------------------------------------------------------------
+
+[ ] 12. Wave scheduling / candidate batching
+        Problem : 15-20k candidates cannot sit one simultaneous session.
+                  No concept of cohorts or waves exists in the platform.
+        Fix     : Add a "wave" layer — each wave is a child campaign
+                  with its own scheduled time and candidate subset,
+                  linked to a parent campaign. Results roll up to parent.
+
+[ ] 13. Shortlisting pipeline in results page
+        Problem : After CSV export the platform's role ends. No way to
+                  mark candidates as shortlisted/rejected within the tool.
+        Fix     : Add status column to results table
+                  (Pending / Shortlisted / Rejected / Interview).
+                  Allow bulk status updates by score range.
+                  Send automated emails on status change (needs email).
+
+[ ] 14. Invite-only campaign mode
+        Problem : /apply/[slug] allows anyone with the link to register,
+                  inflating counts and allowing unauthorized entries.
+        Fix     : Add campaign-level toggle: "Open registration" vs
+                  "Invite-only". In invite-only mode, disable the
+                  self-registration form entirely.
+
+[ ] 15. Admin audit log
+        Problem : No record of which admin started, paused, ended, or
+                  disqualified. Required compliance trail for a bank.
+        Fix     : Create AuditLog table. Record actor, action, target,
+                  and timestamp for all admin actions.
+
+[ ] 22. Admin sign-in entry point + restricted admin access (no self-signup)
+        Problem : The landing page (app/page.tsx) nav only has a "Log in"
+                  button for candidates — no visible way for an admin to
+                  reach the sign-in page without already knowing the
+                  /admin URL. Separately, there is nothing today stopping
+                  anyone from becoming an admin — access needs to be
+                  locked down since admin accounts belong to real paying
+                  clients who facilitate their own campaigns.
+        Fix     : Add an "Admin" button beside "Log in" in the nav,
+                  linking to /admin (redirects through clerkMiddleware to
+                  /admin/sign-in). Admin accounts must never be
+                  self-service: only PreCognise staff add a client's
+                  email to Clerk, with a PreCognise-issued initial
+                  password. The admin signs in with that email + provided
+                  password, and can only change their password after that
+                  first successful sign-in — never before, and never
+                  through a public sign-up form. Remove/disable any Clerk
+                  sign-up path for the admin flow (dashboard restricted
+                  sign-up mode + invite-only), so no one can register as
+                  an admin on their own.
+
+============================================================
+
+PHASE 5 — Assessment Depth + Lifecycle Emails
+------------------------------------------------------------
+
+[ ] 16. Open-ended / short-answer question type
+        Problem : Platform only supports MCQ, image MCQ, psychometric
+                  (Likert), and rating. No free-text response.
+        Fix     : Add "short_answer" to QuestionType enum. Update
+                  question editor, exam renderer, and scoring logic.
+
+[ ] 17. Multi-select MCQ
+        Problem : All MCQ is single-answer only.
+        Fix     : Add "mcq_multi" variant. Update schema, editor,
+                  renderer, and scoring (partial credit optional).
+
+[ ] 18. Full lifecycle email notifications
+        Problem : No automated emails across the candidate lifecycle.
+        Emails needed:
+          - Credentials created (import)     -> already done (gap 3)
+          - 24h before exam                  -> reminder + instructions
+          - 1h before exam                   -> final reminder
+          - Exam opened / session live        -> "session is now open"
+          - Completion                        -> thank you message
+          - Disqualification                  -> reason + contact info
+          - Shortlisted                       -> next steps
+        Fix     : Build email trigger hooks at each lifecycle event.
+                  Integrate with cron jobs for timed reminders.
+                  Use React Email templates for polish.
+
+[ ] 19. Video response question type
+        Problem : No recorded video response question type available.
+        Fix     : Add "video" to QuestionType enum. Integrate with a
+                  video recording/storage provider (e.g. Mux, Cloudinary).
+                  Add playback in admin results view.
+
+[ ] 20. Per-candidate question progress in live session dashboard
+        Problem : Live session shows JOINED/ACTIVE/COMPLETED status
+                  but not which question each candidate is on.
+        Fix     : Track currentQuestionIndex on Candidate. Surface it
+                  in the admin live session candidate table.
+
+============================================================
+Total remaining: 17 of 22 tasks
+============================================================

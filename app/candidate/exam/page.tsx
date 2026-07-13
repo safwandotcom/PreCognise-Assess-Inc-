@@ -367,7 +367,7 @@ export default function ExamPage() {
             <QuestionProgress
               answered={progress.answered}
               total={progress.total}
-              currentIndex={question.orderIndex}
+              currentIndex={progress.answered}
             />
           )}
           <div className="shrink-0">

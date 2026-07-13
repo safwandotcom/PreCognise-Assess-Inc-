@@ -74,19 +74,25 @@ export async function GET(req: NextRequest) {
     });
     const answeredIds = answered.map((r) => r.questionId);
 
-    // All questions in this campaign, canonical order
-    const allQuestions = await prisma.question.findMany({
+    // All questions in this campaign, canonical order (id-only — full row is
+    // fetched separately below, only for the one question we actually pick)
+    const questionRefs = await prisma.question.findMany({
         where: { campaignId: candidate.campaignId },
         orderBy: { orderIndex: "asc" },
+        select: { id: true },
     });
-    const totalQuestions = allQuestions.length;
+    const totalQuestions = questionRefs.length;
 
-    const next = pickNextQuestion(
-        allQuestions,
+    const nextRef = pickNextQuestion(
+        questionRefs,
         answeredIds,
         candidateId,
         candidate.campaign?.antiCheatShuffleQuestions ?? false,
     );
+
+    const next = nextRef
+        ? await prisma.question.findUnique({ where: { id: nextRef.id } })
+        : null;
 
     if (!next) {
         await prisma.candidate.update({
@@ -118,7 +124,7 @@ export async function GET(req: NextRequest) {
         basePoints: next.basePoints,
         // Respect global speed bonus toggle — zero it out if disabled
         speedBonusMax: settings.speedBonusEnabled ? next.speedBonusMax : 0,
-        orderIndex: next.orderIndex,
+        orderIndex: candidate.campaign?.antiCheatShuffleQuestions ? -1 : next.orderIndex,
     };
 
     return NextResponse.json({

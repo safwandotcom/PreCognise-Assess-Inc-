@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     shouldUnshuffle && typeof value === "number"
       ? translateDisplayIndexToCanonical(
           value,
-          (question.options as unknown[]).length,
+          (question.options as (string | number)[]).length,
           `${candidateId}:${questionId}`,
         )
       : value;

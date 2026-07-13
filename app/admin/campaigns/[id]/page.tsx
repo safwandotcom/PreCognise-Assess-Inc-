@@ -51,6 +51,8 @@ interface Campaign {
   antiCheatRightClick: boolean;
   antiCheatScreenshot: boolean;
   antiCheatDevTools: boolean;
+  antiCheatShuffleQuestions: boolean;
+  antiCheatShuffleAnswers: boolean;
   completionMessage: string | null;
   instructionsHtml: string | null;
   createdAt: string;
@@ -244,6 +246,12 @@ function OverviewTab({
   const [antiCheatDevTools, setAntiCheatDevTools] = useState(
     campaign.antiCheatDevTools,
   );
+  const [antiCheatShuffleQuestions, setAntiCheatShuffleQuestions] = useState(
+    campaign.antiCheatShuffleQuestions,
+  );
+  const [antiCheatShuffleAnswers, setAntiCheatShuffleAnswers] = useState(
+    campaign.antiCheatShuffleAnswers,
+  );
   const [completionMessage, setCompletionMessage] = useState(
     campaign.completionMessage ?? "",
   );
@@ -275,6 +283,8 @@ function OverviewTab({
     setAntiCheatRightClick(campaign.antiCheatRightClick);
     setAntiCheatScreenshot(campaign.antiCheatScreenshot);
     setAntiCheatDevTools(campaign.antiCheatDevTools);
+    setAntiCheatShuffleQuestions(campaign.antiCheatShuffleQuestions);
+    setAntiCheatShuffleAnswers(campaign.antiCheatShuffleAnswers);
     setCompletionMessage(campaign.completionMessage ?? "");
     setInstructionsHtml(campaign.instructionsHtml ?? "");
   }, [campaign]);
@@ -304,6 +314,8 @@ function OverviewTab({
           antiCheatRightClick,
           antiCheatScreenshot,
           antiCheatDevTools,
+          antiCheatShuffleQuestions,
+          antiCheatShuffleAnswers,
           completionMessage: completionMessage.trim() || null,
           instructionsHtml: instructionsHtml.trim() || null,
         }),
@@ -842,6 +854,62 @@ function OverviewTab({
                   <span
                     className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
                       antiCheatDevTools ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Shuffle question order */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Shuffle question order
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Give each candidate a different question sequence, so no
+                    one can call out answers by question number
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatShuffleQuestions}
+                  onClick={() => setAntiCheatShuffleQuestions((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatShuffleQuestions ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatShuffleQuestions ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Shuffle answer options */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Shuffle answer options
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Randomize multiple-choice option order per candidate.
+                    Doesn&apos;t apply to rating or psychometric questions
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatShuffleAnswers}
+                  onClick={() => setAntiCheatShuffleAnswers((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatShuffleAnswers ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatShuffleAnswers ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
                 </button>

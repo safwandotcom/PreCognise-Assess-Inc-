@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generatePassword, hashPassword, makeAccessId, formatExamDate } from "@/lib/campaign-utils";
+import { generatePassword, hashPassword, makeAccessId, nextAccessSeq, formatExamDate } from "@/lib/campaign-utils";
 import { sendCredentials } from "@/lib/email";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
+  try {
+    return await handleImport(req, params);
+  } catch (err) {
+    console.error("POST /api/admin/campaigns/[id]/candidates/import failed:", err);
+    return NextResponse.json({ error: "Import failed. Please try again." }, { status: 500 });
+  }
+}
+
+async function handleImport(req: NextRequest, params: Params["params"]) {
   const { id } = await params;
   const body = await req.json();
   const rows: { name: string; email: string }[] = body.rows ?? [];
@@ -28,7 +37,11 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: `Duplicate emails at rows: ${dupes.join(", ")}` }, { status: 422 });
   }
 
-  const existingCount = await prisma.candidate.count({ where: { campaignId: id } });
+  const existingAccessIds = await prisma.candidate.findMany({
+    where: { campaignId: id },
+    select: { accessId: true },
+  });
+  const existingCount = existingAccessIds.length;
 
   if (campaign.maxCandidates && existingCount + rows.length > campaign.maxCandidates) {
     return NextResponse.json(
@@ -36,6 +49,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       { status: 422 }
     );
   }
+
+  const startSeq = nextAccessSeq(existingAccessIds);
 
   const emailList = rows.map((r) => r.email.trim().toLowerCase());
   const existingInDb = await prisma.candidate.findMany({
@@ -55,7 +70,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const slice = rows.slice(i, i + BATCH);
     const hashed = await Promise.all(
       slice.map(async (r, j) => {
-        const seq = existingCount + i + j + 1;
+        const seq = startSeq + i + j;
         const accessId = makeAccessId(campaign.name, seq);
         const password = generatePassword();
         const passwordHash = await hashPassword(password);

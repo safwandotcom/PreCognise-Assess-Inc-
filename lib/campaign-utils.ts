@@ -23,6 +23,19 @@ export function makeAccessId(campaignName: string, seq: number): string {
   return `${prefix}-${String(seq).padStart(6, '0')}`;
 }
 
+// Next sequence number for a campaign's access IDs. Derived from the highest
+// existing suffix rather than the live candidate count, so a gap left by a
+// deleted candidate can't cause the next generated accessId to collide with
+// one still in use (accessId is unique per campaign).
+export function nextAccessSeq(existing: { accessId: string }[]): number {
+  let max = 0;
+  for (const { accessId } of existing) {
+    const match = accessId.match(/-(\d+)$/);
+    if (match) max = Math.max(max, parseInt(match[1], 10));
+  }
+  return max + 1;
+}
+
 export function formatExamDate(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
     dateStyle: "long",

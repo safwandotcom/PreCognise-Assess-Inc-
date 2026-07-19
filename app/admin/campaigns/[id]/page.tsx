@@ -1633,6 +1633,8 @@ function CandidatesTab({
       setManualName("");
       setManualEmail("");
       onChanged();
+    } catch {
+      setManualError("Failed to add candidate — check your connection and try again");
     } finally {
       setManualAdding(false);
     }
@@ -1675,6 +1677,8 @@ function CandidatesTab({
       setImportResult(data);
       setImportRows([]);
       onChanged();
+    } catch {
+      setImportError("Import failed — check your connection and try again");
     } finally {
       setImporting(false);
     }

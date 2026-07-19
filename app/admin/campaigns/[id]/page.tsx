@@ -2,6 +2,7 @@
 
 import React, { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { campaignStatusLabel, candidateStatusLabel } from "@/lib/labels";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -618,7 +619,7 @@ function OverviewTab({
           {/* Candidate entry grace period */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-              Candidate entry grace period
+              Late join window
             </label>
             <p className="mb-2 text-xs text-[#64748B]">
               How long after the assessment starts candidates can still join.
@@ -2036,7 +2037,7 @@ function CandidatesTab({
                             "bg-gray-100 text-gray-600"
                           }`}
                         >
-                          {c.status}
+                          {candidateStatusLabel(c.status)}
                         </span>
                       </td>
                       <td className="px-5 py-3">
@@ -2190,7 +2191,7 @@ export default function CampaignManagePage({
             STATUS_STYLES[campaign.status] ?? "bg-[#F1F5F9] text-[#64748B]"
           }`}
         >
-          {campaign.status}
+          {campaignStatusLabel(campaign.status)}
         </span>
       </div>
 

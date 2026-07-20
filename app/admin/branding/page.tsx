@@ -60,7 +60,7 @@ function LoginPreview({ form }: { form: BrandingForm }) {
       {/* Login card */}
       <div className="w-full max-w-[280px] rounded-xl border border-gray-700 bg-gray-800 p-6 space-y-4">
         {/* Fields mock */}
-        {["Roll Number", "Email", "Password"].map((label) => (
+        {["Access ID", "Password"].map((label) => (
           <div key={label}>
             <p className="mb-1 text-xs text-gray-300">{label}</p>
             <div className="h-8 rounded-md border border-gray-700 bg-gray-900" />

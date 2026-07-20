@@ -1098,7 +1098,7 @@ function QuestionsTab({
   }
 
   async function handleDelete(qId: string) {
-    if (!confirm("Delete this question?")) return;
+    if (!confirm("Delete this question? This can't be undone, and any existing candidate answers to it will be lost.")) return;
     setDeleting(qId);
     await fetch(`/api/admin/questions/${qId}`, { method: "DELETE" });
     setDeleting(null);
@@ -1637,7 +1637,7 @@ function CandidatesTab({
       setManualEmail("");
       onChanged();
     } catch {
-      setManualError("Failed to add candidate — check your connection and try again");
+      setManualError("Something went wrong adding this candidate. Please check your connection and try again.");
     } finally {
       setManualAdding(false);
     }
@@ -1681,14 +1681,14 @@ function CandidatesTab({
       setImportRows([]);
       onChanged();
     } catch {
-      setImportError("Import failed — check your connection and try again");
+      setImportError("Something went wrong importing candidates. Please check your connection and try again.");
     } finally {
       setImporting(false);
     }
   }
 
   async function handleRemove(candidateId: string) {
-    if (!confirm("Remove this candidate?")) return;
+    if (!confirm("Remove this candidate? Their access ID and password will stop working immediately.")) return;
     setRemoving(candidateId);
     await fetch(
       `/api/admin/campaigns/${campaignId}/candidates/${candidateId}`,
@@ -1770,8 +1770,11 @@ function CandidatesTab({
 
         {manualCred && (
           <div className="mt-4 rounded-xl border border-[#6366F1]/20 bg-indigo-50 p-4 space-y-2">
-            <p className="text-xs font-semibold text-[#6366F1] mb-3">
+            <p className="text-xs font-semibold text-[#6366F1] mb-1">
               One-time credentials — save these now
+            </p>
+            <p className="text-xs text-[#64748B] mb-3">
+              You won&apos;t be able to see this password again after you leave this page — copy or download it now.
             </p>
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-[#0F172A] w-20 shrink-0">
@@ -1810,7 +1813,7 @@ function CandidatesTab({
               Bulk import via CSV
             </h2>
             <p className="mt-0.5 text-xs text-[#64748B]">
-              Columns required: <code className="font-mono">name, email</code>
+              Your file needs two columns: name and email (any order, header names aren't case-sensitive). We'll generate a unique access ID and password for each row automatically.
             </p>
           </div>
         </div>
@@ -1833,7 +1836,7 @@ function CandidatesTab({
             Click to upload CSV
           </span>
           <span className="mt-0.5 text-xs text-[#64748B]">
-            name, email columns required
+            Your file needs two columns: name and email (any order, header names aren't case-sensitive). We'll generate a unique access ID and password for each row automatically.
           </span>
           <input
             type="file"
@@ -1982,7 +1985,7 @@ function CandidatesTab({
             {removeAllConfirm && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-[#64748B]">
-                  Remove all {candidates.length}?
+                  Remove all {candidates.length} candidates? This can&apos;t be undone.
                 </span>
                 <button
                   type="button"

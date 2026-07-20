@@ -193,7 +193,7 @@ export default function SettingsPage() {
                 desc="Candidates earn extra points for answering quickly. Disabling zeroes out speed bonus on all questions globally."
                 checked={form.speedBonusEnabled}
                 onChange={(v) => set("speedBonusEnabled", v)}
-                warning="Speed bonus is disabled globally — per-question speedBonusMax is ignored."
+                warning="Speed bonus is turned off for every campaign — each question's individual speed bonus setting is ignored."
               />
 
               {/* Grace period */}
@@ -262,7 +262,7 @@ export default function SettingsPage() {
                   className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 font-mono text-sm text-[#0F172A] placeholder-[#64748B] outline-none focus:border-[#2E0BFC] focus:ring-2 focus:ring-[#2E0BFC]/10"
                 />
                 <p className="text-xs text-[#64748B]">
-                  Comma-separated ISO 3166-1 alpha-2 codes. Candidates with no country recorded are always blocked when restriction is active.
+                  Comma-separated two-letter country codes (e.g. CA, US, GB). Candidates with no country on record are always blocked when this is active.
                 </p>
               </div>
             </section>

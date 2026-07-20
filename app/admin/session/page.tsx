@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { getAdminSocket } from "@/lib/admin-socket-client";
+import { candidateStatusLabel } from "@/lib/labels";
 
 interface Campaign {
   id: string;
@@ -82,7 +83,7 @@ export default function LiveSessionPage() {
   }
 
   async function endCampaign(id: string, name: string) {
-    if (!confirm(`End session "${name}"? Candidates will be notified.`)) return;
+    if (!confirm(`End "${name}"? Candidates still taking the exam will be logged out immediately and their exam ends.`)) return;
     await fetch(`/api/admin/campaigns/${id}/end`, { method: "POST" });
     fetchCampaigns();
   }
@@ -200,6 +201,7 @@ export default function LiveSessionPage() {
                 Send
               </button>
             </div>
+            <p className="text-xs text-[#64748B] mt-1">Appears instantly on every candidate's screen for this campaign.</p>
             {broadcastStatus === "sent" && (
               <p className="text-xs text-green-600 font-medium">Message sent — candidates will see it within 20 seconds.</p>
             )}
@@ -232,7 +234,7 @@ export default function LiveSessionPage() {
                         c.status === "JOINED" ? "bg-blue-100 text-blue-700" :
                         c.status === "COMPLETED" ? "bg-purple-100 text-purple-700" :
                         "bg-[#F1F5F9] text-[#64748B]"
-                      }`}>{c.status}</span>
+                      }`}>{candidateStatusLabel(c.status)}</span>
                     </td>
                     <td className="py-1.5">
                       <button

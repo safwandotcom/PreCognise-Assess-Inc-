@@ -992,10 +992,10 @@ function OverviewTab({
 // ─── QuestionsTab ─────────────────────────────────────────────────────────────
 
 const QUESTION_TYPES = [
-  { value: "mcq", label: "MCQ" },
+  { value: "mcq", label: "Multiple choice (MCQ)" },
   { value: "psychometric", label: "Psychometric" },
   { value: "rating", label: "Rating" },
-  { value: "image", label: "Image MCQ" },
+  { value: "image", label: "Multiple choice with image (Image MCQ)" },
 ] as const;
 
 function QuestionsTab({
@@ -1227,7 +1227,7 @@ function QuestionsTab({
                     </span>
                     {negativeMarking && (
                       <span className="rounded bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                        −marking
+                        Negative marking
                       </span>
                     )}
                     <span className="text-xs text-[#94A3B8]">
@@ -1479,8 +1479,7 @@ function QuestionsTab({
 
             {(qType === "psychometric" || qType === "rating") && (
               <p className="rounded-lg bg-purple-50 px-3.5 py-2.5 text-xs text-purple-700 ring-1 ring-purple-200">
-                This question type always awards base points on any answer —
-                there is no wrong answer.
+                This question type always awards full points, no matter what the candidate answers — there&apos;s no wrong answer here.
               </p>
             )}
 
@@ -1500,7 +1499,7 @@ function QuestionsTab({
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-                  Base points
+                  Points for a correct answer
                 </label>
                 <input
                   required
@@ -1510,10 +1509,13 @@ function QuestionsTab({
                   onChange={(e) => setQPoints(e.target.value)}
                   className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#6366F1]"
                 />
+                <p className="mt-1 text-xs text-[#64748B]">
+                  Points earned for answering this question correctly.
+                </p>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-                  Speed bonus max
+                  Speed bonus (up to)
                 </label>
                 <input
                   type="number"
@@ -1522,6 +1524,9 @@ function QuestionsTab({
                   onChange={(e) => setQSpeedBonus(e.target.value)}
                   className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#6366F1]"
                 />
+                <p className="mt-1 text-xs text-[#64748B]">
+                  Extra points for answering quickly, on top of the points above. Set to 0 to turn off speed bonus for this question.
+                </p>
               </div>
             </div>
 

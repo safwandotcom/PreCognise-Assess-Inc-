@@ -113,6 +113,9 @@ export default function NewCampaignPage() {
               onChange={e => update("name", e.target.value)}
               placeholder="e.g. Relationship Manager Assessment — RBC Canada"
             />
+            <p className="mt-1 text-xs text-[#64748B]">
+              This is what candidates and your team will see — e.g. &quot;Java Developer Assessment.&quot;
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Logo URL</label>
@@ -122,6 +125,9 @@ export default function NewCampaignPage() {
               onChange={e => update("logoUrl", e.target.value)}
               placeholder="https://example.com/logo.png"
             />
+            <p className="mt-1 text-xs text-[#64748B]">
+              Link to your company logo. Shown to candidates on the login and exam screens.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Background Colour</label>
@@ -133,6 +139,9 @@ export default function NewCampaignPage() {
                 onChange={e => update("bgColor", e.target.value)}
               />
             </div>
+            <p className="mt-1 text-xs text-[#64748B]">
+              Background color candidates see behind your logo.
+            </p>
           </div>
           {/* Live preview */}
           <div className="rounded-xl border border-[#E2E8F0] p-4" style={{ backgroundColor: draft.bgColor }}>
@@ -165,28 +174,44 @@ export default function NewCampaignPage() {
               value={draft.scheduledAt}
               onChange={e => update("scheduledAt", e.target.value)}
             />
+            <p className="mt-1 text-xs text-[#64748B]">
+              When candidates can start joining. Leave blank to let them join anytime.
+            </p>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={draft.autoStart} onChange={e => update("autoStart", e.target.checked)} />
-            Auto-start at scheduled time
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" checked={draft.autoStart} onChange={e => update("autoStart", e.target.checked)} className="mt-0.5" />
+            <span>
+              Auto-start at scheduled time
+              <p className="text-xs text-[#64748B] font-normal">
+                On: the assessment goes live automatically at the scheduled time. Off: you&apos;ll click &quot;Go live&quot; yourself when ready.
+              </p>
+            </span>
           </label>
           <div>
-            <label className="block text-sm font-medium mb-1">Max Candidates</label>
+            <label className="block text-sm font-medium mb-1">Candidate limit</label>
             <input
               type="number"
               className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
               value={draft.maxCandidates}
               onChange={e => update("maxCandidates", e.target.value)}
-              placeholder="e.g. 12000"
+              placeholder="e.g. 500 (leave blank for no limit)"
             />
+            <p className="mt-1 text-xs text-[#64748B]">
+              The most people who can be added to this assessment. Once reached, no one else can be added or join.
+            </p>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={draft.negativeMarking} onChange={e => update("negativeMarking", e.target.checked)} />
-            Enable negative marking
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" checked={draft.negativeMarking} onChange={e => update("negativeMarking", e.target.checked)} className="mt-0.5" />
+            <span>
+              Enable negative marking
+              <p className="text-xs text-[#64748B] font-normal">
+                On: candidates lose points for wrong answers, not just skipped ones. Off: wrong and skipped answers both score zero.
+              </p>
+            </span>
           </label>
           {draft.negativeMarking && (
             <div>
-              <label className="block text-sm font-medium mb-1">Deduction fraction (0.00–1.00)</label>
+              <label className="block text-sm font-medium mb-1">Penalty for wrong answers</label>
               <input
                 type="number"
                 step="0.05"
@@ -196,7 +221,9 @@ export default function NewCampaignPage() {
                 value={draft.negativeMarkingValue}
                 onChange={e => update("negativeMarkingValue", e.target.value)}
               />
-              <p className="text-xs text-[#64748B] mt-1">Deduct {draft.negativeMarkingValue}× base points per wrong answer</p>
+              <p className="text-xs text-[#64748B] mt-1">
+                Candidates lose this fraction of a question&apos;s points for each wrong answer. A wrong answer currently costs {draft.negativeMarkingValue} of that question&apos;s points.
+              </p>
             </div>
           )}
           {error && <p className="text-sm text-red-500">{error}</p>}
@@ -216,7 +243,7 @@ export default function NewCampaignPage() {
             <h2 className="text-lg font-bold text-[#0F172A]">Questions</h2>
             <span className="text-xs text-[#64748B]">Add questions, then continue to candidates</span>
           </div>
-          <p className="text-sm text-[#64748B] mb-4">You can add questions from the Manage page after finishing setup.</p>
+          <p className="text-sm text-[#64748B] mb-4">Questions aren&apos;t added here — you&apos;ll add them from the campaign&apos;s Questions tab after finishing this setup.</p>
           <div className="flex gap-3">
             <button onClick={() => setStep(1)} className="rounded-lg border border-[#E2E8F0] px-6 py-2 text-sm">← Back</button>
             <button onClick={() => setStep(3)} className="rounded-lg bg-[#6366F1] px-6 py-2 text-sm font-semibold text-white">
@@ -230,7 +257,7 @@ export default function NewCampaignPage() {
       {step === 3 && campaignId && (
         <div>
           <h2 className="text-lg font-bold text-[#0F172A] mb-2">Candidates</h2>
-          <p className="text-sm text-[#64748B] mb-4">Import candidates from the Manage page, or finish setup now.</p>
+          <p className="text-sm text-[#64748B] mb-4">You can add candidates now from the campaign page, or come back to it later.</p>
           <div className="flex gap-3">
             <button onClick={() => setStep(2)} className="rounded-lg border border-[#E2E8F0] px-6 py-2 text-sm">← Back</button>
             <button

@@ -2,6 +2,7 @@
 
 import React, { use, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { candidateStatusLabel } from "@/lib/labels";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -528,7 +529,7 @@ export default function CampaignResultsPage({
                               "bg-gray-100 text-gray-600"
                             }`}
                           >
-                            {c.status}
+                            {candidateStatusLabel(c.status)}
                           </span>
                         </td>
 

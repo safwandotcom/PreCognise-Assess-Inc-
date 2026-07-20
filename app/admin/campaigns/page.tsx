@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { campaignStatusLabel } from "@/lib/labels";
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-[#F1F5F9] text-[#64748B]",
@@ -71,7 +72,7 @@ export default function CampaignsPage() {
             <div className="flex items-start justify-between mb-2">
               <h2 className="font-semibold text-[#0F172A] text-sm leading-snug">{c.name}</h2>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[c.status] ?? ""}`}>
-                {c.status}
+                {campaignStatusLabel(c.status)}
               </span>
             </div>
             {c.scheduledAt && (

@@ -323,7 +323,7 @@ function OverviewTab({
       });
       if (!res.ok) {
         const d = await res.json();
-        alert(d.error ?? "Failed to save");
+        alert(d.error ?? "We couldn't save your changes. Please try again.");
         return;
       }
       onSaved();
@@ -342,7 +342,7 @@ function OverviewTab({
       });
       if (!res.ok) {
         const d = await res.json();
-        alert(d.error ?? "Failed to deploy campaign");
+        alert(d.error ?? "We couldn't take this campaign live. Please try again.");
         return;
       }
       window.location.href = "/admin/session";
@@ -372,7 +372,7 @@ function OverviewTab({
                 Ready to go live?
               </h2>
               <p className="mt-1 text-sm text-[#64748B]">
-                Deploy this campaign to make it live. You can pause, resume, or
+                Once live, candidates can join using the link below and start their assessment. You can pause, resume, or
                 end it any time from the Live Session page.
               </p>
             </div>
@@ -382,7 +382,7 @@ function OverviewTab({
               disabled={deploying}
               className="shrink-0 rounded-lg bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#4F46E5] disabled:opacity-60 transition-colors"
             >
-              {deploying ? "Deploying…" : "Deploy Campaign"}
+              {deploying ? "Going live…" : "Go live"}
             </button>
           </div>
         </section>
@@ -504,7 +504,7 @@ function OverviewTab({
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-                Max candidates
+                Candidate limit
               </label>
               <input
                 type="number"
@@ -514,6 +514,9 @@ function OverviewTab({
                 placeholder="Unlimited"
                 className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#6366F1]"
               />
+              <p className="mt-1 text-xs text-[#64748B]">
+                The most people who can be added. Once reached, no one else can be added or join.
+              </p>
             </div>
           </div>
 
@@ -572,7 +575,7 @@ function OverviewTab({
             {negativeMarking && (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-                  Deduction fraction (e.g. 0.25 = ¼ of base points)
+                  Penalty for wrong answers
                 </label>
                 <input
                   type="number"
@@ -583,6 +586,9 @@ function OverviewTab({
                   onChange={(e) => setNegativeMarkingValue(e.target.value)}
                   className="w-40 rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#6366F1]"
                 />
+                <p className="mt-1 text-xs text-[#64748B]">
+                  Candidates lose this fraction of a question&apos;s points for each wrong answer — e.g. 0.25 means losing a quarter.
+                </p>
               </div>
             )}
           </div>
@@ -591,12 +597,10 @@ function OverviewTab({
           <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
             <div>
               <p className="text-sm font-medium text-[#0F172A]">
-                Disqualify on duplicate login
+                Block duplicate logins
               </p>
               <p className="text-xs text-[#64748B]">
-                If a candidate logs in from a second device, disqualify them and
-                end both sessions. When off, the second device is simply
-                blocked.
+                On: a second login disqualifies the candidate and ends both sessions immediately. Off: the second device is blocked, but the original session keeps running.
               </p>
             </div>
             <button
@@ -701,8 +705,7 @@ function OverviewTab({
                     Tab switch limit
                   </p>
                   <p className="mb-2 text-xs text-[#64748B]">
-                    Disqualify after this many switches. 0 = disqualify on 1st
-                    switch.
+                    Number of tab switches allowed before disqualifying the candidate. Set to 0 to disqualify on the very first switch.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {[0, 1, 2, 3, 5].map((n) => (
@@ -923,8 +926,7 @@ function OverviewTab({
               Pre-exam instructions
             </label>
             <p className="mb-2 text-xs text-[#64748B]">
-              Shown to candidates on the instructions screen before they start.
-              Supports basic HTML like{" "}
+              Optional — shown to candidates before they start. Supports basic HTML like{" "}
               <code className="font-mono">&lt;b&gt;</code>,{" "}
               <code className="font-mono">&lt;ul&gt;</code>,{" "}
               <code className="font-mono">&lt;li&gt;</code>. Leave blank to show

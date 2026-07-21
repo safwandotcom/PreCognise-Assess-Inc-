@@ -58,18 +58,21 @@ export async function sendCredentials(opts: SendCredentialsOpts): Promise<void> 
 // within Resend's rate limits. Returns recipient emails partitioned by outcome.
 export async function sendCredentialsBatch(
   recipients: SendCredentialsOpts[]
-): Promise<{ sent: string[]; failed: string[] }> {
+): Promise<{ sent: string[]; failed: { email: string; error: string }[] }> {
   const CHUNK = 10;
   const GAP_MS = 1000;
   const sent: string[] = [];
-  const failed: string[] = [];
+  const failed: { email: string; error: string }[] = [];
 
   for (let i = 0; i < recipients.length; i += CHUNK) {
     const slice = recipients.slice(i, i + CHUNK);
     const results = await Promise.allSettled(slice.map((r) => sendCredentials(r)));
     results.forEach((res, j) => {
       if (res.status === "fulfilled") sent.push(slice[j].to);
-      else failed.push(slice[j].to);
+      else failed.push({
+        email: slice[j].to,
+        error: res.reason instanceof Error ? res.reason.message : String(res.reason),
+      });
     });
     if (i + CHUNK < recipients.length) {
       await new Promise((resolve) => setTimeout(resolve, GAP_MS));

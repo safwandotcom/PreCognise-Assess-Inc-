@@ -1632,7 +1632,7 @@ function CandidatesTab({
       }
       setSendMsg(
         data.failed > 0
-          ? `Sent ${data.sent}. ${data.failed} failed: ${data.failedEmails.join(", ")}`
+          ? `Sent ${data.sent}. ${data.failed} failed${data.reason ? ` — ${data.reason}` : ""}: ${data.failedEmails.join(", ")}`
           : `Sent ${data.sent} email${data.sent !== 1 ? "s" : ""}.`,
       );
       setSelectedIds(new Set());
@@ -2200,7 +2200,7 @@ function CandidatesTab({
                           className="mr-2 rounded-lg border border-[#E2E8F0] px-2.5 py-1 text-xs font-medium text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-50"
                           title="Email this candidate their login details"
                         >
-                          Resend
+                          Send
                         </button>
                         <button
                           type="button"

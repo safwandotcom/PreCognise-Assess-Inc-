@@ -53,7 +53,19 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const { sent, failed } = await sendCredentialsBatch(recipients);
 
-    return NextResponse.json({ sent: sent.length, failed: failed.length, failedEmails: failed });
+    if (failed.length > 0) {
+      console.error(
+        `send-credentials: ${failed.length} email(s) failed for campaign ${id}:`,
+        failed.map((f) => `${f.email}: ${f.error}`).join("; ")
+      );
+    }
+
+    return NextResponse.json({
+      sent: sent.length,
+      failed: failed.length,
+      failedEmails: failed.map((f) => f.email),
+      reason: failed[0]?.error,
+    });
   } catch (err) {
     console.error("POST /api/admin/campaigns/[id]/candidates/send-credentials failed:", err);
     return NextResponse.json({ error: "Failed to send emails. Please try again." }, { status: 500 });

@@ -3,6 +3,7 @@
 import React, { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { campaignStatusLabel, candidateStatusLabel } from "@/lib/labels";
+import { rowsFromCells, parseCsvToCells, parseXlsxToCells } from "@/lib/candidate-import";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -74,25 +75,6 @@ function formatDuration(sec: number) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return m > 0 ? `${m} min ${s} sec` : `${s} sec`;
-}
-
-function parseCSV(text: string): { name: string; email: string }[] {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const header = lines[0]
-    .toLowerCase()
-    .split(",")
-    .map((h) => h.trim());
-  const nameIdx = header.indexOf("name");
-  const emailIdx = header.indexOf("email");
-  if (nameIdx === -1 || emailIdx === -1) return [];
-  return lines
-    .slice(1)
-    .map((line) => {
-      const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-      return { name: cols[nameIdx] ?? "", email: cols[emailIdx] ?? "" };
-    })
-    .filter((r) => r.name && r.email);
 }
 
 async function downloadExcel(
@@ -1703,20 +1685,40 @@ function CandidatesTab({
     }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      const rows = parseCSV(text);
-      setImportRows(rows);
-      setImportResult(null);
-      setImportError("");
-    };
-    reader.readAsText(file);
-    // Reset input so same file can be re-selected
+    // Reset input up front so the same file can be re-selected, and so we don't
+    // reference the (cleared) event after the async read below.
     e.target.value = "";
+    if (!file) return;
+
+    const isXlsx = file.name.toLowerCase().endsWith(".xlsx");
+    let rows: { name: string; email: string }[];
+    try {
+      if (isXlsx) {
+        const buffer = await file.arrayBuffer();
+        rows = rowsFromCells(await parseXlsxToCells(buffer));
+      } else {
+        const text = await file.text();
+        rows = rowsFromCells(parseCsvToCells(text));
+      }
+    } catch {
+      setImportRows([]);
+      setImportResult(null);
+      setImportError("We couldn't read that file. Please upload a .csv or .xlsx with a name column and an email column.");
+      return;
+    }
+
+    if (rows.length === 0) {
+      setImportRows([]);
+      setImportResult(null);
+      setImportError("We couldn't find any name/email rows in that file. Make sure it has a name column and an email column.");
+      return;
+    }
+
+    setImportRows(rows);
+    setImportResult(null);
+    setImportError("");
   }
 
   async function handleImport() {
@@ -1875,7 +1877,7 @@ function CandidatesTab({
               Bulk import via CSV
             </h2>
             <p className="mt-0.5 text-xs text-[#64748B]">
-              Your file needs two columns: name and email (any order, header names aren't case-sensitive). We'll generate a unique access ID and password for each row automatically.
+              Upload a .csv or Excel .xlsx file with a name column and an email column (any order). We'll generate a unique access ID and password for each row automatically.
             </p>
           </div>
         </div>
@@ -1895,14 +1897,14 @@ function CandidatesTab({
             />
           </svg>
           <span className="text-sm font-medium text-[#0F172A]">
-            Click to upload CSV
+            Click to upload CSV or Excel
           </span>
           <span className="mt-0.5 text-xs text-[#64748B]">
-            Your file needs two columns: name and email (any order, header names aren't case-sensitive). We'll generate a unique access ID and password for each row automatically.
+            Upload a .csv or Excel .xlsx file with a name column and an email column (any order). We'll generate a unique access ID and password for each row automatically.
           </span>
           <input
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="sr-only"
             onChange={handleFileChange}
           />

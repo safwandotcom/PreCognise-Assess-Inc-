@@ -1,6 +1,7 @@
 // app/api/admin/campaigns/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { uniqueJoinSlug } from "@/lib/join-slug";
 
 export async function GET() {
   try {
@@ -24,9 +25,11 @@ export async function POST(req: NextRequest) {
     if (!name?.trim()) {
       return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
+    const joinToken = await uniqueJoinSlug(name.trim(), prisma);
     const campaign = await prisma.campaign.create({
       data: {
         name: name.trim(),
+        joinToken,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
         autoStart: autoStart ?? false,
         maxCandidates: maxCandidates ?? null,

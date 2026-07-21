@@ -64,7 +64,7 @@ model Campaign {
   id                         String         @id @default(cuid())
   name                       String
   status                     CampaignStatus @default(DRAFT)
-  joinToken                  String         @unique @default(cuid())
+  joinToken                  String         @unique
   scheduledAt                DateTime?
   autoStart                  Boolean        @default(false)
   startedAt                  DateTime?

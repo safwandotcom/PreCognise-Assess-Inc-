@@ -1,6 +1,7 @@
 // app/api/admin/campaigns/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { uniqueJoinSlug } from "@/lib/join-slug";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -25,16 +26,27 @@ export async function GET(_req: NextRequest, { params }: Params) {
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const existing = await prisma.campaign.findUnique({ where: { id }, select: { id: true } });
+    const existing = await prisma.campaign.findUnique({ where: { id }, select: { id: true, status: true, name: true } });
     if (!existing) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     const body = await req.json();
     const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor, gracePeriodMin, disqualifyOnDuplicateLogin, antiCheatTabSwitch, tabSwitchLimit, antiCheatFullscreen, antiCheatCopyPaste, antiCheatRightClick, antiCheatScreenshot, antiCheatDevTools, antiCheatShuffleQuestions, antiCheatShuffleAnswers, completionMessage, instructionsHtml } = body;
     if (name !== undefined && !name.trim()) {
       return NextResponse.json({ error: "Campaign name cannot be empty" }, { status: 400 });
     }
+    // Regenerate the join slug only when a DRAFT campaign is renamed — never for a
+    // live/ended campaign, whose join link may already have been distributed.
+    let joinTokenUpdate: { joinToken?: string } = {};
+    if (
+      name !== undefined &&
+      name.trim() !== existing.name &&
+      existing.status === "DRAFT"
+    ) {
+      joinTokenUpdate = { joinToken: await uniqueJoinSlug(name.trim(), prisma) };
+    }
     const campaign = await prisma.campaign.update({
       where: { id },
       data: {
+        ...joinTokenUpdate,
         ...(name !== undefined && { name: name.trim() }),
         ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? new Date(scheduledAt) : null }),
         ...(autoStart !== undefined && { autoStart }),

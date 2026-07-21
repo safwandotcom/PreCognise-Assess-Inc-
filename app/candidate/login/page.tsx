@@ -66,12 +66,12 @@ function LoginForm() {
                 type="text"
                 value={accessId}
                 onChange={e => setAccessId(e.target.value.toUpperCase())}
-                placeholder="RELA-000001"
+                placeholder="RELA-001"
                 required
                 className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
               />
               <p className="mt-1 text-xs text-[#64748B]">
-                Format: 4 letters, a dash, then 6 digits — e.g. RELA-000001. This was sent to you by email.
+                Your Access ID was emailed to you — e.g. RELA-001.
               </p>
             </div>
             <div>

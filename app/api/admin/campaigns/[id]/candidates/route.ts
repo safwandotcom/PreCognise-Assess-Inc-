@@ -19,8 +19,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
       tabSwitchCount: true,
       generatedPassword: true,
     },
-    orderBy: { accessId: "asc" },
   });
+  const seqOf = (accessId: string) => {
+    const m = accessId.match(/-(\d+)$/);
+    return m ? parseInt(m[1], 10) : 0;
+  };
+  candidates.sort((a, b) => seqOf(a.accessId) - seqOf(b.accessId));
   return NextResponse.json({ candidates });
 }
 
@@ -54,7 +58,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     const nextSeq = nextAccessSeq(existingAccessIds);
-    const accessId = makeAccessId(campaign.name, nextSeq);
+    const accessId = makeAccessId(campaign.name, nextSeq, campaign.maxCandidates);
     const plainPassword = generatePassword();
     const passwordHash = await hashPassword(plainPassword);
 

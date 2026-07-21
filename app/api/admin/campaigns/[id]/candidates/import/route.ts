@@ -71,7 +71,7 @@ async function handleImport(req: NextRequest, params: Params["params"]) {
     const hashed = await Promise.all(
       slice.map(async (r, j) => {
         const seq = startSeq + i + j;
-        const accessId = makeAccessId(campaign.name, seq);
+        const accessId = makeAccessId(campaign.name, seq, campaign.maxCandidates);
         const password = generatePassword();
         const passwordHash = await hashPassword(password);
         return { name: r.name.trim(), email: r.email.trim().toLowerCase(), accessId, password, passwordHash };

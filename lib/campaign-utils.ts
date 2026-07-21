@@ -12,15 +12,17 @@ export async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, 10);
 }
 
-// Access ID: first 4 alpha chars of campaign name uppercased, padded to 4 with 'X', then '-', then 6-digit zero-padded seq
-// Example: "Relationship Manager RBC" → "RELA-000001"
-export function makeAccessId(campaignName: string, seq: number): string {
+// Access ID: first 4 alphanumerics of campaign name uppercased, padded to 4 with 'X', then '-',
+// then the sequence number padded to the width of the campaign's candidate limit (no padding when unlimited).
+// Examples: limit 500 → "RELA-001"; no limit → "RELA-1".
+export function makeAccessId(campaignName: string, seq: number, maxCandidates: number | null): string {
   const prefix = campaignName
     .replace(/[^A-Za-z0-9]/g, '')
     .toUpperCase()
     .slice(0, 4)
     .padEnd(4, 'X');
-  return `${prefix}-${String(seq).padStart(6, '0')}`;
+  const width = maxCandidates ? String(maxCandidates).length : 0;
+  return `${prefix}-${String(seq).padStart(width, '0')}`;
 }
 
 // Next sequence number for a campaign's access IDs. Derived from the highest

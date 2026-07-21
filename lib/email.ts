@@ -1,12 +1,20 @@
 import { Resend } from "resend";
 
+// Strip a stray BOM (U+FEFF) and surrounding whitespace/newlines that can sneak
+// into an env var when it's pasted from an editor. A BOM in the API key would
+// land inside the "Authorization: Bearer <key>" header and throw a ByteString
+// conversion error, failing every send.
+function cleanEnv(v: string | undefined): string | undefined {
+  return v?.replace(new RegExp(String.fromCharCode(0xFEFF), "g"), "").trim();
+}
+
 function getResend(): Resend {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = cleanEnv(process.env.RESEND_API_KEY);
   if (!apiKey) throw new Error("RESEND_API_KEY environment variable is not set");
   return new Resend(apiKey);
 }
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? "noreply@example.com";
+const FROM = cleanEnv(process.env.RESEND_FROM_EMAIL) || "noreply@example.com";
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

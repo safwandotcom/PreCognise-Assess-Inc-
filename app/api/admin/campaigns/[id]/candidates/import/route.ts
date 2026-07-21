@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generatePassword, hashPassword, makeAccessId, nextAccessSeq, formatExamDate } from "@/lib/campaign-utils";
-import { sendCredentials } from "@/lib/email";
+import { generatePassword, hashPassword, makeAccessId, nextAccessSeq } from "@/lib/campaign-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -93,37 +92,22 @@ async function handleImport(req: NextRequest, params: Params["params"]) {
     });
   });
 
-  // Fetch org branding for email template
-  const branding = await prisma.orgBranding.findFirst();
-  const orgName = branding?.orgName ?? "PreCognise";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) throw new Error("NEXT_PUBLIC_APP_URL environment variable is not set");
-  const loginUrl = `${appUrl}/candidate/login`;
-  const examDate = campaign.scheduledAt ? formatExamDate(campaign.scheduledAt) : undefined;
-
-  const emailResults = await Promise.allSettled(
-    credentials.map((c) =>
-      sendCredentials({
-        to: c.email,
-        name: c.name,
-        accessId: c.accessId,
-        password: c.password,
-        loginUrl,
-        examDate,
-        orgName,
-      })
-    )
-  );
-
-  const emailFailures = emailResults
-    .map((r, i) => (r.status === "rejected" ? credentials[i].email : null))
-    .filter((e): e is string => e !== null);
+  // Read back the created rows to return their ids (createMany doesn't return records).
+  const created = await prisma.candidate.findMany({
+    where: { campaignId: id, email: { in: credentials.map((c) => c.email) } },
+    select: { id: true, name: true, accessId: true, email: true, generatedPassword: true },
+  });
 
   return NextResponse.json(
     {
-      imported: credentials.length,
-      emailFailures,
-      credentials: credentials.map((c) => ({ name: c.name, accessId: c.accessId, email: c.email, password: c.password })),
+      imported: created.length,
+      candidates: created.map((c) => ({
+        id: c.id,
+        name: c.name,
+        accessId: c.accessId,
+        email: c.email,
+        password: c.generatedPassword ?? "",
+      })),
     },
     { status: 201 }
   );

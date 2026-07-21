@@ -1606,6 +1606,61 @@ function CandidatesTab({
   const [removeAllConfirm, setRemoveAllConfirm] = useState(false);
   const [removingAll, setRemovingAll] = useState(false);
 
+  // Email selection + sending
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sending, setSending] = useState(false);
+  const [sendMsg, setSendMsg] = useState<string | null>(null);
+  // "Send now?" prompt after an import — holds the just-imported candidate ids
+  const [pendingEmailIds, setPendingEmailIds] = useState<string[] | null>(null);
+
+  const MAX_EMAIL_PER_SEND = 200;
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) =>
+      prev.size === candidates.length ? new Set() : new Set(candidates.map((c) => c.id)),
+    );
+  }
+
+  async function sendCredentialEmails(ids: string[]) {
+    if (ids.length === 0 || sending) return;
+    setSending(true);
+    setSendMsg(null);
+    try {
+      const res = await fetch(
+        `/api/admin/campaigns/${campaignId}/candidates/send-credentials`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidateIds: ids }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setSendMsg(data.error ?? "Failed to send emails.");
+        return;
+      }
+      setSendMsg(
+        data.failed > 0
+          ? `Sent ${data.sent}. ${data.failed} failed: ${data.failedEmails.join(", ")}`
+          : `Sent ${data.sent} email${data.sent !== 1 ? "s" : ""}.`,
+      );
+      setSelectedIds(new Set());
+    } catch {
+      setSendMsg("Something went wrong sending emails. Please check your connection and try again.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   function toggleReveal(id: string) {
     setRevealedIds((prev) => {
       const next = new Set(prev);
@@ -1684,6 +1739,8 @@ function CandidatesTab({
       }
       setImportResult(data);
       setImportRows([]);
+      const ids: string[] = (data.candidates ?? []).map((c: { id: string }) => c.id);
+      setPendingEmailIds(ids.length > 0 ? ids : null);
       onChanged();
     } catch {
       setImportError("Something went wrong importing candidates. Please check your connection and try again.");
@@ -1939,6 +1996,39 @@ function CandidatesTab({
         )}
       </section>
 
+        {pendingEmailIds && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#6366F1]/30 bg-indigo-50 px-4 py-3">
+            <p className="text-sm text-[#0F172A]">
+              Send login emails to {pendingEmailIds.length} imported candidate
+              {pendingEmailIds.length !== 1 ? "s" : ""} now?
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={sending}
+                onClick={async () => {
+                  await sendCredentialEmails(pendingEmailIds);
+                  setPendingEmailIds(null);
+                }}
+                className="rounded-lg bg-[#6366F1] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#4F46E5] disabled:opacity-60"
+              >
+                {sending ? "Sending…" : "Send now"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingEmailIds(null)}
+                className="rounded-lg border border-[#E2E8F0] px-4 py-1.5 text-xs font-medium text-[#64748B] hover:bg-white"
+              >
+                Not yet
+              </button>
+            </div>
+          </div>
+        )}
+        {sendMsg && (
+          <div className="mb-4 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm text-[#334155]">
+            {sendMsg}
+          </div>
+        )}
       {/* ── Candidate table ── */}
       <section className="rounded-2xl border border-[#E2E8F0] bg-white overflow-hidden">
         <div className="border-b border-[#E2E8F0] px-5 py-4 flex items-center justify-between">
@@ -1946,6 +2036,21 @@ function CandidatesTab({
             {candidates.length} candidate{candidates.length !== 1 ? "s" : ""}
           </h2>
           <div className="flex items-center gap-2">
+            {selectedIds.size > 0 && (
+              <button
+                type="button"
+                disabled={sending || selectedIds.size > MAX_EMAIL_PER_SEND}
+                onClick={() => sendCredentialEmails(Array.from(selectedIds))}
+                title={
+                  selectedIds.size > MAX_EMAIL_PER_SEND
+                    ? `Select at most ${MAX_EMAIL_PER_SEND} at a time`
+                    : undefined
+                }
+                className="flex items-center gap-1.5 rounded-lg bg-[#6366F1] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4F46E5] disabled:opacity-50"
+              >
+                {sending ? "Sending…" : `Email selected (${selectedIds.size})`}
+              </button>
+            )}
             {candidates.length > 0 && (
               <button
                 type="button"
@@ -2021,6 +2126,15 @@ function CandidatesTab({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                  <th className="px-5 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all candidates"
+                      checked={candidates.length > 0 && selectedIds.size === candidates.length}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-[#6366F1]"
+                    />
+                  </th>
                   <th className="px-5 py-3 text-left">Access ID</th>
                   <th className="px-5 py-3 text-left">Name</th>
                   <th className="px-5 py-3 text-left">Email</th>
@@ -2035,6 +2149,15 @@ function CandidatesTab({
                     <tr
                       className={`border-b border-[#E2E8F0] ${i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}`}
                     >
+                      <td className="px-5 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${c.name}`}
+                          checked={selectedIds.has(c.id)}
+                          onChange={() => toggleSelect(c.id)}
+                          className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-[#6366F1]"
+                        />
+                      </td>
                       <td className="px-5 py-3 font-mono text-xs font-semibold text-[#0F172A]">
                         {c.accessId}
                       </td>
@@ -2070,6 +2193,15 @@ function CandidatesTab({
                       <td className="px-5 py-3 text-right">
                         <button
                           type="button"
+                          onClick={() => sendCredentialEmails([c.id])}
+                          disabled={sending || !c.generatedPassword}
+                          className="mr-2 rounded-lg border border-[#E2E8F0] px-2.5 py-1 text-xs font-medium text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-50"
+                          title="Email this candidate their login details"
+                        >
+                          Resend
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleRemove(c.id)}
                           disabled={removing === c.id}
                           className="rounded-lg border border-red-100 p-1.5 text-red-400 hover:bg-red-50 disabled:opacity-50"
@@ -2096,7 +2228,7 @@ function CandidatesTab({
                         key={`${c.id}-reveal`}
                         className={i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}
                       >
-                        <td colSpan={6} className="px-5 pb-3">
+                        <td colSpan={7} className="px-5 pb-3">
                           <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5">
                             <svg
                               className="h-4 w-4 text-amber-500 shrink-0"

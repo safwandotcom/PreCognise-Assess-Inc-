@@ -23,6 +23,7 @@ export default function ExamPage() {
   const [question, setQuestion] = useState<PublicQuestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWarning, setShowWarning] = useState(false);
+  const [tabSwitchInfo, setTabSwitchInfo] = useState({ count: 0, limit: 0 });
   const [broadcastMsg, setBroadcastMsg] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ answered: number; total: number } | null>(null);
   const [screenshotFlash, setScreenshotFlash] = useState(false);
@@ -225,6 +226,7 @@ export default function ExamPage() {
           router.push("/candidate/disqualified");
           return;
         }
+        setTabSwitchInfo({ count: data.count, limit: data.limit });
       } catch {
         // network error — still emit socket event so admin can see it
       }
@@ -358,7 +360,13 @@ export default function ExamPage() {
         </div>
       )}
 
-      {showWarning && <TabSwitchModal onClose={() => setShowWarning(false)} />}
+      {showWarning && (
+        <TabSwitchModal
+          count={tabSwitchInfo.count}
+          limit={tabSwitchInfo.limit}
+          onClose={() => setShowWarning(false)}
+        />
+      )}
       <BroadcastToast message={broadcastMsg} onDismiss={clearBroadcast} />
 
       <div className="max-w-3xl mx-auto px-4 py-10">

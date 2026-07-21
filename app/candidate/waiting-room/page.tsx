@@ -174,7 +174,7 @@ export default function WaitingRoomPage() {
                   />
                 </div>
                 <p className="text-sm font-medium text-[#0F172A]">Waiting for your session to begin…</p>
-                <p className="mt-1 text-xs text-[#94A3B8]">Your session hasn't started yet. Please stay on this page.</p>
+                <p className="mt-1 text-xs text-[#94A3B8]">Your assessment hasn't started yet. Please stay on this page.</p>
               </>
             )}
           </div>

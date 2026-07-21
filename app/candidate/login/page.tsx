@@ -70,6 +70,9 @@ function LoginForm() {
                 required
                 className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
               />
+              <p className="mt-1 text-xs text-[#64748B]">
+                Format: 4 letters, a dash, then 6 digits — e.g. RELA-000001. This was sent to you by email.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#0F172A] mb-1">Password</label>

@@ -69,7 +69,7 @@ export default function ExamPage() {
     });
 
     if (res.status === 403) {
-      let reason = "disqualified";
+      let reason = "Your assessment was ended for a policy violation.";
       try {
         const data = await res.json();
         if (data.error === "geo_restricted") {

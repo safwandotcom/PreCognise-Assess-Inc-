@@ -37,7 +37,7 @@ export default function BroadcastToast({ message, onDismiss }: BroadcastToastPro
       }`}
     >
       <p className="text-xs font-semibold uppercase tracking-wide text-blue-400">
-        Message from admin
+        Announcement
       </p>
       <p className="mt-1 text-sm text-gray-100">{message}</p>
     </div>

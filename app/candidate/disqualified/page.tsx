@@ -3,12 +3,6 @@
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
 
-const REASON_LABELS: Record<string, string> = {
-  TAB_SWITCH_2:  "You switched away from the exam tab more than once.",
-  PAGE_REFRESH:  "The exam page was refreshed or closed mid-session.",
-  geo_restricted: "This assessment is not available in your region.",
-};
-
 function subscribeNoop() {
   return () => {};
 }
@@ -22,9 +16,7 @@ function getReasonServer() {
 export default function DisqualifiedPage() {
   const reason = useSyncExternalStore(subscribeNoop, getReason, getReasonServer);
 
-  const message = reason
-    ? REASON_LABELS[reason] ?? reason
-    : "Your session was ended by the proctor.";
+  const message = reason || "Your session was ended by the proctor.";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
@@ -46,12 +38,6 @@ export default function DisqualifiedPage() {
         <p className="mt-2 text-sm text-[#64748B] max-w-xs mx-auto">
           {message}
         </p>
-
-        {reason && (
-          <p className="mt-3 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-mono text-[#94A3B8]">
-            {reason}
-          </p>
-        )}
 
         <div className="mt-6 rounded-xl border border-[#E2E8F0] bg-white p-4 text-left">
           <p className="text-xs font-semibold text-[#0F172A] mb-2">What happened?</p>

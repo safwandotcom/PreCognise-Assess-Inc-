@@ -1595,7 +1595,7 @@ function CandidatesTab({
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     imported: number;
-    credentials: ImportCredential[];
+    candidates: ImportCredential[];
   } | null>(null);
   const [importError, setImportError] = useState("");
 
@@ -1965,12 +1965,12 @@ function CandidatesTab({
               candidate
               {importResult.imported !== 1 ? "s" : ""} imported
             </p>
-            {importResult.credentials.length > 0 && (
+            {importResult.candidates.length > 0 && (
               <button
                 type="button"
                 onClick={() =>
                   downloadExcel(
-                    importResult.credentials,
+                    importResult.candidates,
                     `credentials-${campaignName.toLowerCase().replace(/\s+/g, "-")}.xlsx`,
                   )
                 }

@@ -17,13 +17,13 @@ export interface SendCredentialsOpts {
   name: string;
   accessId: string;
   password: string;
-  loginUrl: string;
+  joinUrl: string;
   examDate?: string;
   orgName?: string;
 }
 
 export async function sendCredentials(opts: SendCredentialsOpts): Promise<void> {
-  const { to, name, accessId, password, loginUrl, examDate, orgName = "PreCognise" } = opts;
+  const { to, name, accessId, password, joinUrl, examDate, orgName = "PreCognise" } = opts;
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#0F172A;">
@@ -45,13 +45,38 @@ export async function sendCredentials(opts: SendCredentialsOpts): Promise<void> 
   </div>
   ${examDate ? `<p style="color:#64748B;font-size:14px;margin-bottom:16px;">Exam date: <strong>${esc(examDate)}</strong></p>` : ""}
   <div style="margin-bottom:24px;">
-    <a href="${loginUrl}" style="display:inline-block;background:#6366F1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Log In to Exam →</a>
+    <a href="${joinUrl}" style="display:inline-block;background:#6366F1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Start Your Assessment →</a>
   </div>
   <p style="color:#94A3B8;font-size:12px;margin:0;">Save this email — your credentials are shown here only once.</p>
 </body></html>`;
 
   const { error } = await getResend().emails.send({ from: FROM, to, subject: `Your ${orgName} Assessment Credentials`, html });
   if (error) throw new Error(`Resend error: ${error.message}`);
+}
+
+// Sends credential emails in small chunks with a short gap between chunks to stay
+// within Resend's rate limits. Returns recipient emails partitioned by outcome.
+export async function sendCredentialsBatch(
+  recipients: SendCredentialsOpts[]
+): Promise<{ sent: string[]; failed: string[] }> {
+  const CHUNK = 10;
+  const GAP_MS = 1000;
+  const sent: string[] = [];
+  const failed: string[] = [];
+
+  for (let i = 0; i < recipients.length; i += CHUNK) {
+    const slice = recipients.slice(i, i + CHUNK);
+    const results = await Promise.allSettled(slice.map((r) => sendCredentials(r)));
+    results.forEach((res, j) => {
+      if (res.status === "fulfilled") sent.push(slice[j].to);
+      else failed.push(slice[j].to);
+    });
+    if (i + CHUNK < recipients.length) {
+      await new Promise((resolve) => setTimeout(resolve, GAP_MS));
+    }
+  }
+
+  return { sent, failed };
 }
 
 export interface SendOTPOpts {

@@ -14,14 +14,22 @@ export default function HomePage() {
               Assess
             </span>
           </div>
-          <Link
-            href="/candidate/login"
-            className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-            style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
-          >
-            Log in
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/admin"
+              className="text-sm font-medium text-[#64748B] transition hover:text-[#0F172A]"
+            >
+              Admin
+            </Link>
+            <Link
+              href="/candidate/login"
+              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
+            >
+              Log in
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </Link>
+          </div>
         </div>
       </nav>
 

@@ -222,7 +222,7 @@ export default function NewCampaignPage() {
                 onChange={e => update("negativeMarkingValue", e.target.value)}
               />
               <p className="text-xs text-[#64748B] mt-1">
-                Candidates lose this fraction of a question&apos;s points for each wrong answer. A wrong answer currently costs {draft.negativeMarkingValue} of that question&apos;s points.
+                Candidates lose a portion of a question&apos;s points for each wrong answer. A wrong answer currently costs {draft.negativeMarkingValue} of that question&apos;s points.
               </p>
             </div>
           )}

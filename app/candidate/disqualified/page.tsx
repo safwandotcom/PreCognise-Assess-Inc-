@@ -16,7 +16,7 @@ function getReasonServer() {
 export default function DisqualifiedPage() {
   const reason = useSyncExternalStore(subscribeNoop, getReason, getReasonServer);
 
-  const message = reason || "Your session was ended by the proctor.";
+  const message = reason || "Your assessment was ended by the organiser.";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">

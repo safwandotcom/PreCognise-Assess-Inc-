@@ -549,10 +549,10 @@ function OverviewTab({
             <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
               <div>
                 <p className="text-sm font-medium text-[#0F172A]">
-                  Negative marking
+                  Enable negative marking
                 </p>
                 <p className="text-xs text-[#64748B]">
-                  Deduct points for wrong answers
+                  On: candidates lose points for wrong answers, not just skipped ones. Off: wrong and skipped answers both score zero.
                 </p>
               </div>
               <button
@@ -587,7 +587,7 @@ function OverviewTab({
                   className="w-40 rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#6366F1]"
                 />
                 <p className="mt-1 text-xs text-[#64748B]">
-                  Candidates lose this fraction of a question&apos;s points for each wrong answer — e.g. 0.25 means losing a quarter.
+                  Candidates lose a portion of a question&apos;s points for each wrong answer — e.g. 0.25 means losing a quarter.
                 </p>
               </div>
             )}

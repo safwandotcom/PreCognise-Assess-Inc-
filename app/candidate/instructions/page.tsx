@@ -11,6 +11,9 @@ interface AntiCheat {
   fullscreen: boolean;
   copyPaste: boolean;
   rightClick: boolean;
+  screenshot: boolean;
+  devTools: boolean;
+  duplicateLogin: boolean;
 }
 
 interface CampaignInfo {
@@ -103,6 +106,9 @@ export default function InstructionsPage() {
   if (ac.fullscreen) rules.push("You must stay in fullscreen mode for the entire exam.");
   if (ac.copyPaste) rules.push("Copying and pasting text is disabled.");
   if (ac.rightClick) rules.push("Right-clicking is disabled during the exam.");
+  if (ac.screenshot) rules.push("Screenshot attempts are blocked and recorded.");
+  if (ac.devTools) rules.push("Browser developer tools are blocked during the exam.");
+  if (ac.duplicateLogin) rules.push("Logging in from a second device will disqualify you.");
   rules.push("Refreshing or closing the browser tab will disqualify you immediately.");
   rules.push("Each question has a timer — unanswered questions are skipped automatically.");
 

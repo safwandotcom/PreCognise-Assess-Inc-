@@ -129,7 +129,7 @@ export default function WaitingRoomPage() {
           <p className="mt-1 text-sm text-[#64748B]">
             {readyToStart
               ? "Your assessment is ready. Click below to begin."
-              : "Your session will begin shortly. Please stay on this page."}
+              : "Your assessment will begin shortly. Please stay on this page."}
           </p>
 
           <div className="my-8 flex flex-col items-center">
@@ -173,7 +173,7 @@ export default function WaitingRoomPage() {
                     style={{ borderTopColor: branding.primaryColour }}
                   />
                 </div>
-                <p className="text-sm font-medium text-[#0F172A]">Waiting for your session to begin…</p>
+                <p className="text-sm font-medium text-[#0F172A]">Waiting for your assessment to begin…</p>
                 <p className="mt-1 text-xs text-[#94A3B8]">Your assessment hasn't started yet. Please stay on this page.</p>
               </>
             )}

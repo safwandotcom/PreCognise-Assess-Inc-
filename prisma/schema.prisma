@@ -33,6 +33,7 @@ enum QuestionType {
 
 model AssessmentSettings {
   id String @id @default(cuid())
+  ownerId              String?
 
   // Anti-cheat toggles
   antiCheatTabSwitch   Boolean @default(true)
@@ -53,6 +54,7 @@ model AssessmentSettings {
 
 model OrgBranding {
   id            String   @id @default(cuid())
+  ownerId       String?
   orgName       String   @default("PreCognise")
   tagline       String   @default("Candidate Assessment")
   logoUrl       String?
@@ -62,6 +64,7 @@ model OrgBranding {
 
 model Campaign {
   id                         String         @id @default(cuid())
+  ownerId                    String?
   name                       String
   status                     CampaignStatus @default(DRAFT)
   joinToken                  String         @unique
@@ -94,6 +97,8 @@ model Campaign {
   updatedAt                  DateTime       @updatedAt
   candidates                 Candidate[]
   questions                  Question[]
+
+  @@index([ownerId])
 }
 
 model Candidate {

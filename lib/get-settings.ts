@@ -29,6 +29,11 @@ export const SETTINGS_DEFAULTS: AssessmentSettings = {
 };
 
 export async function getSettings(ownerId: string): Promise<AssessmentSettings> {
+  // No owner context (e.g. a legacy campaign with a null ownerId) → return
+  // safe defaults rather than minting an empty-keyed settings row.
+  if (!ownerId) {
+    return { ...SETTINGS_DEFAULTS };
+  }
   let row = await prisma.assessmentSettings.findFirst({ where: { ownerId } });
   if (!row) {
     row = await prisma.assessmentSettings.create({ data: { ownerId } });

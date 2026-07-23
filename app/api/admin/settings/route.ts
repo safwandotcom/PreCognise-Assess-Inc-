@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/get-settings";
+import { getOwnerId } from "@/lib/tenant";
 
 export async function GET() {
   try {
-    const settings = await getSettings();
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const settings = await getSettings(ownerId);
     return NextResponse.json({ settings });
   } catch (err) {
     console.error("GET /api/admin/settings error:", err);
@@ -14,6 +17,8 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const {
       antiCheatTabSwitch,
@@ -26,7 +31,7 @@ export async function PUT(req: NextRequest) {
       geoRestriction,
     } = body;
 
-    const existing = await prisma.assessmentSettings.findFirst();
+    const existing = await prisma.assessmentSettings.findFirst({ where: { ownerId } });
 
     const data = {
       antiCheatTabSwitch: Boolean(antiCheatTabSwitch),
@@ -41,7 +46,7 @@ export async function PUT(req: NextRequest) {
 
     const settings = existing
       ? await prisma.assessmentSettings.update({ where: { id: existing.id }, data })
-      : await prisma.assessmentSettings.create({ data });
+      : await prisma.assessmentSettings.create({ data: { ...data, ownerId } });
 
     return NextResponse.json({ settings });
   } catch (err) {

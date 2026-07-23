@@ -1,17 +1,21 @@
 // app/api/admin/stats/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getOwnerId } from "@/lib/tenant";
 
 // Protected by middleware.ts (Clerk) — only reachable by a logged-in admin.
 export async function GET() {
   try {
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const [registered, joined, active, completed, disqualified] =
       await Promise.all([
-        prisma.candidate.count({ where: { status: "REGISTERED" } }),
-        prisma.candidate.count({ where: { status: "JOINED" } }),
-        prisma.candidate.count({ where: { status: "ACTIVE" } }),
-        prisma.candidate.count({ where: { status: "COMPLETED" } }),
-        prisma.candidate.count({ where: { status: "DISQUALIFIED" } }),
+        prisma.candidate.count({ where: { status: "REGISTERED", campaign: { ownerId } } }),
+        prisma.candidate.count({ where: { status: "JOINED", campaign: { ownerId } } }),
+        prisma.candidate.count({ where: { status: "ACTIVE", campaign: { ownerId } } }),
+        prisma.candidate.count({ where: { status: "COMPLETED", campaign: { ownerId } } }),
+        prisma.candidate.count({ where: { status: "DISQUALIFIED", campaign: { ownerId } } }),
       ]);
 
     return NextResponse.json({

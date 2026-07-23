@@ -60,7 +60,7 @@ Candidates must see the branding/rules of **the campaign's owner**, resolved fro
 
 ### Backfill existing data (one-off, deleted after)
 A throwaway script (`_backfill_owner.mjs`, PowerShell-run, then deleted):
-1. Look up the owner's Clerk user id by email `towfiq@veita.ai` via `clerkClient().users.getUserList({ emailAddress: [...] })`.
+1. Look up the owner's Clerk user id by email `safwanul@veita.ai` (the main admin) via `clerkClient().users.getUserList({ emailAddress: [...] })`.
 2. `campaign.updateMany({ where: { ownerId: null }, data: { ownerId } })`.
 3. Assign the existing global `OrgBranding` and `AssessmentSettings` singletons' `ownerId` to that user (so the current branding/settings become yours); if none exist, the get-or-create helpers will make defaults on first use.
 4. Print counts of what was updated.

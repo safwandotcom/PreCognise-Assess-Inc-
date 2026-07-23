@@ -708,7 +708,7 @@ Create `_backfill_owner.mjs`:
 import { PrismaClient } from "@prisma/client";
 import { clerkClient } from "@clerk/nextjs/server";
 
-const EMAIL = "towfiq@veita.ai";
+const EMAIL = "safwanul@veita.ai";
 const prisma = new PrismaClient();
 
 const client = await clerkClient();

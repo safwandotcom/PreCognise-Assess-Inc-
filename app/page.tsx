@@ -1,273 +1,368 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import "./landing.css";
+
+// Deterministic visuals (avoid server/client hydration mismatch).
+const DOTS = [
+  1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1,
+  1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0,
+  1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1,
+];
+const CHART = [8, 18, 34, 58, 82, 100, 88, 64, 40, 20];
+
+const Arrow = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);
+
+const Flag = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" />
+  </svg>
+);
 
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
 
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-[#E2E8F0] bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <Image src="/precognise_logo_new.png" alt="PreCognise" width={140} height={32} priority />
-            <span className="hidden border-l border-[#E2E8F0] pl-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#64748B] sm:block">
-              Assess
-            </span>
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const reveals = Array.from(root.querySelectorAll<HTMLElement>(".reveal"));
+    const counters = Array.from(root.querySelectorAll<HTMLElement>("[data-count]"));
+
+    if (reduce || !("IntersectionObserver" in window)) {
+      reveals.forEach((r) => r.classList.add("in"));
+      return;
+    }
+
+    const revObs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            revObs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    reveals.forEach((r) => revObs.observe(r));
+
+    const countUp = (el: HTMLElement) => {
+      const target = parseFloat(el.getAttribute("data-count") || "0");
+      const suffix = el.getAttribute("data-suffix") || "";
+      let start: number | null = null;
+      const dur = 1400;
+      const tick = (ts: number) => {
+        if (start === null) start = ts;
+        const p = Math.min((ts - start) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * eased).toLocaleString() + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    const countObs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            countUp(e.target as HTMLElement);
+            countObs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+    counters.forEach((c) => countObs.observe(c));
+
+    return () => {
+      revObs.disconnect();
+      countObs.disconnect();
+    };
+  }, []);
+
+  return (
+    <div className="pcx" ref={rootRef}>
+      {/* NAV */}
+      <nav className={`top${scrolled ? " scrolled" : ""}`}>
+        <div className="wrap nav-row">
+          <a className="brand" href="#top">
+            <Image src="/precognise_logo_new.png" alt="PreCognise" width={150} height={26} priority />
+            <span className="tag">Assess</span>
+          </a>
+          <div className="nav-links">
+            <a className="link" href="#how">How it works</a>
+            <a className="link" href="#features">Features</a>
+            <a className="link" href="#integrity">Integrity</a>
+            <a className="link" href="#demo">Pricing</a>
           </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/admin"
-              className="text-sm font-medium text-[#64748B] transition hover:text-[#0F172A]"
-            >
-              Admin
-            </Link>
-            <Link
-              href="/candidate/login"
-              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-              style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
-            >
-              Log in
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </Link>
+          <div className="nav-cta">
+            <Link className="util-link" href="/candidate/login">Candidate? Log in</Link>
+            <Link className="util-link" href="/admin">Log in</Link>
+            <a className="btn btn-primary btn-sm" href="#demo">Book a demo</a>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section
-        className="px-6 py-24 text-center"
-        style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
-      >
-        <div className="mx-auto mb-7 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-white/90">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-          you&apos;re up. go secure the bag.
-        </div>
-        <h1 className="mx-auto max-w-3xl text-5xl font-extrabold leading-[1.15] tracking-tight text-white md:text-6xl">
-          show &apos;em what you&apos;re <span className="text-white/60">actually</span> made of.
-        </h1>
-        <p className="mx-auto mt-5 max-w-lg text-lg leading-relaxed text-white/72">
-          no cap — PreCognise gives every candidate the exact same shot. structured, scientific, and lowkey stress-free. no tricks. just your best work hitting different.
-        </p>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/candidate/login"
-            className="flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-[15px] font-bold text-[#2E0BFC] shadow-lg transition hover:-translate-y-px hover:shadow-xl"
-          >
-            start my assessment
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </Link>
-          <a
-            href="#how-it-works"
-            className="rounded-xl border border-white/30 bg-white/12 px-6 py-3.5 text-[15px] font-medium text-white transition hover:bg-white/20"
-          >
-            how does this work
-          </a>
-        </div>
-      </section>
+      <div id="top" />
 
-      {/* Trust bar */}
-      <section className="border-b border-[#E2E8F0] bg-white">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-14 px-6 py-14 md:grid-cols-2">
-          {/* Quote side */}
-          <div>
-            <div className="mb-6 flex items-center gap-2.5">
-              <Image src="/precognise_logo_new.png" alt="PreCognise" width={120} height={28} />
-              <span className="h-5 w-px bg-[#E2E8F0]" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">Assessment Platform</span>
+      {/* HERO */}
+      <header className="hero">
+        <div className="wrap hero-grid">
+          <div className="reveal in">
+            <p className="eyebrow">PreCognise Assess — skills-based hiring</p>
+            <h1>Hire on <span className="hl">proven skill</span>, not guesswork.</h1>
+            <p className="lead">Give every candidate the same fair test — at any scale, with integrity built in. Structured, scientific, and impossible to game.</p>
+            <div className="hero-cta">
+              <a className="btn btn-primary" href="#demo">Book a demo <Arrow /></a>
+              <a className="btn btn-text" href="#how">See how it works</a>
             </div>
-            <p className="mb-1 font-[family-name:var(--font-bricolage)] text-7xl font-extrabold leading-[0.7] text-[#EEF2FF]">&ldquo;</p>
-            <p className="font-[family-name:var(--font-bricolage)] text-[clamp(18px,2.2vw,23px)] font-semibold leading-snug text-[#0F172A]">
-              The fairest interview question is the one every candidate answers under exactly the same conditions. That&apos;s not radical — it&apos;s just right.
-            </p>
-            <p className="mt-4 text-sm italic text-[#64748B]">— The philosophy behind PreCognise Assess</p>
+            <div className="hero-stats">
+              <div className="hs"><div className="n" data-count="5000" data-suffix="+">5,000+</div><div className="l">candidates per session</div></div>
+              <div className="hs"><div className="n" data-count="7">7</div><div className="l">anti-cheat controls</div></div>
+              <div className="hs"><div className="n" data-count="100" data-suffix="%">100%</div><div className="l">automatic scoring</div></div>
+            </div>
           </div>
-          {/* Stats side */}
-          <div className="flex flex-col divide-y divide-[#E2E8F0] border-l border-[#E2E8F0] pl-14">
-            {[
-              { num: "12", label: "minutes, on average", sub: "Focused and efficient. Zero filler. No cap." },
-              { num: "0",  label: "downloads required",  sub: "Runs in your browser. Any device. That's it." },
-              { num: "1",  label: "standard for everyone", sub: "Same test. Same time. Same scoring. Always." },
-            ].map(({ num, label, sub }) => (
-              <div key={label} className="flex items-baseline gap-4 py-5">
-                <span className="font-[family-name:var(--font-bricolage)] text-4xl font-extrabold text-[#2E0BFC]">{num}</span>
+
+          <div className="reveal in mock-scroll" style={{ transitionDelay: ".12s" }}>
+            <div className="mock">
+              <div className="mock-bar"><i /><i /><i /><span className="u">admin · live session</span></div>
+              <div className="mock-head">
                 <div>
-                  <p className="text-sm font-semibold text-[#0F172A]">{label}</p>
-                  <p className="text-xs text-[#64748B]">{sub}</p>
+                  <div className="name">Relationship Manager — RBC Canada</div>
+                  <div className="sub">RELA · 500 invited</div>
                 </div>
+                <span className="live-pill"><span className="p" /> Live</span>
               </div>
-            ))}
+              <div className="mock-stats">
+                <div className="mstat"><div className="n" data-count="342">342</div><div className="l">Joined</div></div>
+                <div className="mstat"><div className="n" data-count="118">118</div><div className="l">In&nbsp;progress</div></div>
+                <div className="mstat"><div className="n" data-count="207">207</div><div className="l">Submitted</div></div>
+              </div>
+              <div className="mock-prog">
+                <div className="track"><div className="fill" /></div>
+                <div className="cap">68% complete · avg 11m 42s</div>
+              </div>
+              <div className="mrow"><span className="id">RELA-014</span><span className="who">Amara Okafor</span><span className="badge b-done">Submitted</span></div>
+              <div className="mrow shimmer"><span className="id">RELA-021</span><span className="who">Daniel Cho</span><span className="badge b-active">In&nbsp;progress</span></div>
+              <div className="mrow"><span className="id">RELA-038</span><span className="who">Priya Nair</span><span className="badge b-flag">Flagged</span></div>
+              <div className="mrow"><span className="id">RELA-047</span><span className="who">Marco Rossi</span><span className="badge b-done">Submitted</span></div>
+            </div>
+            <div className="float-flag">
+              <span className="ic"><Flag /></span>
+              <div>
+                <div className="fl">Integrity flag</div>
+                <div style={{ fontSize: 11, marginTop: 1 }}>Tab-switch · RELA-038</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* PROBLEM */}
+      <section className="blk" id="why">
+        <div className="wrap">
+          <div className="problem reveal">
+            <div>
+              <p className="eyebrow">The problem</p>
+              <h2>Résumés don&apos;t predict performance.</h2>
+              <p>Interviews reward confidence over competence. CVs reward the well-connected. Neither tells you who can actually do the job — and both quietly let bias in. Skills-based assessment puts every candidate on a level field, so the most capable person is the one who stands out.</p>
+            </div>
+            <div className="vs">
+              <div className="vs-card"><div className="t"><span className="vs-x">✕</span> The old way</div><div className="d">Gut-feel interviews · CV keyword scans · inconsistent scoring</div></div>
+              <div className="vs-card good"><div className="t"><span className="vs-check">✓</span> With PreCognise Assess</div><div className="d">Identical test · objective scoring · proctored integrity · decisions backed by data</div></div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Why it matters */}
-      <section className="px-6 py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-[#2E0BFC]">Why it matters</p>
-          <h2 className="mb-4 text-4xl font-extrabold tracking-tight">bad hiring is a W<br/>for nobody.</h2>
-          <p className="max-w-lg text-[17px] leading-relaxed text-[#64748B]">
-            Vibes-based interviews favour confidence over competence. Structured assessment actually levels the playing field.
-          </p>
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {[
-              {
-                title: "data > gut feelings",
-                body: "Gut feel has a place — but it shouldn't run the whole show. Structured scores give hiring managers a second opinion that doesn't play favourites.",
-                icon: <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>,
-              },
-              {
-                title: "same shot for everyone",
-                body: "When everyone answers the same questions under the same conditions, the most capable person wins — not the most polished interviewee.",
-                icon: <><path d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></>,
-              },
-              {
-                title: "stop wasting time at scale",
-                body: "Reviewing hundreds of CVs by hand? That's an L. A timed assessment tells you in minutes who's actually ready to move forward.",
-                icon: <path d="M13 10V3L4 14h7v7l9-11h-7z"/>,
-              },
-            ].map(({ title, body, icon }) => (
-              <div key={title} className="rounded-2xl border border-[#E2E8F0] bg-white p-7 transition hover:shadow-[0_8px_32px_rgba(46,11,252,0.06)]">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#2E0BFC]">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{icon}</svg>
-                </div>
-                <h3 className="mb-2 text-[17px] font-bold">{title}</h3>
-                <p className="text-sm leading-relaxed text-[#64748B]">{body}</p>
-              </div>
-            ))}
+      {/* FEATURES */}
+      <section className="blk" id="features" style={{ paddingTop: 20 }}>
+        <div className="wrap">
+          <div className="sec-head reveal">
+            <p className="eyebrow">What you get</p>
+            <h2>Everything you need to hire on skill</h2>
+            <p className="lead">From building the assessment to defending the result — one platform, no downloads for candidates.</p>
           </div>
-        </div>
-      </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="border-y border-[#E2E8F0] bg-white px-6 py-20">
-        <div className="mx-auto max-w-6xl text-center">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-[#2E0BFC]">The process</p>
-          <h2 className="mb-3 text-4xl font-extrabold tracking-tight">three steps.<br/>no drama.</h2>
-          <p className="mx-auto max-w-md text-[17px] leading-relaxed text-[#64748B]">Genuinely this simple. No downloads, no confusion, no stress.</p>
-          <div className="mt-14 grid gap-10 md:grid-cols-3">
-            {[
-              { n: "1", title: "drop your details", body: "Enter your name and email on the registration link your employer sent. Your login credentials hit your inbox immediately." },
-              { n: "2", title: "chill in the waiting room", body: "Log in and wait. Your session drops at the exact same time for every candidate — fair from the very first second." },
-              { n: "3", title: "answer and submit", body: "Answer every question in the time given. Submit when you're done. Your employer's team takes it from there." },
-            ].map(({ n, title, body }) => (
-              <div key={n} className="flex flex-col items-start gap-4 text-left">
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full text-xl font-extrabold text-white shadow-[0_4px_16px_rgba(46,11,252,0.25)]"
-                  style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
-                >
-                  {n}
-                </div>
-                <div>
-                  <h3 className="mb-1.5 text-[17px] font-bold">{title}</h3>
-                  <p className="text-sm leading-relaxed text-[#64748B]">{body}</p>
+          <div className="feat reveal">
+            <div>
+              <span className="kicker">Fairness</span>
+              <h3>The same test for everyone — down to the second.</h3>
+              <p>Every candidate answers the same questions, on the same clock, scored the same way. No advantage for who interviews well or applied first.</p>
+              <ul>
+                <li><span className="ck">✓</span> Identical question set &amp; timing per campaign</li>
+                <li><span className="ck">✓</span> Objective, automatic scoring — with optional negative marking</li>
+                <li><span className="ck">✓</span> Question &amp; answer shuffle to stop copying</li>
+              </ul>
+            </div>
+            <div className="feat-visual">
+              <div className="vlabel">Same assessment · 3 candidates</div>
+              <div className="same-rows">
+                <div className="sr"><span className="av" /> Candidate A <span className="q">Q7 / 20 · 11:59</span></div>
+                <div className="sr hl"><span className="av" /> Candidate B <span className="q">Q7 / 20 · 11:59</span></div>
+                <div className="sr"><span className="av" /> Candidate C <span className="q">Q7 / 20 · 11:59</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="feat flip reveal" id="integrity">
+            <div>
+              <span className="kicker">Integrity</span>
+              <h3>Cheating is caught, not assumed.</h3>
+              <p>Turn on exactly the controls each role needs. Every violation is detected, logged, and — if you choose — grounds for automatic disqualification.</p>
+              <ul>
+                <li><span className="ck">✓</span> Tab-switch, fullscreen, copy-paste &amp; right-click controls</li>
+                <li><span className="ck">✓</span> Duplicate-login and screenshot protection</li>
+                <li><span className="ck">✓</span> Configurable limits — warn, then disqualify</li>
+              </ul>
+            </div>
+            <div className="feat-visual">
+              <div className="vlabel">Anti-cheat controls</div>
+              <div className="anti-grid">
+                <div className="ac"><span className="sw" /> Tab-switch</div>
+                <div className="ac"><span className="sw" /> Fullscreen</div>
+                <div className="ac"><span className="sw" /> Copy / paste</div>
+                <div className="ac"><span className="sw" /> Duplicate login</div>
+                <div className="ac"><span className="sw" /> Answer shuffle</div>
+                <div className="ac off"><span className="sw" /> Right-click</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="feat reveal">
+            <div>
+              <span className="kicker">Scale</span>
+              <h3>From five candidates to five thousand.</h3>
+              <p>Bulk-import a candidate list from CSV or Excel and PreCognise issues a unique access ID and password to each — then runs them all in one synchronized live session.</p>
+              <ul>
+                <li><span className="ck">✓</span> CSV / Excel import with auto-generated credentials</li>
+                <li><span className="ck">✓</span> Unique access ID per candidate (e.g. RELA-001)</li>
+                <li><span className="ck">✓</span> One live session, real-time monitoring</li>
+              </ul>
+            </div>
+            <div className="feat-visual">
+              <div className="scale-vis">
+                <div className="vlabel" style={{ textAlign: "center" }}>Candidates in one campaign</div>
+                <div className="big" data-count="5000" data-suffix="+">5,000+</div>
+                <div className="cap">one synchronized session</div>
+                <div className="dotgrid">
+                  {DOTS.map((d, i) => (
+                    <i key={i} className={d ? "on" : undefined} />
+                  ))}
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* What to expect */}
-      <section className="px-6 py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-[#2E0BFC]">For candidates</p>
-          <h2 className="mb-3 text-4xl font-extrabold tracking-tight">what&apos;s actually gonna happen<br/>(no surprises, fr)</h2>
-          <p className="mb-12 max-w-lg text-[17px] leading-relaxed text-[#64748B]">We&apos;re not here to catch you out. Here&apos;s exactly what the day looks like.</p>
-          <div className="grid gap-12 md:grid-cols-2">
-            <ul className="flex flex-col gap-6">
-              {[
-                { title: "browser-based, zero downloads", body: "Runs in any modern browser. No app, no special hardware, no faff. Just you, your thinking, and a tab." },
-                { title: "questions that test how you actually think", body: "Expect aptitude, situational, and role-specific questions built to reveal your real problem-solving — not memorised answers." },
-                { title: "auto-submits when time's up", body: "Clock hits zero? Your answers are saved and submitted automatically. Nothing gets lost, no technical excuses." },
-                { title: "integrity monitoring — same rules, no exceptions", body: "Stay on the exam tab the whole time. Switching tabs gets flagged. No cap — the same rule applies to literally everyone." },
-              ].map(({ title, body }) => (
-                <li key={title} className="flex gap-4">
-                  <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#EEF2FF] text-[#2E0BFC]">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-                  </div>
-                  <div>
-                    <h4 className="mb-1 text-[15px] font-semibold">{title}</h4>
-                    <p className="text-sm leading-relaxed text-[#64748B]">{body}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div
-              className="rounded-2xl p-9 text-white"
-              style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
-            >
-              <h3 className="mb-3 text-xl font-bold">before you go in 👊</h3>
-              <p className="mb-6 text-[15px] leading-relaxed text-white/75">Lock these in before the session opens and you&apos;re already ahead.</p>
-              <div className="flex flex-col gap-3">
-                {[
-                  { title: "find a quiet spot", body: "Kill the distractions before the session clock starts." },
-                  { title: "laptop or desktop hits different", body: "Mobile works, but a bigger screen keeps things comfortable." },
-                  { title: "have your credentials ready", body: "Copy your roll number and password before the session opens." },
-                  { title: "stay on this tab, fr", body: "Once you start, do not switch tabs or apps. You will get flagged." },
-                ].map(({ title, body }) => (
-                  <div key={title} className="rounded-xl bg-white/12 px-4 py-3.5">
-                    <p className="text-sm font-semibold text-white/90">{title}</p>
-                    <p className="text-xs text-white/60">{body}</p>
-                  </div>
+          <div className="feat flip reveal">
+            <div>
+              <span className="kicker">Decide</span>
+              <h3>Shortlist with evidence, not vibes.</h3>
+              <p>Results land as clean, comparable scores the moment candidates submit. Rank, filter, and export — and every score is defensible because everyone took the same test.</p>
+              <ul>
+                <li><span className="ck">✓</span> Automatic scoring &amp; ranking as submissions arrive</li>
+                <li><span className="ck">✓</span> Speed bonuses &amp; per-question weighting</li>
+                <li><span className="ck">✓</span> Export results for your hiring panel</li>
+              </ul>
+            </div>
+            <div className="feat-visual">
+              <div className="vlabel">Score distribution · 207 submitted</div>
+              <div className="chart">
+                {CHART.map((h, i) => (
+                  <div key={i} className="bar" style={{ height: `${h}%` }} />
                 ))}
               </div>
-              <div className="mt-6 flex gap-7 border-t border-white/15 pt-5">
-                <div><p className="font-[family-name:var(--font-bricolage)] text-3xl font-extrabold">12</p><p className="text-xs text-white/60">min avg</p></div>
-                <div><p className="font-[family-name:var(--font-bricolage)] text-3xl font-extrabold">100%</p><p className="text-xs text-white/60">browser-based</p></div>
-              </div>
+              <div className="chart-x"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* About PreCognise */}
-      <section className="border-y border-[rgba(46,11,252,0.1)] bg-[#EEF2FF] px-6 py-20">
-        <div className="mx-auto grid max-w-6xl gap-20 md:grid-cols-2">
-          <div className="flex flex-col gap-5">
-            <Image src="/precognise_logo_new.png" alt="PreCognise" width={140} height={32} />
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[rgba(46,11,252,0.15)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#2E0BFC]">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              Professional credentialing platform
-            </span>
-            <p className="text-sm leading-[1.7] text-[#64748B]">PreCognise helps employers hire with confidence and gives every candidate a fair shot at the roles they deserve.</p>
+      {/* HOW IT WORKS */}
+      <section className="blk" id="how" style={{ background: "var(--surface-2)" }}>
+        <div className="wrap">
+          <div className="sec-head reveal">
+            <p className="eyebrow">How it works</p>
+            <h2>Live in three steps</h2>
+            <p className="lead">No implementation project. Build an assessment, invite candidates, make the call.</p>
           </div>
-          <div>
-            <h2 className="mb-4 text-3xl font-extrabold tracking-tight">Built on the belief that hiring can actually be better.</h2>
-            <p className="mb-3.5 text-[15px] leading-[1.7] text-[#64748B]">PreCognise started with a simple observation: most hiring decisions are made with incomplete information. Interviews favour the articulate. CVs favour the well-connected. Neither actually predicts on-the-job performance.</p>
-            <p className="text-[15px] leading-[1.7] text-[#64748B]">PreCognise Assess brings structured, scientific assessment to every hiring process — so decisions are grounded in how people genuinely think, not how well they perform under the spotlight of a conversation.</p>
+          <div className="steps">
+            <div className="step reveal"><div className="no">01</div><div className="st">Step 1</div><h3>Build your assessment</h3><p>Add questions — multiple choice, image-based, or rating — set timing, scoring, and the anti-cheat rules for the role.</p></div>
+            <div className="step reveal" style={{ transitionDelay: ".08s" }}><div className="no">02</div><div className="st">Step 2</div><h3>Invite your candidates</h3><p>Upload a CSV or Excel list. PreCognise emails each candidate a unique access ID, password, and join link automatically.</p></div>
+            <div className="step reveal" style={{ transitionDelay: ".16s" }}><div className="no">03</div><div className="st">Step 3</div><h3>Review &amp; decide</h3><p>Watch the session live, let scoring run itself, then rank and shortlist on results everyone earned the same way.</p></div>
           </div>
         </div>
       </section>
 
-      {/* CTA banner */}
-      <section
-        className="px-6 py-24 text-center"
-        style={{ background: "linear-gradient(115deg, #2E0BFC 0%, #4D32F5 45%, #6366F1 100%)" }}
-      >
-        <h2 className="mx-auto mb-3.5 max-w-xl text-4xl font-extrabold tracking-tight text-white md:text-5xl">
-          your moment is literally right now.
-        </h2>
-        <p className="mb-9 text-[17px] text-white/72">Your employer is waiting. Log in and show them what you&apos;ve actually got.</p>
-        <Link
-          href="/candidate/login"
-          className="inline-flex items-center gap-2 rounded-xl bg-white px-9 py-4 text-base font-bold text-[#2E0BFC] shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl"
-        >
-          let&apos;s go
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </Link>
+      {/* CAPABILITY */}
+      <section className="blk">
+        <div className="wrap">
+          <div className="capband reveal">
+            <p className="eyebrow">Built to be trusted</p>
+            <h2>Serious hiring needs serious infrastructure</h2>
+            <p className="sub">Every candidate, the same test — proctored, scored objectively, and defensible when it counts.</p>
+            <div className="cap-grid">
+              <div className="cap"><div className="n" data-count="7">7</div><div className="l">anti-cheat controls per campaign</div></div>
+              <div className="cap"><div className="n" data-count="1">1</div><div className="l">identical test for every candidate</div></div>
+              <div className="cap"><div className="n" data-count="5000" data-suffix="+">5,000+</div><div className="l">candidates in a single session</div></div>
+              <div className="cap"><div className="n" data-count="100" data-suffix="%">100%</div><div className="l">browser-based, no downloads</div></div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-[#0F172A] px-6 py-9">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2.5">
-            <Image src="/precognise_logo_new.png" alt="PreCognise" width={110} height={26} className="brightness-0 invert opacity-60" />
-            <span className="text-sm font-semibold text-white/55">PreCognise Assess</span>
+      {/* FINAL CTA */}
+      <div className="final-wrap">
+        <div className="wrap">
+          <section className="final reveal" id="demo">
+            <p className="eyebrow">Ready when you are</p>
+            <h2>Hire the person who can<br />actually do the job.</h2>
+            <p className="lead">See PreCognise Assess on your own roles. We&apos;ll walk you through building a campaign and reading the results.</p>
+            <div className="hero-cta">
+              <a className="btn btn-primary" href="#demo">Book a demo <Arrow /></a>
+              <Link className="btn btn-ghost" href="/admin">Client log in</Link>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <footer className="foot" id="candidate">
+        <div className="wrap">
+          <div className="foot-grid">
+            <div className="foot-brand">
+              <a className="brand" href="#top"><Image src="/precognise_logo_new.png" alt="PreCognise" width={150} height={26} /></a>
+              <p className="lead">Structured, proctored, skills-based assessment — so hiring decisions are grounded in how people actually think.</p>
+            </div>
+            <div className="foot-col"><h4>Product</h4><a href="#features">Features</a><a href="#integrity">Integrity</a><a href="#how">How it works</a><a href="#demo">Pricing</a></div>
+            <div className="foot-col"><h4>Company</h4><a href="#">About</a><a href="#">Careers</a><a href="#">Contact</a><a href="#">Security</a></div>
+            <div className="foot-col"><h4>Legal</h4><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Data processing</a></div>
           </div>
-          <span className="text-xs text-white/30">&copy; {new Date().getFullYear()} PreCognise. All rights reserved.</span>
+          <div className="foot-cand">
+            <div className="txt"><strong>Have an assessment invite?</strong> Your access ID and password were emailed to you.</div>
+            <Link className="btn btn-ghost btn-sm" href="/candidate/login">Enter your access ID →</Link>
+          </div>
+          <div className="foot-bottom">
+            <span>&copy; {new Date().getFullYear()} PreCognise. All rights reserved.</span>
+            <span style={{ fontFamily: "var(--fm)" }}>Structured · proctored · fair</span>
+          </div>
         </div>
       </footer>
-
     </div>
   );
 }

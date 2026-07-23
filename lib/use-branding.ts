@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getToken } from "@/lib/auth-store";
 
 export interface Branding {
   orgName: string;
@@ -22,8 +23,17 @@ export function useBranding(joinToken?: string): Branding {
   const [branding, setBranding] = useState<Branding>(DEFAULT);
 
   useEffect(() => {
-    const url = joinToken ? `/api/branding?token=${encodeURIComponent(joinToken)}` : "/api/branding";
-    fetch(url)
+    let url = "/api/branding";
+    let init: RequestInit | undefined;
+    if (joinToken) {
+      url = `/api/branding?token=${encodeURIComponent(joinToken)}`;
+    } else {
+      const jwt = getToken();
+      if (jwt) {
+        init = { headers: { Authorization: `Bearer ${jwt}` } };
+      }
+    }
+    fetch(url, init)
       .then((r) => r.json())
       .then((data) => setBranding({ ...DEFAULT, ...data }))
       .catch(() => {});

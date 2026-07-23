@@ -57,14 +57,14 @@ export async function POST(req: NextRequest) {
 
   const question = await prisma.question.findUnique({
     where: { id: questionId },
-    include: { campaign: { select: { antiCheatShuffleAnswers: true } } },
+    include: { campaign: { select: { antiCheatShuffleAnswers: true, ownerId: true } } },
   });
   if (!question) {
     return NextResponse.json({ error: "Question not found" }, { status: 404 });
   }
 
-  // Respect global speed bonus toggle
-  const settings = await getSettings();
+  // Respect the campaign owner's speed bonus toggle
+  const settings = await getSettings(question.campaign.ownerId ?? "");
   const effectiveSpeedBonusMax = settings.speedBonusEnabled ? question.speedBonusMax : 0;
 
   // If answer-shuffling is on for this campaign, `value` is the index the

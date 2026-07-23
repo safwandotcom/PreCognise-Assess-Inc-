@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
                     completionMessage: true,
                     antiCheatShuffleQuestions: true,
                     antiCheatShuffleAnswers: true,
+                    ownerId: true,
                 },
             },
         },
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Geo-restriction check ────────────────────────────────────────────────
-    const settings = await getSettings();
+    const settings = await getSettings(candidate.campaign?.ownerId ?? "");
     if (settings.geoRestriction.trim()) {
         const allowed = settings.geoRestriction
             .split(",")

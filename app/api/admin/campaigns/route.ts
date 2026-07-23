@@ -2,10 +2,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uniqueJoinSlug } from "@/lib/join-slug";
+import { getOwnerId } from "@/lib/tenant";
 
 export async function GET() {
   try {
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const campaigns = await prisma.campaign.findMany({
+      where: { ownerId },
       orderBy: { createdAt: "desc" },
       include: {
         _count: { select: { candidates: true, questions: true } },
@@ -20,6 +24,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor } = body;
     if (!name?.trim()) {
@@ -30,6 +36,7 @@ export async function POST(req: NextRequest) {
       data: {
         name: name.trim(),
         joinToken,
+        ownerId,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
         autoStart: autoStart ?? false,
         maxCandidates: maxCandidates ?? null,

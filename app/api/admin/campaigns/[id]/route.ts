@@ -2,12 +2,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uniqueJoinSlug } from "@/lib/join-slug";
+import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const owned = await ownedCampaign(id, ownerId);
+    if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const campaign = await prisma.campaign.findUnique({
       where: { id },
       include: {
@@ -26,7 +31,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const existing = await prisma.campaign.findUnique({ where: { id }, select: { id: true, status: true, name: true } });
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const existing = await ownedCampaign(id, ownerId);
     if (!existing) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     const body = await req.json();
     const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor, gracePeriodMin, disqualifyOnDuplicateLogin, antiCheatTabSwitch, tabSwitchLimit, antiCheatFullscreen, antiCheatCopyPaste, antiCheatRightClick, antiCheatScreenshot, antiCheatDevTools, antiCheatShuffleQuestions, antiCheatShuffleAnswers, completionMessage, instructionsHtml } = body;
@@ -80,7 +87,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const existing = await prisma.campaign.findUnique({ where: { id }, select: { id: true } });
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const existing = await ownedCampaign(id, ownerId);
     if (!existing) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     await prisma.campaign.delete({ where: { id } });
     return NextResponse.json({ ok: true });

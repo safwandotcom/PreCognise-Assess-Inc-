@@ -1,6 +1,7 @@
 // app/api/admin/campaigns/[id]/analytics/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -52,18 +53,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
 
-    const campaign = await prisma.campaign.findUnique({
-      where: { id },
-      select: {
-        name: true,
-        status: true,
-        durationSec: true,
-        negativeMarking: true,
-        negativeMarkingValue: true,
-        startedAt: true,
-        endedAt: true,
-      },
-    });
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const campaign = await ownedCampaign(id, ownerId);
     if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const questions = await prisma.question.findMany({

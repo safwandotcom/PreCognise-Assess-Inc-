@@ -3,17 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { CampaignStatus } from "@prisma/client";
+import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const campaign = await ownedCampaign(id, ownerId);
+    if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const body = await req.json().catch(() => ({}));
     const delayMinutes: number = body.delayMinutes ?? 0;
 
-    const campaign = await prisma.campaign.findUnique({ where: { id } });
-    if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (campaign.status === CampaignStatus.LIVE) {
       return NextResponse.json({ error: "Already live" }, { status: 409 });
     }

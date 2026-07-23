@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendCredentialsBatch, type SendCredentialsOpts } from "@/lib/email";
 import { formatExamDate } from "@/lib/campaign-utils";
+import { getOwnerId, ownedCampaign } from "@/lib/tenant";
+import { getBrandingForOwner } from "@/lib/branding";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,6 +12,11 @@ const MAX_PER_REQUEST = 200;
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const campaign = await ownedCampaign(id, ownerId);
+    if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const body = await req.json();
     const candidateIds: string[] = Array.isArray(body.candidateIds) ? body.candidateIds : [];
 
@@ -23,9 +30,6 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const campaign = await prisma.campaign.findUnique({ where: { id } });
-    if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
-
     const candidates = await prisma.candidate.findMany({
       where: { id: { in: candidateIds }, campaignId: id },
       select: { name: true, email: true, accessId: true, generatedPassword: true },
@@ -35,7 +39,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!appUrl) throw new Error("NEXT_PUBLIC_APP_URL environment variable is not set");
     const joinUrl = `${appUrl}/join/${campaign.joinToken}`;
 
-    const branding = await prisma.orgBranding.findFirst();
+    const branding = await getBrandingForOwner(ownerId);
     const orgName = branding?.orgName ?? "PreCognise";
     const examDate = campaign.scheduledAt ? formatExamDate(campaign.scheduledAt) : undefined;
 

@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const campaign = await ownedCampaign(id, ownerId);
+    if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const { message } = await req.json();
 
     if (!message?.trim()) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
-
-    const campaign = await prisma.campaign.findUnique({ where: { id }, select: { id: true } });
-    if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
     await prisma.campaign.update({
       where: { id },

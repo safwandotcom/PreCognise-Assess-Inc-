@@ -2,11 +2,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generatePassword, hashPassword, makeAccessId, nextAccessSeq } from "@/lib/campaign-utils";
+import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
   const { id } = await params;
+  const ownerId = await getOwnerId();
+  if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const campaign = await ownedCampaign(id, ownerId);
+  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const candidates = await prisma.candidate.findMany({
     where: { campaignId: id },
     select: {
@@ -31,14 +36,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId();
+    if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const campaign = await ownedCampaign(id, ownerId);
+    if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const { name, email } = await req.json();
 
     if (!name?.trim() || !email?.trim()) {
       return NextResponse.json({ error: "name and email are required" }, { status: 400 });
     }
-
-    const campaign = await prisma.campaign.findUnique({ where: { id } });
-    if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
     const emailNorm = email.trim().toLowerCase();
     const existing = await prisma.candidate.findFirst({

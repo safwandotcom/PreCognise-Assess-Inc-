@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generatePassword, hashPassword, makeAccessId, nextAccessSeq } from "@/lib/campaign-utils";
+import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -15,15 +16,17 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 async function handleImport(req: NextRequest, params: Params["params"]) {
   const { id } = await params;
+  const ownerId = await getOwnerId();
+  if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const campaign = await ownedCampaign(id, ownerId);
+  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const body = await req.json();
   const rows: { name: string; email: string }[] = body.rows ?? [];
 
   if (!Array.isArray(rows) || rows.length === 0) {
     return NextResponse.json({ error: "rows array is required" }, { status: 400 });
   }
-
-  const campaign = await prisma.campaign.findUnique({ where: { id } });
-  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
   const emailsSeen = new Set<string>();
   const dupes: number[] = [];

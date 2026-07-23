@@ -52,9 +52,12 @@ export async function sendCredentials(opts: SendCredentialsOpts): Promise<void> 
     </div>
   </div>
   ${examDate ? `<p style="color:#64748B;font-size:14px;margin-bottom:16px;">Exam date: <strong>${esc(examDate)}</strong></p>` : ""}
-  <div style="margin-bottom:24px;">
-    <a href="${joinUrl}" style="display:inline-block;background:#6366F1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Start Your Assessment →</a>
+  <div style="margin-bottom:14px;">
+    <a href="${esc(joinUrl)}" style="display:inline-block;background:#6366F1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Join your assessment →</a>
   </div>
+  <p style="color:#64748B;font-size:13px;margin:0 0 22px;line-height:1.5;">Or copy and paste this link into your browser:<br>
+    <a href="${esc(joinUrl)}" style="color:#6366F1;font-size:13px;word-break:break-all;">${esc(joinUrl)}</a>
+  </p>
   <p style="color:#94A3B8;font-size:12px;margin:0;">Save this email — your credentials are shown here only once.</p>
 </body></html>`;
 

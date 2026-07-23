@@ -28,10 +28,10 @@ export const SETTINGS_DEFAULTS: AssessmentSettings = {
   antiCheatRightClick: true,
 };
 
-export async function getSettings(): Promise<AssessmentSettings> {
-  let row = await prisma.assessmentSettings.findFirst();
+export async function getSettings(ownerId: string): Promise<AssessmentSettings> {
+  let row = await prisma.assessmentSettings.findFirst({ where: { ownerId } });
   if (!row) {
-    row = await prisma.assessmentSettings.create({ data: {} });
+    row = await prisma.assessmentSettings.create({ data: { ownerId } });
   }
   return {
     antiCheatTabSwitch: row.antiCheatTabSwitch,

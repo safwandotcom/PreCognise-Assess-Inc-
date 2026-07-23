@@ -1,6 +1,7 @@
 // app/api/admin/questions/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -18,8 +19,12 @@ async function syncDuration(campaignId: string) {
 export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
+  const ownerId = await getOwnerId();
+  if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const existing = await prisma.question.findUnique({ where: { id }, select: { campaignId: true } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing || !(await ownedCampaign(existing.campaignId, ownerId))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const question = await prisma.question.update({
     where: { id },
@@ -40,8 +45,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params;
+  const ownerId = await getOwnerId();
+  if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const question = await prisma.question.findUnique({ where: { id }, select: { campaignId: true } });
-  if (!question) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!question || !(await ownedCampaign(question.campaignId, ownerId))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   await prisma.question.delete({ where: { id } });
   await syncDuration(question.campaignId);
   return NextResponse.json({ ok: true });

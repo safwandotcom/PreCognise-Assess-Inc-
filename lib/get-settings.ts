@@ -6,6 +6,7 @@ export type AssessmentSettings = {
   antiCheatCopyPaste: boolean;
   antiCheatScreenshot: boolean;
   antiCheatDevTools: boolean;
+  antiCheatCamera: boolean;
   speedBonusEnabled: boolean;
   gracePeriodSec: number;
   geoRestriction: string;
@@ -20,6 +21,7 @@ export const SETTINGS_DEFAULTS: AssessmentSettings = {
   antiCheatCopyPaste: true,
   antiCheatScreenshot: true,
   antiCheatDevTools: true,
+  antiCheatCamera: false,
   speedBonusEnabled: true,
   gracePeriodSec: 0,
   geoRestriction: "",
@@ -44,6 +46,7 @@ export async function getSettings(ownerId: string): Promise<AssessmentSettings> 
     antiCheatCopyPaste: row.antiCheatCopyPaste,
     antiCheatScreenshot: row.antiCheatScreenshot,
     antiCheatDevTools: row.antiCheatDevTools,
+    antiCheatCamera: SETTINGS_DEFAULTS.antiCheatCamera,
     speedBonusEnabled: row.speedBonusEnabled,
     gracePeriodSec: row.gracePeriodSec,
     geoRestriction: row.geoRestriction,

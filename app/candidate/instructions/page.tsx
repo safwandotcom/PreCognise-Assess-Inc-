@@ -109,7 +109,7 @@ export default function InstructionsPage() {
   if (ac.rightClick) rules.push("Right-clicking is disabled during the exam.");
   if (ac.screenshot) rules.push("Screenshot attempts are blocked and recorded.");
   if (ac.devTools) rules.push("Browser developer tools are blocked during the exam.");
-  if (ac.camera) rules.push("You must allow camera and microphone access, and keep it on, for the entire exam.");
+  if (ac.camera) rules.push("You must allow camera and microphone access, and keep it on, for the entire exam — 3 failed attempts to grant access will disqualify you.");
   if (ac.duplicateLogin) rules.push("Logging in from a second device will disqualify you.");
   rules.push("Refreshing or closing the browser tab will disqualify you immediately.");
   rules.push("Each question has a timer — unanswered questions are skipped automatically.");

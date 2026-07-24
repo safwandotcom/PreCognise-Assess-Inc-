@@ -32,8 +32,8 @@ enum QuestionType {
 }
 
 model AssessmentSettings {
-  id String @id @default(cuid())
-  ownerId              String?
+  id      String  @id @default(cuid())
+  ownerId String?
 
   // Anti-cheat toggles
   antiCheatTabSwitch   Boolean @default(true)
@@ -103,23 +103,24 @@ model Campaign {
 }
 
 model Candidate {
-  id                String          @id @default(cuid())
-  accessId          String
-  email             String
-  name              String
-  passwordHash      String
-  generatedPassword String?
-  activeToken       String?         @unique
-  country           String?
-  status            CandidateStatus @default(REGISTERED)
-  disqualifyReason  String?
-  tabSwitchCount    Int             @default(0)
-  otpHash           String?
-  otpExpiresAt      DateTime?
-  acknowledgedAt    DateTime?
-  campaignId        String
-  campaign          Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  responses         Response[]
+  id                   String          @id @default(cuid())
+  accessId             String
+  email                String
+  name                 String
+  passwordHash         String
+  generatedPassword    String?
+  activeToken          String?         @unique
+  country              String?
+  status               CandidateStatus @default(REGISTERED)
+  disqualifyReason     String?
+  tabSwitchCount       Int             @default(0)
+  cameraViolationCount Int             @default(0)
+  otpHash              String?
+  otpExpiresAt         DateTime?
+  acknowledgedAt       DateTime?
+  campaignId           String
+  campaign             Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  responses            Response[]
 
   @@unique([accessId, campaignId])
   @@unique([email, campaignId])

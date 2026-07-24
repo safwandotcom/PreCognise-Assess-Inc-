@@ -32,6 +32,7 @@ export default function ExamPage() {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraWarning, setCameraWarning] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraAttempts, setCameraAttempts] = useState({ count: 0, limit: 3 });
 
   const startTimeRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
@@ -173,6 +174,31 @@ export default function ExamPage() {
     socket.emit(SocketEvents.TAB_SWITCH);
   }, [router]);
 
+  // Dedicated camera/mic violation reporter — fixed at 3 attempts, independent
+  // of the admin-configurable tabSwitchLimit/antiCheatTabSwitch toggle. Active
+  // whenever antiCheatCamera is on, regardless of the tab-switch setting.
+  const reportCameraViolation = useCallback(async () => {
+    try {
+      const res = await fetch("/api/candidate/camera-violation", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (data.disqualified) {
+        sessionStorage.setItem(
+          "disqualifyReason",
+          data.disqualifyReason ?? `Disqualified: camera/microphone access denied.`
+        );
+        disconnectSocket();
+        router.push("/candidate/disqualified");
+        return;
+      }
+      setCameraAttempts({ count: data.count, limit: data.limit });
+    } catch {
+      // network error — overlay remains visible; candidate can retry
+    }
+  }, [router]);
+
   // Request camera/mic access; used both for the initial grant and the
   // "Grant access" retry button after a denial or a dropped track.
   const requestCamera = useCallback(async () => {
@@ -196,7 +222,7 @@ export default function ExamPage() {
           cameraDropReportedRef.current = true;
           setCameraActive(false);
           setCameraWarning(true);
-          handleTabSwitch();
+          reportCameraViolation();
         };
       });
       setCameraStream(stream);
@@ -205,8 +231,9 @@ export default function ExamPage() {
     } catch {
       setCameraActive(false);
       setCameraWarning(true);
+      reportCameraViolation();
     }
-  }, [handleTabSwitch]);
+  }, [reportCameraViolation]);
 
   // Initial load — settings and first question in parallel
   useEffect(() => {
@@ -419,6 +446,7 @@ export default function ExamPage() {
           </svg>
           <p className="text-lg font-semibold text-white">Camera &amp; microphone access required</p>
           <p className="text-sm text-gray-400">This assessment requires your camera and microphone to stay on for the entire exam.</p>
+          <p className="text-xs text-gray-500">Attempt {cameraAttempts.count} of {cameraAttempts.limit}</p>
           <button
             type="button"
             onClick={requestCamera}

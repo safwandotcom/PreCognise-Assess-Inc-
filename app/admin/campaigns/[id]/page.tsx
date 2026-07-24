@@ -53,6 +53,7 @@ interface Campaign {
   antiCheatRightClick: boolean;
   antiCheatScreenshot: boolean;
   antiCheatDevTools: boolean;
+  antiCheatCamera: boolean;
   antiCheatShuffleQuestions: boolean;
   antiCheatShuffleAnswers: boolean;
   completionMessage: string | null;
@@ -229,6 +230,9 @@ function OverviewTab({
   const [antiCheatDevTools, setAntiCheatDevTools] = useState(
     campaign.antiCheatDevTools,
   );
+  const [antiCheatCamera, setAntiCheatCamera] = useState(
+    campaign.antiCheatCamera,
+  );
   const [antiCheatShuffleQuestions, setAntiCheatShuffleQuestions] = useState(
     campaign.antiCheatShuffleQuestions,
   );
@@ -266,6 +270,7 @@ function OverviewTab({
     setAntiCheatRightClick(campaign.antiCheatRightClick);
     setAntiCheatScreenshot(campaign.antiCheatScreenshot);
     setAntiCheatDevTools(campaign.antiCheatDevTools);
+    setAntiCheatCamera(campaign.antiCheatCamera);
     setAntiCheatShuffleQuestions(campaign.antiCheatShuffleQuestions);
     setAntiCheatShuffleAnswers(campaign.antiCheatShuffleAnswers);
     setCompletionMessage(campaign.completionMessage ?? "");
@@ -297,6 +302,7 @@ function OverviewTab({
           antiCheatRightClick,
           antiCheatScreenshot,
           antiCheatDevTools,
+          antiCheatCamera,
           antiCheatShuffleQuestions,
           antiCheatShuffleAnswers,
           completionMessage: completionMessage.trim() || null,
@@ -840,6 +846,33 @@ function OverviewTab({
                   <span
                     className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
                       antiCheatDevTools ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Require camera & microphone */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Require camera &amp; microphone
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Candidate must grant camera and microphone access and keep it on for the whole exam
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatCamera}
+                  onClick={() => setAntiCheatCamera((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatCamera ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatCamera ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
                 </button>

@@ -2,7 +2,6 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { getToken } from "@/lib/auth-store";
 import { getSocket, disconnectSocket } from "@/lib/socket-client";
 import { SocketEvents, QuestionType, type PublicQuestion } from "@/types";
@@ -382,18 +381,6 @@ export default function ExamPage() {
             <TimerRing key={question.id} timeLimit={question.timeLimitSec} onExpire={handleTimerExpire} />
           </div>
         </div>
-
-        <h2 className="text-white text-xl font-semibold mb-6">{question.text}</h2>
-
-        {question.imageUrl && (
-          <Image
-            src={question.imageUrl}
-            alt="Question"
-            width={600}
-            height={256}
-            className="rounded-xl mb-6 object-contain max-h-64"
-          />
-        )}
 
         {(question.type === QuestionType.MCQ || question.type === QuestionType.IMAGE) && (
           <McqCard question={question} onAnswer={(v) => handleAnswer(v)} />

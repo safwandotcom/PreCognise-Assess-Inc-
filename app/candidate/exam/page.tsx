@@ -369,7 +369,7 @@ export default function ExamPage() {
       <BroadcastToast message={broadcastMsg} onDismiss={clearBroadcast} />
 
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="flex items-end gap-6 mb-8">
+        <div className="sticky top-0 z-30 mb-8 flex items-end gap-6 bg-gray-900 py-3">
           {progress && (
             <QuestionProgress
               answered={progress.answered}

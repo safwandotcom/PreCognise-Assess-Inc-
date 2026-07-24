@@ -193,7 +193,9 @@ export default function ExamPage() {
         router.push("/candidate/disqualified");
         return;
       }
-      setCameraAttempts({ count: data.count, limit: data.limit });
+      if (typeof data.count === "number" && typeof data.limit === "number") {
+        setCameraAttempts({ count: data.count, limit: data.limit });
+      }
     } catch {
       // network error — overlay remains visible; candidate can retry
     }
@@ -446,7 +448,11 @@ export default function ExamPage() {
           </svg>
           <p className="text-lg font-semibold text-white">Camera &amp; microphone access required</p>
           <p className="text-sm text-gray-400">This assessment requires your camera and microphone to stay on for the entire exam.</p>
-          <p className="text-xs text-gray-500">Attempt {cameraAttempts.count} of {cameraAttempts.limit}</p>
+          <p className="max-w-sm text-center text-xs text-gray-500">
+            If your browser isn&apos;t showing a permission prompt, access may already be blocked —
+            click the camera icon in your address bar to allow it, then try again.
+          </p>
+          <p className="text-xs font-semibold text-amber-400">Attempt {cameraAttempts.count} of {cameraAttempts.limit}</p>
           <button
             type="button"
             onClick={requestCamera}

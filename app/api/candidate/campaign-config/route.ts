@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
             antiCheatRightClick: true,
             antiCheatScreenshot: true,
             antiCheatDevTools: true,
+            antiCheatCamera: true,
           },
         },
       },

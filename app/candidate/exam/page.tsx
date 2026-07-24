@@ -177,9 +177,13 @@ export default function ExamPage() {
       cameraStreamRef.current = stream;
       stream.getTracks().forEach((track) => {
         track.onended = () => {
-          setCameraActive(false);
-          setCameraWarning(true);
-          handleTabSwitch();
+          setCameraActive((wasActive) => {
+            if (wasActive) {
+              setCameraWarning(true);
+              handleTabSwitch();
+            }
+            return false;
+          });
         };
       });
       setCameraStream(stream);

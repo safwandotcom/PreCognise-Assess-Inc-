@@ -43,6 +43,10 @@ export default function ExamPage() {
   // Set to true once campaign config has loaded — triggers fullscreen request
   const configLoadedRef = useRef(false);
   const cameraStreamRef = useRef<MediaStream | null>(null);
+  // Latches once a track-drop violation has been reported for the current
+  // grant, so onended (which side-effects via fetch/router — kept out of any
+  // setState updater, which React may invoke more than once) reports once.
+  const cameraDropReportedRef = useRef(false);
 
   const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
 
@@ -172,18 +176,27 @@ export default function ExamPage() {
   // Request camera/mic access; used both for the initial grant and the
   // "Grant access" retry button after a denial or a dropped track.
   const requestCamera = useCallback(async () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((t) => {
+        t.onended = null;
+        t.stop();
+      });
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       cameraStreamRef.current = stream;
+      cameraDropReportedRef.current = false;
       stream.getTracks().forEach((track) => {
         track.onended = () => {
-          setCameraActive((wasActive) => {
-            if (wasActive) {
-              setCameraWarning(true);
-              handleTabSwitch();
-            }
-            return false;
-          });
+          if (cameraDropReportedRef.current) return;
+          cameraDropReportedRef.current = true;
+          setCameraActive(false);
+          setCameraWarning(true);
+          handleTabSwitch();
         };
       });
       setCameraStream(stream);

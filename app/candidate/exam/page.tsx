@@ -13,6 +13,7 @@ import RatingCard from "@/components/exam/RatingCard";
 import TabSwitchModal from "@/components/exam/TabSwitchModal";
 import BroadcastToast from "@/components/exam/BroadcastToast";
 import QuestionProgress from "@/components/exam/QuestionProgress";
+import CameraSelfView from "@/components/exam/CameraSelfView";
 
 const SCREENSHOT_TRIGGER_KEYS = new Set(["PrintScreen", "F13"]);
 const MAC_SCREENSHOT_SHIFT_KEYS = new Set(["3", "4", "5", "s", "S"]);
@@ -27,6 +28,10 @@ export default function ExamPage() {
   const [progress, setProgress] = useState<{ answered: number; total: number } | null>(null);
   const [screenshotFlash, setScreenshotFlash] = useState(false);
   const [fullscreenWarning, setFullscreenWarning] = useState(false);
+  const [cameraRequired, setCameraRequired] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraWarning, setCameraWarning] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
   const startTimeRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
@@ -37,6 +42,7 @@ export default function ExamPage() {
   const settingsRef = useRef<AssessmentSettings>(SETTINGS_DEFAULTS);
   // Set to true once campaign config has loaded — triggers fullscreen request
   const configLoadedRef = useRef(false);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
   const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
 
@@ -136,6 +142,55 @@ export default function ExamPage() {
     }
   }, [handleAnswer]);
 
+  // Shared anti-cheat violation reporter — used by tab-switch/visibility/blur
+  // detection, the fullscreen-exit guard, and the camera/mic presence guard.
+  const handleTabSwitch = useCallback(async () => {
+    if (!settingsRef.current.antiCheatTabSwitch) return;
+    const socket = getSocket();
+    try {
+      const res = await fetch("/api/candidate/tab-switch", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (data.disqualified) {
+        sessionStorage.setItem(
+          "disqualifyReason",
+          data.disqualifyReason ?? `Disqualified: exceeded tab switch limit.`
+        );
+        disconnectSocket();
+        router.push("/candidate/disqualified");
+        return;
+      }
+      setTabSwitchInfo({ count: data.count, limit: data.limit });
+    } catch {
+      // network error — still emit socket event so admin can see it
+    }
+    socket.emit(SocketEvents.TAB_SWITCH);
+  }, [router]);
+
+  // Request camera/mic access; used both for the initial grant and the
+  // "Grant access" retry button after a denial or a dropped track.
+  const requestCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      cameraStreamRef.current = stream;
+      stream.getTracks().forEach((track) => {
+        track.onended = () => {
+          setCameraActive(false);
+          setCameraWarning(true);
+          handleTabSwitch();
+        };
+      });
+      setCameraStream(stream);
+      setCameraActive(true);
+      setCameraWarning(false);
+    } catch {
+      setCameraActive(false);
+      setCameraWarning(true);
+    }
+  }, [handleTabSwitch]);
+
   // Initial load — settings and first question in parallel
   useEffect(() => {
     mountedRef.current = true;
@@ -149,6 +204,10 @@ export default function ExamPage() {
         if (settingsRef.current.antiCheatFullscreen) {
           document.documentElement.requestFullscreen().catch(() => {});
         }
+        if (settingsRef.current.antiCheatCamera) {
+          setCameraRequired(true);
+          requestCamera();
+        }
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -156,6 +215,7 @@ export default function ExamPage() {
     return () => {
       mountedRef.current = false;
       if (graceTimerRef.current !== null) clearTimeout(graceTimerRef.current);
+      cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -207,30 +267,6 @@ export default function ExamPage() {
   // time so they respect the latest settings without needing to be re-bound.
   useEffect(() => {
     const socket = getSocket();
-
-    const handleTabSwitch = async () => {
-      if (!settingsRef.current.antiCheatTabSwitch) return;
-      try {
-        const res = await fetch("/api/candidate/tab-switch", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
-        const data = await res.json();
-        if (data.disqualified) {
-          sessionStorage.setItem(
-            "disqualifyReason",
-            data.disqualifyReason ?? `Disqualified: exceeded tab switch limit.`
-          );
-          disconnectSocket();
-          router.push("/candidate/disqualified");
-          return;
-        }
-        setTabSwitchInfo({ count: data.count, limit: data.limit });
-      } catch {
-        // network error — still emit socket event so admin can see it
-      }
-      socket.emit(SocketEvents.TAB_SWITCH);
-    };
 
     const onVisibilityChange = () => {
       if (!settingsRef.current.antiCheatTabSwitch) return;
@@ -313,7 +349,7 @@ export default function ExamPage() {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, [router]);
+  }, [router, handleTabSwitch]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -359,6 +395,23 @@ export default function ExamPage() {
         </div>
       )}
 
+      {cameraWarning && (
+        <div className="fixed inset-0 z-[9997] flex flex-col items-center justify-center gap-4 bg-black/90">
+          <svg className="h-10 w-10 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <p className="text-lg font-semibold text-white">Camera &amp; microphone access required</p>
+          <p className="text-sm text-gray-400">This assessment requires your camera and microphone to stay on for the entire exam.</p>
+          <button
+            type="button"
+            onClick={requestCamera}
+            className="mt-2 rounded-lg bg-[#6366F1] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#4F46E5]"
+          >
+            Grant camera &amp; microphone access
+          </button>
+        </div>
+      )}
+
       {showWarning && (
         <TabSwitchModal
           count={tabSwitchInfo.count}
@@ -367,6 +420,9 @@ export default function ExamPage() {
         />
       )}
       <BroadcastToast message={broadcastMsg} onDismiss={clearBroadcast} />
+      {cameraRequired && cameraActive && cameraStream && (
+        <CameraSelfView stream={cameraStream} />
+      )}
 
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="sticky top-0 z-30 mb-8 flex items-end gap-6 bg-gray-900 py-3">

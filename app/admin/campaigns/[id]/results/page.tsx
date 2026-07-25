@@ -14,6 +14,7 @@ interface CandidateResult {
   email: string;
   status: string;
   tabSwitchCount: number;
+  multiDisplayViolationCount: number;
   disqualifyReason: string | null;
   totalScore: number;
   rawScore: number;
@@ -101,7 +102,7 @@ function downloadCSV(
   campaignName: string
 ) {
   const header =
-    "Rank,Name,Access ID,Email,Score,Max Score,Correct,Total Questions,Answered,Status,Tab Switches,Disqualify Reason";
+    "Rank,Name,Access ID,Email,Score,Max Score,Correct,Total Questions,Answered,Status,Tab Switches,Multi-Display Violations,Disqualify Reason";
   const rows = candidates.map((c) =>
     [
       c.rank,
@@ -115,6 +116,7 @@ function downloadCSV(
       c.answeredCount,
       c.status,
       c.tabSwitchCount,
+      c.multiDisplayViolationCount,
       c.disqualifyReason ? `"${c.disqualifyReason.replace(/"/g, '""')}"` : "",
     ].join(",")
   );
@@ -459,6 +461,7 @@ export default function CampaignResultsPage({
                   </th>
                   <th className="px-5 py-3 text-left">Status</th>
                   <th className="px-5 py-3 text-left">Tab Switches</th>
+                  <th className="px-5 py-3 text-left">Multi-Display</th>
                 </tr>
               </thead>
               <tbody>
@@ -543,6 +546,19 @@ export default function CampaignResultsPage({
                             }`}
                           >
                             {c.tabSwitchCount}
+                          </span>
+                        </td>
+
+                        {/* Multi-display violations */}
+                        <td className="px-5 py-3">
+                          <span
+                            className={`text-sm font-medium ${
+                              c.multiDisplayViolationCount > 0
+                                ? "text-amber-600"
+                                : "text-[#64748B]"
+                            }`}
+                          >
+                            {c.multiDisplayViolationCount}
                           </span>
                         </td>
                       </tr>

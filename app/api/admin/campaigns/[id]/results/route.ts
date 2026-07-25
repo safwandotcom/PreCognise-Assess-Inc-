@@ -60,6 +60,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         email: true,
         status: true,
         tabSwitchCount: true,
+        multiDisplayViolationCount: true,
         disqualifyReason: true,
       },
     });
@@ -120,6 +121,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         email: c.email,
         status: c.status,
         tabSwitchCount: c.tabSwitchCount,
+        multiDisplayViolationCount: c.multiDisplayViolationCount,
         disqualifyReason: c.disqualifyReason,
         totalScore,
         rawScore,

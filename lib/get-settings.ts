@@ -7,6 +7,7 @@ export type AssessmentSettings = {
   antiCheatScreenshot: boolean;
   antiCheatDevTools: boolean;
   antiCheatCamera: boolean;
+  antiCheatMultiDisplay: boolean;
   speedBonusEnabled: boolean;
   gracePeriodSec: number;
   geoRestriction: string;
@@ -22,6 +23,7 @@ export const SETTINGS_DEFAULTS: AssessmentSettings = {
   antiCheatScreenshot: true,
   antiCheatDevTools: true,
   antiCheatCamera: false,
+  antiCheatMultiDisplay: false,
   speedBonusEnabled: true,
   gracePeriodSec: 0,
   geoRestriction: "",
@@ -47,6 +49,7 @@ export async function getSettings(ownerId: string): Promise<AssessmentSettings> 
     antiCheatScreenshot: row.antiCheatScreenshot,
     antiCheatDevTools: row.antiCheatDevTools,
     antiCheatCamera: SETTINGS_DEFAULTS.antiCheatCamera,
+    antiCheatMultiDisplay: SETTINGS_DEFAULTS.antiCheatMultiDisplay,
     speedBonusEnabled: row.speedBonusEnabled,
     gracePeriodSec: row.gracePeriodSec,
     geoRestriction: row.geoRestriction,

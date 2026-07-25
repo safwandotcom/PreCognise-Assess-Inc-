@@ -33,6 +33,7 @@ export default function ExamPage() {
   const [cameraWarning, setCameraWarning] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraAttempts, setCameraAttempts] = useState({ count: 0, limit: 3 });
+  const [multiDisplayWarning, setMultiDisplayWarning] = useState(false);
 
   const startTimeRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
@@ -44,10 +45,16 @@ export default function ExamPage() {
   // Set to true once campaign config has loaded — triggers fullscreen request
   const configLoadedRef = useRef(false);
   const cameraStreamRef = useRef<MediaStream | null>(null);
+  const multiDisplayIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Latches once a track-drop violation has been reported for the current
   // grant, so onended (which side-effects via fetch/router — kept out of any
   // setState updater, which React may invoke more than once) reports once.
   const cameraDropReportedRef = useRef(false);
+  // Latches once the current multi-display occurrence has been reported, so
+  // a poll tick that finds isExtended still true doesn't re-report every
+  // interval. Reset to false when isExtended goes back to false, so a later
+  // reconnect counts as a new occurrence.
+  const multiDisplayReportedRef = useRef(false);
 
   const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
 
@@ -237,6 +244,20 @@ export default function ExamPage() {
     }
   }, [reportCameraViolation]);
 
+  // Multi-display violation reporter — increment-only, no limit, no
+  // disqualification. Unlike camera, a candidate can always resolve this
+  // themselves by disconnecting the extra display, so this only logs.
+  const reportMultiDisplayViolation = useCallback(async () => {
+    try {
+      await fetch("/api/candidate/multi-display-violation", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+    } catch {
+      // network error — overlay still reflects live isExtended state via polling
+    }
+  }, []);
+
   // Initial load — settings and first question in parallel
   useEffect(() => {
     mountedRef.current = true;
@@ -254,6 +275,24 @@ export default function ExamPage() {
           setCameraRequired(true);
           requestCamera();
         }
+        if (
+          settingsRef.current.antiCheatMultiDisplay &&
+          typeof window.screen.isExtended === "boolean"
+        ) {
+          multiDisplayIntervalRef.current = setInterval(() => {
+            const extended = window.screen.isExtended;
+            if (extended) {
+              setMultiDisplayWarning(true);
+              if (!multiDisplayReportedRef.current) {
+                multiDisplayReportedRef.current = true;
+                reportMultiDisplayViolation();
+              }
+            } else {
+              setMultiDisplayWarning(false);
+              multiDisplayReportedRef.current = false;
+            }
+          }, 4000);
+        }
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -262,6 +301,7 @@ export default function ExamPage() {
       mountedRef.current = false;
       if (graceTimerRef.current !== null) clearTimeout(graceTimerRef.current);
       cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
+      if (multiDisplayIntervalRef.current !== null) clearInterval(multiDisplayIntervalRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -460,6 +500,16 @@ export default function ExamPage() {
           >
             Grant camera &amp; microphone access
           </button>
+        </div>
+      )}
+
+      {multiDisplayWarning && (
+        <div className="fixed inset-0 z-[9996] flex flex-col items-center justify-center gap-4 bg-black/90">
+          <svg className="h-10 w-10 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+          </svg>
+          <p className="text-lg font-semibold text-white">Extra display detected</p>
+          <p className="text-sm text-gray-400">This assessment requires a single display. Please disconnect any additional monitors to continue.</p>
         </div>
       )}
 

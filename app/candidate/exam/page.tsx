@@ -249,12 +249,14 @@ export default function ExamPage() {
   // themselves by disconnecting the extra display, so this only logs.
   const reportMultiDisplayViolation = useCallback(async () => {
     try {
-      await fetch("/api/candidate/multi-display-violation", {
+      const res = await fetch("/api/candidate/multi-display-violation", {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
       });
+      return res.ok;
     } catch {
       // network error — overlay still reflects live isExtended state via polling
+      return false;
     }
   }, []);
 
@@ -286,7 +288,9 @@ export default function ExamPage() {
               setMultiDisplayWarning(true);
               if (!multiDisplayReportedRef.current) {
                 multiDisplayReportedRef.current = true;
-                reportMultiDisplayViolation();
+                reportMultiDisplayViolation().then((ok) => {
+                  if (!ok) multiDisplayReportedRef.current = false;
+                });
               }
             } else {
               setMultiDisplayWarning(false);
@@ -538,7 +542,12 @@ export default function ExamPage() {
             />
           )}
           <div className="shrink-0">
-            <TimerRing key={question.id} timeLimit={question.timeLimitSec} onExpire={handleTimerExpire} />
+            <TimerRing
+              key={question.id}
+              timeLimit={question.timeLimitSec}
+              onExpire={handleTimerExpire}
+              paused={multiDisplayWarning}
+            />
           </div>
         </div>
 

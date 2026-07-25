@@ -5,18 +5,24 @@ import { useEffect, useRef, useState } from "react";
 interface TimerRingProps {
   timeLimit: number; // seconds
   onExpire: () => void;
+  // When true, freezes the countdown in place (no tick, no expiry check).
+  // Resuming continues from the frozen value rather than resetting. Used to
+  // stop the clock while a blocking overlay (e.g. multi-display detection)
+  // is covering the question — optional so existing callers are unaffected.
+  paused?: boolean;
 }
 
 const RADIUS = 54;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export default function TimerRing({ timeLimit, onExpire }: TimerRingProps) {
+export default function TimerRing({ timeLimit, onExpire, paused }: TimerRingProps) {
   // No reset effect needed — the parent mounts a fresh TimerRing per
   // question (key={question.id}), so this initializer runs again on its own.
   const [secondsLeft, setSecondsLeft] = useState(timeLimit);
   const expiredRef = useRef(false);
 
   useEffect(() => {
+    if (paused) return;
     if (secondsLeft <= 0) {
       if (!expiredRef.current) {
         expiredRef.current = true;
@@ -26,7 +32,7 @@ export default function TimerRing({ timeLimit, onExpire }: TimerRingProps) {
     }
     const tick = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(tick);
-  }, [secondsLeft, onExpire]);
+  }, [secondsLeft, onExpire, paused]);
 
   const fraction = timeLimit > 0 ? secondsLeft / timeLimit : 0;
   const color =

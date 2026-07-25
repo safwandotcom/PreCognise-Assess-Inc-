@@ -88,6 +88,7 @@ model Campaign {
   antiCheatScreenshot        Boolean        @default(false)
   antiCheatDevTools          Boolean        @default(false)
   antiCheatCamera            Boolean        @default(false)
+  antiCheatMultiDisplay      Boolean        @default(false)
   antiCheatShuffleQuestions  Boolean        @default(false)
   antiCheatShuffleAnswers    Boolean        @default(false)
   lastBroadcast              String?
@@ -103,24 +104,25 @@ model Campaign {
 }
 
 model Candidate {
-  id                   String          @id @default(cuid())
-  accessId             String
-  email                String
-  name                 String
-  passwordHash         String
-  generatedPassword    String?
-  activeToken          String?         @unique
-  country              String?
-  status               CandidateStatus @default(REGISTERED)
-  disqualifyReason     String?
-  tabSwitchCount       Int             @default(0)
-  cameraViolationCount Int             @default(0)
-  otpHash              String?
-  otpExpiresAt         DateTime?
-  acknowledgedAt       DateTime?
-  campaignId           String
-  campaign             Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  responses            Response[]
+  id                         String          @id @default(cuid())
+  accessId                   String
+  email                      String
+  name                       String
+  passwordHash               String
+  generatedPassword          String?
+  activeToken                String?         @unique
+  country                    String?
+  status                     CandidateStatus @default(REGISTERED)
+  disqualifyReason           String?
+  tabSwitchCount             Int             @default(0)
+  cameraViolationCount       Int             @default(0)
+  multiDisplayViolationCount Int             @default(0)
+  otpHash                    String?
+  otpExpiresAt               DateTime?
+  acknowledgedAt             DateTime?
+  campaignId                 String
+  campaign                   Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  responses                  Response[]
 
   @@unique([accessId, campaignId])
   @@unique([email, campaignId])

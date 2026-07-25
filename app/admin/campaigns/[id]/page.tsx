@@ -54,6 +54,7 @@ interface Campaign {
   antiCheatScreenshot: boolean;
   antiCheatDevTools: boolean;
   antiCheatCamera: boolean;
+  antiCheatMultiDisplay: boolean;
   antiCheatShuffleQuestions: boolean;
   antiCheatShuffleAnswers: boolean;
   completionMessage: string | null;
@@ -233,6 +234,9 @@ function OverviewTab({
   const [antiCheatCamera, setAntiCheatCamera] = useState(
     campaign.antiCheatCamera,
   );
+  const [antiCheatMultiDisplay, setAntiCheatMultiDisplay] = useState(
+    campaign.antiCheatMultiDisplay,
+  );
   const [antiCheatShuffleQuestions, setAntiCheatShuffleQuestions] = useState(
     campaign.antiCheatShuffleQuestions,
   );
@@ -271,6 +275,7 @@ function OverviewTab({
     setAntiCheatScreenshot(campaign.antiCheatScreenshot);
     setAntiCheatDevTools(campaign.antiCheatDevTools);
     setAntiCheatCamera(campaign.antiCheatCamera);
+    setAntiCheatMultiDisplay(campaign.antiCheatMultiDisplay);
     setAntiCheatShuffleQuestions(campaign.antiCheatShuffleQuestions);
     setAntiCheatShuffleAnswers(campaign.antiCheatShuffleAnswers);
     setCompletionMessage(campaign.completionMessage ?? "");
@@ -303,6 +308,7 @@ function OverviewTab({
           antiCheatScreenshot,
           antiCheatDevTools,
           antiCheatCamera,
+          antiCheatMultiDisplay,
           antiCheatShuffleQuestions,
           antiCheatShuffleAnswers,
           completionMessage: completionMessage.trim() || null,
@@ -873,6 +879,33 @@ function OverviewTab({
                   <span
                     className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
                       antiCheatCamera ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Detect multiple displays */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Detect multiple displays
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    Warn and log when more than one display is connected during the exam. Does not automatically disqualify — the candidate can resolve it by disconnecting the extra display.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={antiCheatMultiDisplay}
+                  onClick={() => setAntiCheatMultiDisplay((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    antiCheatMultiDisplay ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      antiCheatMultiDisplay ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
                 </button>

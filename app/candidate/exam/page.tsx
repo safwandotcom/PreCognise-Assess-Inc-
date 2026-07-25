@@ -266,6 +266,7 @@ export default function ExamPage() {
     })
       .then((r) => r.json())
       .then((data) => {
+        if (!mountedRef.current) return;
         settingsRef.current = { ...SETTINGS_DEFAULTS, ...data };
         configLoadedRef.current = true;
         if (settingsRef.current.antiCheatFullscreen) {
@@ -279,7 +280,7 @@ export default function ExamPage() {
           settingsRef.current.antiCheatMultiDisplay &&
           typeof window.screen.isExtended === "boolean"
         ) {
-          multiDisplayIntervalRef.current = setInterval(() => {
+          const checkMultiDisplay = () => {
             const extended = window.screen.isExtended;
             if (extended) {
               setMultiDisplayWarning(true);
@@ -291,7 +292,9 @@ export default function ExamPage() {
               setMultiDisplayWarning(false);
               multiDisplayReportedRef.current = false;
             }
-          }, 4000);
+          };
+          checkMultiDisplay();
+          multiDisplayIntervalRef.current = setInterval(checkMultiDisplay, 4000);
         }
       })
       .catch(() => {});

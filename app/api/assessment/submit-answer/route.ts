@@ -63,6 +63,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Question not found" }, { status: 404 });
   }
 
+  const isTextQuestion = question.type === "short_answer" || question.type === "long_answer";
+  if (isTextQuestion && value !== null && value !== undefined && typeof value !== "string") {
+    return NextResponse.json({ error: "Invalid answer format" }, { status: 400 });
+  }
+  if (isTextQuestion && typeof value === "string") {
+    // Defense-in-depth ceiling: the browser already enforces the word limit,
+    // but nothing stops a direct API call. ~12 chars/word is generous headroom
+    // over typical average word length; fall back to a flat 20000-char cap
+    // when the question has no configured word limit.
+    const CHARS_PER_WORD_CEILING = 12;
+    const FALLBACK_CHAR_CEILING = 20000;
+    const maxChars =
+      typeof question.wordLimit === "number"
+        ? question.wordLimit * CHARS_PER_WORD_CEILING
+        : FALLBACK_CHAR_CEILING;
+    if (value.length > maxChars) {
+      return NextResponse.json({ error: "Answer exceeds allowed length" }, { status: 400 });
+    }
+  }
+
   // Respect the campaign owner's speed bonus toggle
   const settings = await getSettings(question.campaign.ownerId ?? "");
   const effectiveSpeedBonusMax = settings.speedBonusEnabled ? question.speedBonusMax : 0;
@@ -95,9 +115,11 @@ export async function POST(req: NextRequest) {
   );
 
   // short_answer/long_answer responses are never auto-scored — they sit
-  // flagged until an admin grades them via PATCH /api/admin/responses/[id]/grade
+  // flagged until an admin grades them via PATCH /api/admin/responses/[id]/grade.
+  // A blank/null answer (timed out or skipped) is correctly, finally, a 0 —
+  // there's nothing for an admin to grade, so it should not be flagged.
   const needsGrading =
-    question.type === "short_answer" || question.type === "long_answer";
+    isTextQuestion && typeof canonicalValue === "string" && canonicalValue.trim() !== "";
 
   await prisma.response.create({
     data: {

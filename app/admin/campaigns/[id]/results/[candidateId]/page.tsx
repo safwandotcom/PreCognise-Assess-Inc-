@@ -41,6 +41,12 @@ function GradableRow({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // A Response row can exist even when the candidate never actually typed an
+  // answer (timer expired → handleAnswer(null)). Only treat it as a real,
+  // gradable answer when the stored value is a non-empty string.
+  const hasAnswerText =
+    typeof item.response?.answer === "string" && item.response.answer.trim() !== "";
+
   async function handleSave() {
     if (!item.response) return;
     setError("");
@@ -85,14 +91,16 @@ function GradableRow({
         )}
       </div>
       <p className="mb-3 text-sm font-medium text-[#0F172A]">{item.text}</p>
-      {item.response ? (
+      {hasAnswerText ? (
         <p className="mb-4 whitespace-pre-line rounded-lg bg-[#F8FAFC] p-3 text-sm text-[#334155]">
-          {String(item.response.answer ?? "")}
+          {String(item.response!.answer)}
         </p>
       ) : (
-        <p className="mb-4 text-sm italic text-[#94A3B8]">No answer submitted.</p>
+        <p className="mb-4 text-sm italic text-[#94A3B8]">
+          No answer submitted{item.response ? " (auto-scored 0)" : ""}.
+        </p>
       )}
-      {item.response && (
+      {hasAnswerText && item.response && (
         <div className="flex items-center gap-3">
           <label className="text-xs font-medium text-[#0F172A]">Score</label>
           <input

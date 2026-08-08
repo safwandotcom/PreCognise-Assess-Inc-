@@ -40,6 +40,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
         candidateId: true,
         score: true,
         answer: true,
+        needsGrading: true,
+        gradedAt: true,
         question: {
           select: {
             type: true,
@@ -87,6 +89,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         (r) => r.score > 0 && scorable.has(r.question.type)
       ).length;
       const answeredCount = cResponses.length;
+      const pendingReview = cResponses.some((r) => r.needsGrading && !r.gradedAt);
 
       let penalty = 0;
       if (campaign.negativeMarking) {
@@ -127,6 +130,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         rawScore,
         correctCount,
         answeredCount,
+        pendingReview,
       };
     });
 

@@ -35,9 +35,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const body = await req.json();
     const score = Number(body.score);
-    if (!Number.isFinite(score) || score < 0 || score > response.question.basePoints) {
+    if (
+      !Number.isFinite(score) ||
+      !Number.isInteger(score) ||
+      score < 0 ||
+      score > response.question.basePoints
+    ) {
       return NextResponse.json(
-        { error: `Score must be between 0 and ${response.question.basePoints}` },
+        { error: `Score must be a whole number between 0 and ${response.question.basePoints}` },
         { status: 400 }
       );
     }

@@ -20,6 +20,7 @@ interface CandidateResult {
   rawScore: number;
   correctCount: number;
   answeredCount: number;
+  pendingReview: boolean;
 }
 
 interface ResultsData {
@@ -484,7 +485,12 @@ export default function CampaignResultsPage({
 
                         {/* Name (+ disqualify reason on sub-row) */}
                         <td className="px-5 py-3">
-                          <p className="font-medium text-[#0F172A]">{c.name}</p>
+                          <Link
+                            href={`/admin/campaigns/${id}/results/${c.id}`}
+                            className="font-medium text-[#0F172A] hover:text-[#6366F1] hover:underline underline-offset-2"
+                          >
+                            {c.name}
+                          </Link>
                           <p className="text-xs text-[#64748B]">{c.email}</p>
                           {c.status === "DISQUALIFIED" && c.disqualifyReason && (
                             <p className="mt-0.5 text-xs text-[#94A3B8] italic">
@@ -534,6 +540,11 @@ export default function CampaignResultsPage({
                           >
                             {candidateStatusLabel(c.status)}
                           </span>
+                          {c.pendingReview && (
+                            <span className="ml-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                              Pending review
+                            </span>
+                          )}
                         </td>
 
                         {/* Tab switches */}

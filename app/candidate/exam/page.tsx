@@ -6,6 +6,7 @@ import { getToken } from "@/lib/auth-store";
 import { getSocket, disconnectSocket } from "@/lib/socket-client";
 import { SocketEvents, QuestionType, type PublicQuestion } from "@/types";
 import { SETTINGS_DEFAULTS, type AssessmentSettings } from "@/lib/get-settings";
+import { useBranding } from "@/lib/use-branding";
 import TimerRing from "@/components/exam/TimerRing";
 import McqCard from "@/components/exam/McqCard";
 import PsychometricCard from "@/components/exam/PsychometricCard";
@@ -21,6 +22,7 @@ const MAC_SCREENSHOT_SHIFT_KEYS = new Set(["3", "4", "5", "s", "S"]);
 
 export default function ExamPage() {
   const router = useRouter();
+  const branding = useBranding();
   const [question, setQuestion] = useState<PublicQuestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWarning, setShowWarning] = useState(false);
@@ -449,8 +451,8 @@ export default function ExamPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl animate-pulse">Loading question...</div>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-[#0F172A] text-xl animate-pulse">Loading question...</div>
       </div>
     );
   }
@@ -458,7 +460,7 @@ export default function ExamPage() {
   if (!question) return null;
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white select-none">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] select-none">
       {screenshotFlash && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-3 bg-black/95">
           <svg className="h-10 w-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -534,12 +536,13 @@ export default function ExamPage() {
       )}
 
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="sticky top-0 z-30 mb-8 flex items-end gap-6 bg-gray-900 py-3">
+        <div className="sticky top-0 z-30 mb-8 flex items-end gap-6 bg-[#F8FAFC] py-3">
           {progress && (
             <QuestionProgress
               answered={progress.answered}
               total={progress.total}
               currentIndex={progress.answered}
+              branding={branding}
             />
           )}
           <div className="shrink-0">
@@ -548,24 +551,25 @@ export default function ExamPage() {
               timeLimit={question.timeLimitSec}
               onExpire={handleTimerExpire}
               paused={multiDisplayWarning}
+              branding={branding}
             />
           </div>
         </div>
 
         {(question.type === QuestionType.MCQ || question.type === QuestionType.IMAGE) && (
-          <McqCard question={question} onAnswer={(v) => handleAnswer(v)} />
+          <McqCard question={question} branding={branding} onAnswer={(v) => handleAnswer(v)} />
         )}
         {question.type === QuestionType.PSYCHOMETRIC && (
-          <PsychometricCard question={question} onAnswer={(v) => handleAnswer(v)} />
+          <PsychometricCard question={question} branding={branding} onAnswer={(v) => handleAnswer(v)} />
         )}
         {question.type === QuestionType.RATING && (
-          <RatingCard question={question} onAnswer={(v) => handleAnswer(v)} />
+          <RatingCard question={question} branding={branding} onAnswer={(v) => handleAnswer(v)} />
         )}
         {question.type === QuestionType.SHORT_ANSWER && (
-          <TextAnswerCard question={question} variant="short" onAnswer={(v) => handleAnswer(v)} />
+          <TextAnswerCard question={question} variant="short" branding={branding} onAnswer={(v) => handleAnswer(v)} />
         )}
         {question.type === QuestionType.LONG_ANSWER && (
-          <TextAnswerCard question={question} variant="long" onAnswer={(v) => handleAnswer(v)} />
+          <TextAnswerCard question={question} variant="long" branding={branding} onAnswer={(v) => handleAnswer(v)} />
         )}
       </div>
     </div>

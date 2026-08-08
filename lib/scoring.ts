@@ -4,6 +4,8 @@ import { QuestionType } from "@/types";
  * Scores a single candidate response.
  *
  * - psychometric / rating: no "correct" answer — always award full basePoints
+ * - short_answer / long_answer: always 0 at submission time — graded manually
+ *     later via PATCH /api/admin/responses/[id]/grade
  * - mcq / image: scored against correctOption
  *     correct -> basePoints + speed bonus (faster = more bonus, capped at speedBonusMax)
  *     wrong   -> 0
@@ -21,6 +23,15 @@ export function calculateScore(
     questionType === QuestionType.RATING
   ) {
     return basePoints;
+  }
+
+  if (
+    questionType === QuestionType.SHORT_ANSWER ||
+    questionType === QuestionType.LONG_ANSWER
+  ) {
+    // Manually graded later via PATCH /api/admin/responses/[id]/grade —
+    // never auto-scored at submission time.
+    return 0;
   }
 
   if (!isCorrect) {

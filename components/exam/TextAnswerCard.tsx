@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { PublicQuestion } from "@/types";
+import type { Branding } from "@/lib/use-branding";
 
 interface TextAnswerCardProps {
   question: PublicQuestion;
   variant: "short" | "long";
+  branding: Branding;
   onAnswer: (value: string) => void;
 }
 
@@ -61,17 +63,17 @@ export default function TextAnswerCard({ question, variant, onAnswer }: TextAnsw
 
   return (
     <div className="w-full max-w-2xl">
-      <p className="mb-6 text-xl font-medium text-white">{question.text}</p>
+      <p className="mb-6 text-xl font-medium text-[#0F172A]">{question.text}</p>
       <textarea
         rows={variant === "short" ? 3 : 10}
         value={text}
         onChange={handleChange}
         disabled={submitted}
         placeholder={variant === "short" ? "Type your short answer…" : "Type your long answer…"}
-        className="w-full rounded-xl border border-gray-700 bg-gray-800 p-4 text-gray-100 placeholder-gray-500 outline-none focus:border-gray-500 disabled:opacity-60"
+        className="w-full rounded-xl border border-[#E2E8F0] bg-white p-4 text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#6366F1] disabled:opacity-60"
       />
       <div className="mt-2 flex items-center justify-between">
-        <span className={`text-xs font-medium ${atLimit ? "text-amber-400" : "text-gray-400"}`}>
+        <span className={`text-xs font-medium ${atLimit ? "text-amber-600" : "text-[#64748B]"}`}>
           {wordCount} / {limit} words
         </span>
         <button

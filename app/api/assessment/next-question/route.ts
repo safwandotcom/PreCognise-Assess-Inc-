@@ -121,6 +121,7 @@ export async function GET(req: NextRequest) {
         text: next.text,
         imageUrl: next.imageUrl,
         options: displayOptions,
+        wordLimit: next.wordLimit,
         timeLimitSec: next.timeLimitSec,
         basePoints: next.basePoints,
         // Respect global speed bonus toggle — zero it out if disabled

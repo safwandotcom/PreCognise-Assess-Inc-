@@ -29,6 +29,8 @@ enum QuestionType {
   psychometric
   rating
   image
+  short_answer
+  long_answer
 }
 
 model AssessmentSettings {
@@ -135,6 +137,7 @@ model Question {
   imageUrl      String?
   options       Json
   correctOption Int?
+  wordLimit     Int?
   timeLimitSec  Int
   basePoints    Int
   speedBonusMax Int          @default(0)
@@ -145,11 +148,13 @@ model Question {
 }
 
 model Response {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   answer         Json
-  score          Int      @default(0)
+  score          Int       @default(0)
+  needsGrading   Boolean   @default(false)
+  gradedAt       DateTime?
   responseTimeMs Int
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
   candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)

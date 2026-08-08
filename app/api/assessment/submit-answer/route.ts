@@ -94,12 +94,18 @@ export async function POST(req: NextRequest) {
     question.timeLimitSec
   );
 
+  // short_answer/long_answer responses are never auto-scored — they sit
+  // flagged until an admin grades them via PATCH /api/admin/responses/[id]/grade
+  const needsGrading =
+    question.type === "short_answer" || question.type === "long_answer";
+
   await prisma.response.create({
     data: {
       candidateId,
       questionId,
       answer: canonicalValue === null || canonicalValue === undefined ? Prisma.JsonNull : canonicalValue,
       score: scoreEarned,
+      needsGrading,
       responseTimeMs,
     },
   });

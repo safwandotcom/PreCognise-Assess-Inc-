@@ -107,7 +107,7 @@ No per-candidate detail view exists today (the results page is a flat sortable t
 
 ## Candidate's own result page
 
-`app/candidate/result/page.tsx`: if the candidate has any pending-review response, show a generic message — *"Your results are being reviewed and will be available soon."* — instead of a score. No partial/auto-graded-only score is shown in that state. Once every one of their written responses is graded, the page renders the full score as it does today.
+Correction found while writing the implementation plan: `app/candidate/result/page.tsx` does not show a score today, under any circumstances — it only ever shows a generic "Assessment Complete" message (the admin's custom `completionMessage`, or a default), plus the question count. No code change is needed here to satisfy "candidate sees a generic message, not a score, while review is pending" — that's already the page's only behavior, for every campaign, whether or not it has Short/Long Answer questions. This section is retained for the record; it produces no task in the implementation plan.
 
 ## Branding/theming reskin (exam + result pages)
 

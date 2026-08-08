@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { PublicQuestion } from "@/types";
+import type { Branding } from "@/lib/use-branding";
 
 interface RatingCardProps {
   question: PublicQuestion;
+  branding: Branding;
   onAnswer: (value: number) => void;
 }
 
@@ -22,7 +24,7 @@ const COLORS = [
   "bg-green-600",
 ];
 
-export default function RatingCard({ question, onAnswer }: RatingCardProps) {
+export default function RatingCard({ question, branding, onAnswer }: RatingCardProps) {
   const [selected, setSelected] = useState<number | null>(null);
 
   function handleSelect(value: number) {
@@ -33,7 +35,7 @@ export default function RatingCard({ question, onAnswer }: RatingCardProps) {
 
   return (
     <div className="w-full max-w-2xl">
-      <p className="mb-8 text-xl font-medium text-white">{question.text}</p>
+      <p className="mb-8 text-xl font-medium text-[#0F172A]">{question.text}</p>
       <div className="grid grid-cols-5 gap-3 sm:grid-cols-10">
         {COLORS.map((color, i) => {
           const value = i + 1;
@@ -45,8 +47,9 @@ export default function RatingCard({ question, onAnswer }: RatingCardProps) {
               onClick={() => handleSelect(value)}
               disabled={selected !== null}
               className={`flex h-12 w-12 items-center justify-center rounded-lg text-lg font-bold text-white transition-all ${color} ${
-                isSelected ? "scale-110 ring-4 ring-white" : ""
+                isSelected ? "scale-110" : ""
               } ${selected !== null && !isSelected ? "opacity-40" : ""}`}
+              style={isSelected ? { boxShadow: `0 0 0 4px ${branding.primaryColour}` } : undefined}
             >
               {value}
             </button>

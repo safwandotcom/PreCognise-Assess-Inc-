@@ -9,11 +9,12 @@ import { rowsFromCells, parseCsvToCells, parseXlsxToCells } from "@/lib/candidat
 
 interface Question {
   id: string;
-  type: "mcq" | "psychometric" | "rating" | "image";
+  type: "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer";
   text: string;
   imageUrl: string | null;
   options: unknown;
   correctOption: number | null;
+  wordLimit: number | null;
   timeLimitSec: number;
   basePoints: number;
   speedBonusMax: number;
@@ -1044,7 +1045,17 @@ const QUESTION_TYPES = [
   { value: "psychometric", label: "Psychometric" },
   { value: "rating", label: "Rating" },
   { value: "image", label: "Multiple choice with image (Image MCQ)" },
+  { value: "short_answer", label: "Short Answer" },
+  { value: "long_answer", label: "Long Answer" },
 ] as const;
+
+// Suggested defaults shown when the admin picks one of these types —
+// editable, not enforced. Short answers default to a tight limit; long
+// answers to a much larger one.
+const DEFAULT_WORD_LIMIT: Record<string, string> = {
+  short_answer: "50",
+  long_answer: "500",
+};
 
 function QuestionsTab({
   campaignId,
@@ -1065,12 +1076,13 @@ function QuestionsTab({
 
   // Add form state
   const [qType, setQType] = useState<
-    "mcq" | "psychometric" | "rating" | "image"
+    "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer"
   >("mcq");
   const [qText, setQText] = useState("");
   const [qImageUrl, setQImageUrl] = useState("");
   const [qOptions, setQOptions] = useState<string[]>(["", "", "", ""]);
   const [qCorrect, setQCorrect] = useState<number>(0);
+  const [qWordLimit, setQWordLimit] = useState("50");
   const [qTime, setQTime] = useState("60");
   const [qPoints, setQPoints] = useState("10");
   const [qSpeedBonus, setQSpeedBonus] = useState("0");
@@ -1079,6 +1091,7 @@ function QuestionsTab({
   const [imageUploading, setImageUploading] = useState(false);
 
   const needsOptions = qType === "mcq" || qType === "image";
+  const needsWordLimit = qType === "short_answer" || qType === "long_answer";
 
   function setOption(index: number, value: string) {
     setQOptions((prev) => {
@@ -1108,6 +1121,10 @@ function QuestionsTab({
       setAddError("All options must be filled in.");
       return;
     }
+    if (needsWordLimit && (!qWordLimit.trim() || Number(qWordLimit) <= 0)) {
+      setAddError("Word limit must be a positive number.");
+      return;
+    }
     setAdding(true);
     try {
       const res = await fetch(`/api/admin/campaigns/${campaignId}/questions`, {
@@ -1119,6 +1136,7 @@ function QuestionsTab({
           imageUrl: qImageUrl.trim() || null,
           options: needsOptions ? qOptions : [],
           correctOption: needsOptions ? qCorrect : null,
+          wordLimit: needsWordLimit ? Number(qWordLimit) : null,
           timeLimitSec: Number(qTime),
           basePoints: Number(qPoints),
           speedBonusMax: Number(qSpeedBonus),
@@ -1134,6 +1152,7 @@ function QuestionsTab({
       setQImageUrl("");
       setQOptions(["", "", "", ""]);
       setQCorrect(0);
+      setQWordLimit("50");
       setQTime("60");
       setQPoints("10");
       setQSpeedBonus("0");
@@ -1354,7 +1373,12 @@ function QuestionsTab({
                   <button
                     key={t.value}
                     type="button"
-                    onClick={() => setQType(t.value as typeof qType)}
+                    onClick={() => {
+                      setQType(t.value as typeof qType);
+                      if (t.value in DEFAULT_WORD_LIMIT) {
+                        setQWordLimit(DEFAULT_WORD_LIMIT[t.value]);
+                      }
+                    }}
                     className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                       qType === t.value
                         ? "border-[#6366F1] bg-[#6366F1] text-white"
@@ -1525,9 +1549,34 @@ function QuestionsTab({
               </div>
             )}
 
+            {needsWordLimit && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                  Word limit
+                </label>
+                <input
+                  required
+                  type="number"
+                  min={1}
+                  value={qWordLimit}
+                  onChange={(e) => setQWordLimit(e.target.value)}
+                  className="w-full max-w-[160px] rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#6366F1]"
+                />
+                <p className="mt-1 text-xs text-[#64748B]">
+                  Maximum number of words the candidate can type for this answer. They cannot type past this limit.
+                </p>
+              </div>
+            )}
+
             {(qType === "psychometric" || qType === "rating") && (
               <p className="rounded-lg bg-purple-50 px-3.5 py-2.5 text-xs text-purple-700 ring-1 ring-purple-200">
                 This question type always awards full points, no matter what the candidate answers — there&apos;s no wrong answer here.
+              </p>
+            )}
+
+            {needsWordLimit && (
+              <p className="rounded-lg bg-purple-50 px-3.5 py-2.5 text-xs text-purple-700 ring-1 ring-purple-200">
+                This question is graded manually by an admin after the candidate submits — it won&apos;t contribute to the score until reviewed.
               </p>
             )}
 

@@ -11,6 +11,8 @@ export enum QuestionType {
   PSYCHOMETRIC = "psychometric",
   RATING = "rating",
   IMAGE = "image",
+  SHORT_ANSWER = "short_answer",
+  LONG_ANSWER = "long_answer",
 }
 
 // Sanitized question shape sent to the candidate client.
@@ -21,6 +23,7 @@ export interface PublicQuestion {
   text: string;
   imageUrl: string | null;
   options: (string | number)[];
+  wordLimit: number | null;
   timeLimitSec: number;
   basePoints: number;
   speedBonusMax: number;
@@ -28,10 +31,12 @@ export interface PublicQuestion {
 }
 
 // What the candidate's client sends to submit-answer.
-// value is null when the timer expired and the question was skipped.
+// value is null when the timer expired and the question was skipped; a
+// string for short_answer/long_answer questions, a number (option index or
+// mood/rating value) for every other type.
 export interface AnswerPayload {
   questionId: string;
-  value: number | null;
+  value: number | string | null;
   responseTimeMs: number;
 }
 

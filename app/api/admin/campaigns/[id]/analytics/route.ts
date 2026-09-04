@@ -133,10 +133,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
       let penalty = 0;
       if (campaign.negativeMarking) {
         for (const r of cRes) {
+          // score === 0 on an auto-scored, option-based type that wasn't
+          // skipped (answer !== null) already fully means "answered wrong" —
+          // this doesn't need to re-derive "wrong" by comparing against
+          // correctOption, which only exists for single-answer types and is
+          // always null for multi_select (whose answer key lives in
+          // correctOptions instead). Re-deriving it here previously meant
+          // negative marking silently never applied to a wrong multi-select
+          // answer.
           if (r.answer !== null && r.score === 0 && isOptionBasedQuestionType(r.question.type)) {
-            if (r.question.correctOption !== null && r.answer !== r.question.correctOption) {
-              penalty += r.question.basePoints * campaign.negativeMarkingValue;
-            }
+            penalty += r.question.basePoints * campaign.negativeMarkingValue;
           }
         }
       }
@@ -227,11 +233,17 @@ export async function GET(_req: NextRequest, { params }: Params) {
         : 0;
       const timeoutCount = qRes.filter(r => r.responseTimeMs >= q.timeLimitSec * 1000 * 0.98).length;
 
-      // Option frequency for MCQ/image/true-false
+      // Option frequency for MCQ/image/true-false/multi-select. A
+      // multi-select response's `answer` is a JSON array of selected
+      // indices, not a single number — count an option as picked if the
+      // candidate's array includes it, otherwise fall back to the plain
+      // equality every single-answer type already uses.
       let optionFrequency: number[] | null = null;
       if (isOptionBasedQuestionType(q.type) && Array.isArray(q.options)) {
         optionFrequency = (q.options as unknown[]).map((_, idx) =>
-          qRes.filter(r => r.answer === idx).length
+          qRes.filter(r =>
+            Array.isArray(r.answer) ? r.answer.includes(idx) : r.answer === idx
+          ).length
         );
       }
 

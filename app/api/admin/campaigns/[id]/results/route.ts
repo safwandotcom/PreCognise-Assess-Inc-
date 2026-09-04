@@ -93,23 +93,20 @@ export async function GET(_req: NextRequest, { params }: Params) {
       let penalty = 0;
       if (campaign.negativeMarking) {
         for (const r of cResponses) {
+          // score === 0 on an auto-scored, option-based type that wasn't
+          // skipped (answer !== null) already fully means "answered wrong" —
+          // this doesn't need to re-derive "wrong" by comparing against
+          // correctOption, which only exists for single-answer types and is
+          // always null for multi_select (whose answer key lives in
+          // correctOptions instead). Re-deriving it here previously meant
+          // negative marking silently never applied to a wrong multi-select
+          // answer.
           if (
             r.answer !== null &&
             r.score === 0 &&
             isOptionBasedQuestionType(r.question.type)
           ) {
-            // Wrong answer: answer !== null, score === 0
-            // Verify it wasn't just unanswered (answer could be a Json value)
-            // answer is Json; correctOption is Int. A null answer means skipped.
-            // We check answer is not null (already done above) and score is 0
-            // which means it was answered incorrectly (or was a wrong MCQ answer)
-            const answerVal = r.answer;
-            // Skip if answer is literally null (unanswered)
-            if (answerVal === null) continue;
-            // For MCQ/image: wrong means answer !== correctOption
-            if (r.question.correctOption !== null && answerVal !== r.question.correctOption) {
-              penalty += r.question.basePoints * campaign.negativeMarkingValue;
-            }
+            penalty += r.question.basePoints * campaign.negativeMarkingValue;
           }
         }
       }

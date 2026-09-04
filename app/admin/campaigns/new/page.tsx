@@ -10,10 +10,12 @@ interface CampaignDraft {
   logoUrl: string;
   bgColor: string;
   scheduledAt: string;
+  scheduledEnd: string;
   autoStart: boolean;
   maxCandidates: string;
   negativeMarking: boolean;
   negativeMarkingValue: string;
+  openJoinEnabled: boolean;
 }
 
 const INITIAL: CampaignDraft = {
@@ -21,10 +23,12 @@ const INITIAL: CampaignDraft = {
   logoUrl: "",
   bgColor: "#F8FAFC",
   scheduledAt: "",
+  scheduledEnd: "",
   autoStart: false,
   maxCandidates: "",
   negativeMarking: false,
   negativeMarkingValue: "0.25",
+  openJoinEnabled: false,
 };
 
 export default function NewCampaignPage() {
@@ -71,10 +75,12 @@ export default function NewCampaignPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scheduledAt: draft.scheduledAt || null,
+          scheduledEnd: draft.scheduledEnd || null,
           autoStart: draft.autoStart,
           maxCandidates: draft.maxCandidates ? parseInt(draft.maxCandidates) : null,
           negativeMarking: draft.negativeMarking,
           negativeMarkingValue: parseFloat(draft.negativeMarkingValue),
+          openJoinEnabled: draft.openJoinEnabled,
         }),
       });
       if (!res.ok) { const d = await res.json(); setError(d.error); return; }
@@ -178,12 +184,41 @@ export default function NewCampaignPage() {
               When candidates can start joining. Leave blank to let them join anytime.
             </p>
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Assessment Ends At (optional)</label>
+            <input
+              type="datetime-local"
+              className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+              value={draft.scheduledEnd}
+              onChange={e => update("scheduledEnd", e.target.value)}
+            />
+            <p className="mt-1 text-xs text-[#64748B]">
+              When set, this becomes the authoritative close time — entry
+              closes early enough for anyone joining to still finish, and any
+              exam in progress ends at this instant. You can fine-tune this
+              once questions are added, from the campaign&apos;s Overview tab.
+            </p>
+          </div>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" checked={draft.autoStart} onChange={e => update("autoStart", e.target.checked)} className="mt-0.5" />
             <span>
               Auto-start at scheduled time
               <p className="text-xs text-[#64748B] font-normal">
                 On: the assessment goes live automatically at the scheduled time. Off: you&apos;ll click &quot;Go live&quot; yourself when ready.
+              </p>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draft.openJoinEnabled}
+              onChange={e => update("openJoinEnabled", e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Open join (no pre-added candidates)
+              <p className="text-xs text-[#64748B] font-normal">
+                Anyone with the join link can enter their name and email to take the assessment — requires &quot;Assessment Ends At&quot; to be set above.
               </p>
             </span>
           </label>

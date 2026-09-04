@@ -9,7 +9,7 @@ import { rowsFromCells, parseCsvToCells, parseXlsxToCells } from "@/lib/candidat
 
 interface Question {
   id: string;
-  type: "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer";
+  type: "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer" | "true_false";
   text: string;
   imageUrl: string | null;
   options: unknown;
@@ -1042,12 +1042,15 @@ function OverviewTab({
 
 const QUESTION_TYPES = [
   { value: "mcq", label: "Multiple choice (MCQ)" },
+  { value: "true_false", label: "True / False" },
   { value: "psychometric", label: "Psychometric" },
   { value: "rating", label: "Rating" },
   { value: "image", label: "Multiple choice with image (Image MCQ)" },
   { value: "short_answer", label: "Short Answer" },
   { value: "long_answer", label: "Long Answer" },
 ] as const;
+
+const TRUE_FALSE_OPTIONS = ["True", "False"];
 
 // Suggested defaults shown when the admin picks one of these types —
 // editable, not enforced. Short answers default to a tight limit; long
@@ -1076,7 +1079,7 @@ function QuestionsTab({
 
   // Add form state
   const [qType, setQType] = useState<
-    "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer"
+    "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer" | "true_false"
   >("mcq");
   const [qText, setQText] = useState("");
   const [qImageUrl, setQImageUrl] = useState("");
@@ -1090,7 +1093,8 @@ function QuestionsTab({
   const [addError, setAddError] = useState("");
   const [imageUploading, setImageUploading] = useState(false);
 
-  const needsOptions = qType === "mcq" || qType === "image";
+  const needsOptions = qType === "mcq" || qType === "image" || qType === "true_false";
+  const isTrueFalse = qType === "true_false";
   const needsWordLimit = qType === "short_answer" || qType === "long_answer";
 
   function setOption(index: number, value: string) {
@@ -1147,10 +1151,11 @@ function QuestionsTab({
         setAddError(d.error ?? "Failed to add question");
         return;
       }
-      // Reset form
+      // Reset form — True/False keeps its fixed two-option shape; every other
+      // type goes back to four blank slots.
       setQText("");
       setQImageUrl("");
-      setQOptions(["", "", "", ""]);
+      setQOptions(isTrueFalse ? TRUE_FALSE_OPTIONS : ["", "", "", ""]);
       setQCorrect(0);
       setQWordLimit("50");
       setQTime("60");
@@ -1378,6 +1383,18 @@ function QuestionsTab({
                       if (t.value in DEFAULT_WORD_LIMIT) {
                         setQWordLimit(DEFAULT_WORD_LIMIT[t.value]);
                       }
+                      // True/False has a fixed two-option shape, not the
+                      // usual free-text list — set it going in, and restore
+                      // four blank slots coming back out so a leftover
+                      // ["True","False"] pair doesn't get submitted as an
+                      // MCQ/Image question's options.
+                      if (t.value === "true_false") {
+                        setQOptions(TRUE_FALSE_OPTIONS);
+                        setQCorrect(0);
+                      } else if (isTrueFalse && (t.value === "mcq" || t.value === "image")) {
+                        setQOptions(["", "", "", ""]);
+                        setQCorrect(0);
+                      }
                     }}
                     className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                       qType === t.value
@@ -1499,8 +1516,9 @@ function QuestionsTab({
               </div>
             )}
 
-            {/* Options — MCQ and Image MCQ */}
-            {needsOptions && (
+            {/* Options — MCQ and Image MCQ (True/False's options are fixed,
+                not editable — its correct-answer picker below is enough) */}
+            {needsOptions && !isTrueFalse && (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
                   Options
@@ -1524,8 +1542,9 @@ function QuestionsTab({
               </div>
             )}
 
-            {/* Correct answer selector */}
-            {needsOptions && (
+            {/* Correct answer selector — MCQ/Image use lettered buttons;
+                True/False uses its own two-button variant below. */}
+            {needsOptions && !isTrueFalse && (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
                   Correct answer
@@ -1543,6 +1562,30 @@ function QuestionsTab({
                       }`}
                     >
                       {String.fromCharCode(65 + i)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isTrueFalse && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                  Correct answer
+                </label>
+                <div className="flex gap-2">
+                  {TRUE_FALSE_OPTIONS.map((label, i) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setQCorrect(i)}
+                      className={`rounded-lg px-5 py-2 text-sm font-semibold transition-all ${
+                        qCorrect === i
+                          ? "bg-[#6366F1] text-white"
+                          : "border border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1]"
+                      }`}
+                    >
+                      {label}
                     </button>
                   ))}
                 </div>

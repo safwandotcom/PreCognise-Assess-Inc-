@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
+import { isOptionBasedQuestionType } from "@/types";
 
 function getBearerToken(req: NextRequest): string | null {
   const header = req.headers.get("authorization");
@@ -8,9 +9,7 @@ function getBearerToken(req: NextRequest): string | null {
   return header.slice(7);
 }
 
-function isScoredType(type: string): boolean {
-  return type === "mcq" || type === "image";
-}
+const isScoredType = isOptionBasedQuestionType;
 
 export async function GET(req: NextRequest) {
   const token = getBearerToken(req);

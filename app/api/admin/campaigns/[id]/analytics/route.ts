@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnerId, ownedCampaign } from "@/lib/tenant";
+import { isOptionBasedQuestionType } from "@/types";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -105,7 +106,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
     });
 
     const maxPossible = questions.reduce((s, q) => s + q.basePoints + q.speedBonusMax, 0);
-    const scorable = new Set(["mcq", "image"]);
 
     // ── Per-candidate totals ──────────────────────────────────────────────────
 
@@ -128,12 +128,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
     for (const c of candidates) {
       const cRes = respByCandidate.get(c.id) ?? [];
       const rawScore = cRes.reduce((s, r) => s + r.score, 0);
-      const correctCount = cRes.filter(r => r.score > 0 && scorable.has(r.question.type)).length;
+      const correctCount = cRes.filter(r => r.score > 0 && isOptionBasedQuestionType(r.question.type)).length;
 
       let penalty = 0;
       if (campaign.negativeMarking) {
         for (const r of cRes) {
-          if (r.answer !== null && r.score === 0 && scorable.has(r.question.type)) {
+          if (r.answer !== null && r.score === 0 && isOptionBasedQuestionType(r.question.type)) {
             if (r.question.correctOption !== null && r.answer !== r.question.correctOption) {
               penalty += r.question.basePoints * campaign.negativeMarkingValue;
             }
@@ -220,16 +220,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const questionAnalytics = questions.map(q => {
       const qRes = respByQuestion.get(q.id) ?? [];
       const answered = qRes.length;
-      const correct = qRes.filter(r => r.score > 0 && scorable.has(q.type)).length;
+      const correct = qRes.filter(r => r.score > 0 && isOptionBasedQuestionType(q.type)).length;
       const pValue = answered > 0 ? Math.round((correct / answered) * 1000) / 10 : 0;
       const avgResponseMs = answered > 0
         ? Math.round(mean(qRes.map(r => r.responseTimeMs)))
         : 0;
       const timeoutCount = qRes.filter(r => r.responseTimeMs >= q.timeLimitSec * 1000 * 0.98).length;
 
-      // Option frequency for MCQ/image
+      // Option frequency for MCQ/image/true-false
       let optionFrequency: number[] | null = null;
-      if ((q.type === "mcq" || q.type === "image") && Array.isArray(q.options)) {
+      if (isOptionBasedQuestionType(q.type) && Array.isArray(q.options)) {
         optionFrequency = (q.options as unknown[]).map((_, idx) =>
           qRes.filter(r => r.answer === idx).length
         );
@@ -238,8 +238,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
       // Discrimination index
       let discriminationIndex = 0;
       if (topHalf.size > 0 && bottomHalf.size > 0) {
-        const topCorrect = qRes.filter(r => topHalf.has(r.candidateId) && r.score > 0 && scorable.has(q.type)).length;
-        const bottomCorrect = qRes.filter(r => bottomHalf.has(r.candidateId) && r.score > 0 && scorable.has(q.type)).length;
+        const topCorrect = qRes.filter(r => topHalf.has(r.candidateId) && r.score > 0 && isOptionBasedQuestionType(q.type)).length;
+        const bottomCorrect = qRes.filter(r => bottomHalf.has(r.candidateId) && r.score > 0 && isOptionBasedQuestionType(q.type)).length;
         discriminationIndex = Math.round(
           ((topCorrect / topHalf.size) - (bottomCorrect / bottomHalf.size)) * 100
         ) / 100;
@@ -274,7 +274,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       : difficultyScore < 70 ? "Hard"
       : "Very Hard";
 
-    const scorableQs = questionAnalytics.filter(q => q.type === "mcq" || q.type === "image");
+    const scorableQs = questionAnalytics.filter(q => isOptionBasedQuestionType(q.type));
     const easiest = scorableQs.length
       ? scorableQs.reduce((a, b) => a.pValue > b.pValue ? a : b)
       : null;

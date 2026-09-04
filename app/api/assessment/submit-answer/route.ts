@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
 import { calculateScore } from "@/lib/scoring";
 import { getSettings } from "@/lib/get-settings";
-import { AnswerPayload, QuestionType } from "@/types";
+import { AnswerPayload, QuestionType, isOptionBasedQuestionType } from "@/types";
 import { translateDisplayIndexToCanonical } from "@/lib/shuffle";
 
 function getBearerToken(req: NextRequest): string | null {
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
   // before persisting, so analytics stay meaningful regardless of shuffling.
   const shouldUnshuffle =
     question.campaign.antiCheatShuffleAnswers &&
-    (question.type === "mcq" || question.type === "image");
+    isOptionBasedQuestionType(question.type);
 
   const canonicalValue =
     shouldUnshuffle && typeof value === "number"

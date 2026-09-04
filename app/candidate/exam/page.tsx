@@ -581,7 +581,9 @@ export default function ExamPage() {
           </div>
         </div>
 
-        {(question.type === QuestionType.MCQ || question.type === QuestionType.IMAGE) && (
+        {(question.type === QuestionType.MCQ ||
+          question.type === QuestionType.IMAGE ||
+          question.type === QuestionType.TRUE_FALSE) && (
           <McqCard question={question} branding={branding} onAnswer={(v) => handleAnswer(v)} />
         )}
         {question.type === QuestionType.PSYCHOMETRIC && (

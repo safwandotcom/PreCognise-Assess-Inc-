@@ -13,6 +13,23 @@ export enum QuestionType {
   IMAGE = "image",
   SHORT_ANSWER = "short_answer",
   LONG_ANSWER = "long_answer",
+  TRUE_FALSE = "true_false",
+}
+
+// Question types that carry an `options` array + `correctOption` and are
+// auto-scored right/wrong — as opposed to psychometric/rating (always full
+// points) or short/long answer (manually graded later). This is the single
+// source of truth for "does this type participate in scoring, answer-
+// shuffling, and the option-based analytics (P-value, discrimination index,
+// option frequency)" — every call site should check this instead of
+// re-listing the type set, so a future option-based type only needs to be
+// added here once.
+export function isOptionBasedQuestionType(type: string): boolean {
+  return (
+    type === QuestionType.MCQ ||
+    type === QuestionType.IMAGE ||
+    type === QuestionType.TRUE_FALSE
+  );
 }
 
 // Sanitized question shape sent to the candidate client.

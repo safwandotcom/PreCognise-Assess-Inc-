@@ -2,6 +2,7 @@
 
 import React, { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { isOptionBasedQuestionType } from "@/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -499,7 +500,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ id: string
                   const timePct = q.timeLimitSec > 0
                     ? Math.min(100, (q.avgResponseMs / (q.timeLimitSec * 1000)) * 100)
                     : 0;
-                  const isScorable = q.type === "mcq" || q.type === "image";
+                  const isScorable = isOptionBasedQuestionType(q.type);
                   return (
                     <tr key={q.id} className="hover:bg-[#F8FAFC]">
                       <td className="px-4 py-3 text-xs text-[#94A3B8] font-mono">{q.orderIndex + 1}</td>

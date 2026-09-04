@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnerId, ownedCampaign } from "@/lib/tenant";
+import { isOptionBasedQuestionType } from "@/types";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -79,14 +80,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
       responsesByCandidateId.set(r.candidateId, list);
     }
 
-    const scorable = new Set(["mcq", "image"]);
-
     const aggregated = candidates.map((c) => {
       const cResponses = responsesByCandidateId.get(c.id) ?? [];
 
       const rawScore = cResponses.reduce((sum, r) => sum + r.score, 0);
       const correctCount = cResponses.filter(
-        (r) => r.score > 0 && scorable.has(r.question.type)
+        (r) => r.score > 0 && isOptionBasedQuestionType(r.question.type)
       ).length;
       const answeredCount = cResponses.length;
       const pendingReview = cResponses.some((r) => r.needsGrading && !r.gradedAt);
@@ -97,7 +96,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
           if (
             r.answer !== null &&
             r.score === 0 &&
-            scorable.has(r.question.type)
+            isOptionBasedQuestionType(r.question.type)
           ) {
             // Wrong answer: answer !== null, score === 0
             // Verify it wasn't just unanswered (answer could be a Json value)

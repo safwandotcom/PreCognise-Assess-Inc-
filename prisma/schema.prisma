@@ -31,6 +31,7 @@ enum QuestionType {
   image
   short_answer
   long_answer
+  true_false
 }
 
 model AssessmentSettings {

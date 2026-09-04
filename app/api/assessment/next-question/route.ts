@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
 import { getSettings } from "@/lib/get-settings";
-import { PublicQuestion, QuestionType } from "@/types";
+import { PublicQuestion, QuestionType, isOptionBasedQuestionType } from "@/types";
 import { pickNextQuestion, applySeededShuffle } from "@/lib/shuffle";
 
 function getBearerToken(req: NextRequest): string | null {
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
     const rawOptions = next.options as (string | number)[];
     const shouldShuffleOptions =
         (candidate.campaign?.antiCheatShuffleAnswers ?? false) &&
-        (next.type === "mcq" || next.type === "image");
+        isOptionBasedQuestionType(next.type);
     const displayOptions = shouldShuffleOptions
         ? applySeededShuffle(rawOptions, `${candidateId}:${next.id}`)
         : rawOptions;

@@ -4,6 +4,7 @@ import { verifyToken } from "@/lib/jwt";
 import { getSettings } from "@/lib/get-settings";
 import { PublicQuestion, QuestionType, isOptionBasedQuestionType } from "@/types";
 import { pickNextQuestion, applySeededShuffle } from "@/lib/shuffle";
+import { campaignCloseAt } from "@/lib/campaign-window";
 
 function getBearerToken(req: NextRequest): string | null {
     const header = req.headers.get("authorization");
@@ -36,6 +37,9 @@ export async function GET(req: NextRequest) {
                     antiCheatShuffleQuestions: true,
                     antiCheatShuffleAnswers: true,
                     ownerId: true,
+                    scheduledAt: true,
+                    scheduledEnd: true,
+                    gracePeriodMin: true,
                 },
             },
         },
@@ -50,6 +54,13 @@ export async function GET(req: NextRequest) {
             { error: "You have been disqualified from this assessment" },
             { status: 403 }
         );
+    }
+
+    if (candidate.campaign) {
+        const closeAt = campaignCloseAt(candidate.campaign);
+        if (closeAt && new Date() > closeAt) {
+            return NextResponse.json({ error: "window_closed" }, { status: 403 });
+        }
     }
 
     // ── Geo-restriction check ────────────────────────────────────────────────

@@ -90,15 +90,25 @@ export default function ExamPage() {
     });
 
     if (res.status === 403) {
-      let reason = "Your assessment was ended for a policy violation.";
+      let data: { error?: string } = {};
       try {
-        const data = await res.json();
-        if (data.error === "geo_restricted") {
-          reason = "This assessment is not available in your region.";
-        } else {
-          reason = data.error ?? reason;
-        }
+        data = await res.json();
       } catch {}
+
+      if (data.error === "window_closed") {
+        sessionStorage.setItem("completionMessage", "This assessment's scheduled window has closed.");
+        sessionStorage.removeItem("totalQuestions");
+        disconnectSocket();
+        router.push("/candidate/result");
+        return;
+      }
+
+      let reason = "Your assessment was ended for a policy violation.";
+      if (data.error === "geo_restricted") {
+        reason = "This assessment is not available in your region.";
+      } else if (data.error) {
+        reason = data.error;
+      }
       sessionStorage.setItem("disqualifyReason", reason);
       disconnectSocket();
       router.push("/candidate/disqualified");

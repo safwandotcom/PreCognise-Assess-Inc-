@@ -6,6 +6,7 @@ import { calculateScore, isMultiSelectAnswerCorrect } from "@/lib/scoring";
 import { getSettings } from "@/lib/get-settings";
 import { AnswerPayload, QuestionType, isOptionBasedQuestionType } from "@/types";
 import { translateDisplayIndexToCanonical } from "@/lib/shuffle";
+import { campaignCloseAt } from "@/lib/campaign-window";
 
 function getBearerToken(req: NextRequest): string | null {
   const header = req.headers.get("authorization");
@@ -28,7 +29,10 @@ export async function POST(req: NextRequest) {
 
   const candidate = await prisma.candidate.findUnique({
     where: { id: candidateId },
-    select: { status: true },
+    select: {
+      status: true,
+      campaign: { select: { scheduledAt: true, scheduledEnd: true, gracePeriodMin: true } },
+    },
   });
   if (!candidate) {
     return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
@@ -38,6 +42,10 @@ export async function POST(req: NextRequest) {
       { error: "You have been disqualified from this assessment" },
       { status: 403 }
     );
+  }
+  const closeAt = campaignCloseAt(candidate.campaign);
+  if (closeAt && new Date() > closeAt) {
+    return NextResponse.json({ error: "window_closed" }, { status: 403 });
   }
 
   const body = (await req.json()) as Partial<AnswerPayload>;

@@ -9,11 +9,12 @@ import { rowsFromCells, parseCsvToCells, parseXlsxToCells } from "@/lib/candidat
 
 interface Question {
   id: string;
-  type: "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer" | "true_false";
+  type: "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer" | "true_false" | "multi_select";
   text: string;
   imageUrl: string | null;
   options: unknown;
   correctOption: number | null;
+  correctOptions: number[] | null;
   wordLimit: number | null;
   timeLimitSec: number;
   basePoints: number;
@@ -1043,6 +1044,7 @@ function OverviewTab({
 const QUESTION_TYPES = [
   { value: "mcq", label: "Multiple choice (MCQ)" },
   { value: "true_false", label: "True / False" },
+  { value: "multi_select", label: "Multi-select MCQ" },
   { value: "psychometric", label: "Psychometric" },
   { value: "rating", label: "Rating" },
   { value: "image", label: "Multiple choice with image (Image MCQ)" },
@@ -1051,6 +1053,8 @@ const QUESTION_TYPES = [
 ] as const;
 
 const TRUE_FALSE_OPTIONS = ["True", "False"];
+const MIN_MULTI_SELECT_OPTIONS = 2;
+const MAX_MULTI_SELECT_OPTIONS = 8;
 
 // Suggested defaults shown when the admin picks one of these types —
 // editable, not enforced. Short answers default to a tight limit; long
@@ -1079,7 +1083,7 @@ function QuestionsTab({
 
   // Add form state
   const [qType, setQType] = useState<
-    "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer" | "true_false"
+    "mcq" | "psychometric" | "rating" | "image" | "short_answer" | "long_answer" | "true_false" | "multi_select"
   >("mcq");
   const [qText, setQText] = useState("");
   const [qImageUrl, setQImageUrl] = useState("");
@@ -1092,9 +1096,13 @@ function QuestionsTab({
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [imageUploading, setImageUploading] = useState(false);
+  // Indices marked correct for a multi-select question — separate from
+  // qCorrect (a single index) since multi-select needs a set, not one value.
+  const [qMultiCorrect, setQMultiCorrect] = useState<number[]>([]);
 
-  const needsOptions = qType === "mcq" || qType === "image" || qType === "true_false";
+  const needsOptions = qType === "mcq" || qType === "image" || qType === "true_false" || qType === "multi_select";
   const isTrueFalse = qType === "true_false";
+  const isMultiSelect = qType === "multi_select";
   const needsWordLimit = qType === "short_answer" || qType === "long_answer";
 
   function setOption(index: number, value: string) {
@@ -1103,6 +1111,29 @@ function QuestionsTab({
       next[index] = value;
       return next;
     });
+  }
+
+  function addOption() {
+    setQOptions((prev) => (prev.length >= MAX_MULTI_SELECT_OPTIONS ? prev : [...prev, ""]));
+  }
+
+  function removeOption(index: number) {
+    setQOptions((prev) =>
+      prev.length <= MIN_MULTI_SELECT_OPTIONS ? prev : prev.filter((_, i) => i !== index)
+    );
+    // Keep qMultiCorrect aligned with the shrunk array — drop the removed
+    // index and shift every index after it down by one.
+    setQMultiCorrect((prev) =>
+      prev.filter((i) => i !== index).map((i) => (i > index ? i - 1 : i))
+    );
+  }
+
+  function toggleMultiCorrect(index: number) {
+    setQMultiCorrect((prev) =>
+      prev.includes(index)
+        ? prev.filter((i) => i !== index)
+        : [...prev, index].sort((a, b) => a - b)
+    );
   }
 
   function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1125,6 +1156,14 @@ function QuestionsTab({
       setAddError("All options must be filled in.");
       return;
     }
+    if (isMultiSelect && (qOptions.length < MIN_MULTI_SELECT_OPTIONS || qOptions.length > MAX_MULTI_SELECT_OPTIONS)) {
+      setAddError(`Multi-select questions must have between ${MIN_MULTI_SELECT_OPTIONS} and ${MAX_MULTI_SELECT_OPTIONS} options.`);
+      return;
+    }
+    if (isMultiSelect && qMultiCorrect.length === 0) {
+      setAddError("Mark at least one option as correct.");
+      return;
+    }
     if (needsWordLimit && (!qWordLimit.trim() || Number(qWordLimit) <= 0)) {
       setAddError("Word limit must be a positive number.");
       return;
@@ -1139,7 +1178,8 @@ function QuestionsTab({
           text: qText.trim(),
           imageUrl: qImageUrl.trim() || null,
           options: needsOptions ? qOptions : [],
-          correctOption: needsOptions ? qCorrect : null,
+          correctOption: needsOptions && !isMultiSelect ? qCorrect : null,
+          correctOptions: isMultiSelect ? qMultiCorrect : [],
           wordLimit: needsWordLimit ? Number(qWordLimit) : null,
           timeLimitSec: Number(qTime),
           basePoints: Number(qPoints),
@@ -1157,6 +1197,7 @@ function QuestionsTab({
       setQImageUrl("");
       setQOptions(isTrueFalse ? TRUE_FALSE_OPTIONS : ["", "", "", ""]);
       setQCorrect(0);
+      setQMultiCorrect([]);
       setQWordLimit("50");
       setQTime("60");
       setQPoints("10");
@@ -1297,6 +1338,11 @@ function QuestionsTab({
                     <span className="rounded bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#6366F1]">
                       {q.type}
                     </span>
+                    {q.type === "multi_select" && Array.isArray(q.options) && (
+                      <span className="text-xs text-[#94A3B8]">
+                        {q.options.length} options, {(q.correctOptions ?? []).length} correct
+                      </span>
+                    )}
                     {negativeMarking && (
                       <span className="rounded bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                         Negative marking
@@ -1379,21 +1425,32 @@ function QuestionsTab({
                     key={t.value}
                     type="button"
                     onClick={() => {
-                      setQType(t.value as typeof qType);
+                      const nextType = t.value as typeof qType;
+                      const prevType = qType;
+                      setQType(nextType);
                       if (t.value in DEFAULT_WORD_LIMIT) {
                         setQWordLimit(DEFAULT_WORD_LIMIT[t.value]);
                       }
-                      // True/False has a fixed two-option shape, not the
-                      // usual free-text list — set it going in, and restore
-                      // four blank slots coming back out so a leftover
-                      // ["True","False"] pair doesn't get submitted as an
-                      // MCQ/Image question's options.
-                      if (t.value === "true_false") {
+                      // Every option-bearing type keeps its own options shape
+                      // (True/False: fixed 2; MCQ/Image: fixed 4;
+                      // Multi-select: variable 2-8) — reset qOptions when
+                      // crossing between shapes so a leftover array from one
+                      // type's editor is never submitted under another type.
+                      if (nextType === "true_false") {
                         setQOptions(TRUE_FALSE_OPTIONS);
                         setQCorrect(0);
-                      } else if (isTrueFalse && (t.value === "mcq" || t.value === "image")) {
+                      } else if (
+                        (nextType === "mcq" || nextType === "image") &&
+                        prevType !== "mcq" && prevType !== "image"
+                      ) {
                         setQOptions(["", "", "", ""]);
                         setQCorrect(0);
+                      } else if (nextType === "multi_select" && prevType !== "multi_select") {
+                        if (prevType === "true_false") setQOptions(["", "", "", ""]);
+                        setQMultiCorrect([]);
+                      }
+                      if (prevType === "multi_select" && nextType !== "multi_select") {
+                        setQMultiCorrect([]);
                       }
                     }}
                     className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
@@ -1516,9 +1573,9 @@ function QuestionsTab({
               </div>
             )}
 
-            {/* Options — MCQ and Image MCQ (True/False's options are fixed,
-                not editable — its correct-answer picker below is enough) */}
-            {needsOptions && !isTrueFalse && (
+            {/* Options — MCQ and Image MCQ (True/False's options are fixed;
+                Multi-select gets its own variable-length editor below) */}
+            {needsOptions && !isTrueFalse && !isMultiSelect && (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
                   Options
@@ -1542,9 +1599,61 @@ function QuestionsTab({
               </div>
             )}
 
-            {/* Correct answer selector — MCQ/Image use lettered buttons;
-                True/False uses its own two-button variant below. */}
-            {needsOptions && !isTrueFalse && (
+            {/* Options — Multi-select MCQ (variable length, 2-8, with
+                add/remove — every other option-bearing type has a fixed
+                shape and doesn't need this) */}
+            {isMultiSelect && (
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="block text-xs font-medium text-[#0F172A]">
+                    Options ({qOptions.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addOption}
+                    disabled={qOptions.length >= MAX_MULTI_SELECT_OPTIONS}
+                    className="text-xs font-semibold text-[#6366F1] hover:text-[#4F46E5] disabled:opacity-40"
+                  >
+                    + Add option
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {qOptions.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#E2E8F0] bg-[#F1F5F9] text-xs font-semibold text-[#64748B]">
+                        {String.fromCharCode(65 + i)}
+                      </span>
+                      <input
+                        required
+                        value={opt}
+                        onChange={(e) => setOption(i, e.target.value)}
+                        placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                        className="flex-1 rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] placeholder-[#94A3B8] outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeOption(i)}
+                        disabled={qOptions.length <= MIN_MULTI_SELECT_OPTIONS}
+                        className="shrink-0 rounded-lg p-1.5 text-red-400 hover:bg-red-50 disabled:opacity-30"
+                        title="Remove option"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-[#64748B]">
+                  Between {MIN_MULTI_SELECT_OPTIONS} and {MAX_MULTI_SELECT_OPTIONS} options.
+                </p>
+              </div>
+            )}
+
+            {/* Correct answer selector — MCQ/Image use lettered single-select
+                buttons; True/False and Multi-select use their own variants
+                below. */}
+            {needsOptions && !isTrueFalse && !isMultiSelect && (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
                   Correct answer
@@ -1565,6 +1674,35 @@ function QuestionsTab({
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {isMultiSelect && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                  Correct answers (select all that apply)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {qOptions.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => toggleMultiCorrect(i)}
+                      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                        qMultiCorrect.includes(i)
+                          ? "bg-[#6366F1] text-white"
+                          : "border border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1]"
+                      }`}
+                    >
+                      {String.fromCharCode(65 + i)}
+                    </button>
+                  ))}
+                </div>
+                {qMultiCorrect.length > 0 && (
+                  <p className="mt-1.5 text-xs text-[#64748B]">
+                    {qMultiCorrect.length} of {qOptions.length} marked correct.
+                  </p>
+                )}
               </div>
             )}
 

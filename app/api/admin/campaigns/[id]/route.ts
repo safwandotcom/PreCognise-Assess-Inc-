@@ -36,9 +36,25 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const existing = await ownedCampaign(id, ownerId);
     if (!existing) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     const body = await req.json();
-    const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor, gracePeriodMin, disqualifyOnDuplicateLogin, antiCheatTabSwitch, tabSwitchLimit, antiCheatFullscreen, antiCheatCopyPaste, antiCheatRightClick, antiCheatScreenshot, antiCheatDevTools, antiCheatCamera, antiCheatMultiDisplay, antiCheatShuffleQuestions, antiCheatShuffleAnswers, completionMessage, instructionsHtml } = body;
+    const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor, gracePeriodMin, disqualifyOnDuplicateLogin, antiCheatTabSwitch, tabSwitchLimit, antiCheatFullscreen, antiCheatCopyPaste, antiCheatRightClick, antiCheatScreenshot, antiCheatDevTools, antiCheatCamera, antiCheatMultiDisplay, antiCheatShuffleQuestions, antiCheatShuffleAnswers, completionMessage, instructionsHtml, scheduledEnd, openJoinEnabled } = body;
     if (name !== undefined && !name.trim()) {
       return NextResponse.json({ error: "Campaign name cannot be empty" }, { status: 400 });
+    }
+
+    // Validate the window: scheduledEnd (if present after this update) must
+    // be strictly after scheduledAt, and open-join campaigns must have a
+    // scheduledEnd — there's no other sensible way to bound them.
+    const effectiveScheduledAt =
+      scheduledAt !== undefined ? (scheduledAt ? new Date(scheduledAt) : null) : existing.scheduledAt;
+    const effectiveScheduledEnd =
+      scheduledEnd !== undefined ? (scheduledEnd ? new Date(scheduledEnd) : null) : existing.scheduledEnd;
+    if (effectiveScheduledEnd && effectiveScheduledAt && effectiveScheduledEnd <= effectiveScheduledAt) {
+      return NextResponse.json({ error: "End time must be after the scheduled start time" }, { status: 400 });
+    }
+    const effectiveOpenJoinEnabled =
+      openJoinEnabled !== undefined ? openJoinEnabled : existing.openJoinEnabled;
+    if (effectiveOpenJoinEnabled && !effectiveScheduledEnd) {
+      return NextResponse.json({ error: "Open-join campaigns need an end time" }, { status: 400 });
     }
     // Regenerate the join slug only when a DRAFT campaign is renamed — never for a
     // live/ended campaign, whose join link may already have been distributed.
@@ -63,6 +79,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         ...(logoUrl !== undefined && { logoUrl: logoUrl?.trim() || null }),
         ...(bgColor !== undefined && { bgColor: bgColor?.trim() || "#F8FAFC" }),
         ...(gracePeriodMin !== undefined && { gracePeriodMin: Number(gracePeriodMin) }),
+        ...(scheduledEnd !== undefined && { scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null }),
+        ...(openJoinEnabled !== undefined && { openJoinEnabled }),
         ...(disqualifyOnDuplicateLogin !== undefined && { disqualifyOnDuplicateLogin }),
         ...(antiCheatTabSwitch !== undefined && { antiCheatTabSwitch }),
         ...(tabSwitchLimit !== undefined && { tabSwitchLimit: Number(tabSwitchLimit) }),

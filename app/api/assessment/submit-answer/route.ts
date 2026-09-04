@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
-import { calculateScore } from "@/lib/scoring";
+import { calculateScore, isMultiSelectAnswerCorrect } from "@/lib/scoring";
 import { getSettings } from "@/lib/get-settings";
 import { AnswerPayload, QuestionType, isOptionBasedQuestionType } from "@/types";
 import { translateDisplayIndexToCanonical } from "@/lib/shuffle";
@@ -87,24 +87,32 @@ export async function POST(req: NextRequest) {
   const settings = await getSettings(question.campaign.ownerId ?? "");
   const effectiveSpeedBonusMax = settings.speedBonusEnabled ? question.speedBonusMax : 0;
 
-  // If answer-shuffling is on for this campaign, `value` is the index the
-  // candidate clicked in *their* shuffled view — translate it back to the
-  // canonical index stored in `question.correctOption` before scoring, and
-  // before persisting, so analytics stay meaningful regardless of shuffling.
+  // If answer-shuffling is on for this campaign, `value` is the index (or,
+  // for multi_select, indices) the candidate clicked in *their* shuffled
+  // view — translate back to canonical index(es) before scoring and before
+  // persisting, so analytics stay meaningful regardless of shuffling.
   const shouldUnshuffle =
     question.campaign.antiCheatShuffleAnswers &&
     isOptionBasedQuestionType(question.type);
 
-  const canonicalValue =
-    shouldUnshuffle && typeof value === "number"
-      ? translateDisplayIndexToCanonical(
-          value,
-          (question.options as (string | number)[]).length,
-          `${candidateId}:${questionId}`,
-        )
-      : value;
+  const optionCount = (question.options as (string | number)[]).length;
+  const shuffleSeed = `${candidateId}:${questionId}`;
 
-  const isCorrect = question.correctOption !== null && canonicalValue === question.correctOption;
+  const canonicalValue = !shouldUnshuffle
+    ? value
+    : Array.isArray(value)
+      ? value.map((displayIndex) =>
+          translateDisplayIndexToCanonical(displayIndex, optionCount, shuffleSeed)
+        )
+      : typeof value === "number"
+        ? translateDisplayIndexToCanonical(value, optionCount, shuffleSeed)
+        : value;
+
+  const isCorrect =
+    question.type === "multi_select"
+      ? Array.isArray(canonicalValue) &&
+        isMultiSelectAnswerCorrect(canonicalValue, question.correctOptions)
+      : question.correctOption !== null && canonicalValue === question.correctOption;
   const scoreEarned = calculateScore(
     isCorrect,
     question.type as unknown as QuestionType,

@@ -10,6 +10,24 @@ import { QuestionType } from "@/types";
  *     correct -> basePoints + speed bonus (faster = more bonus, capped at speedBonusMax)
  *     wrong   -> 0
  */
+/**
+ * Exact-set equality check for multi-select answers — order-independent.
+ * The candidate's selected set must match the correct set precisely (same
+ * length, same members) to count as correct; there is no partial credit.
+ * Used by submit-answer to compute isCorrect for QuestionType.MULTI_SELECT,
+ * which stores its answer key as an array (correctOptions) rather than the
+ * single correctOption index every other option-based type uses.
+ */
+export function isMultiSelectAnswerCorrect(
+  selected: number[],
+  correctOptions: number[]
+): boolean {
+  if (selected.length !== correctOptions.length) return false;
+  const sortedSelected = [...selected].sort((a, b) => a - b);
+  const sortedCorrect = [...correctOptions].sort((a, b) => a - b);
+  return sortedSelected.every((v, i) => v === sortedCorrect[i]);
+}
+
 export function calculateScore(
   isCorrect: boolean,
   questionType: QuestionType,

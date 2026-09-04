@@ -56,7 +56,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (effectiveOpenJoinEnabled && !effectiveScheduledEnd) {
       return NextResponse.json({ error: "Open-join campaigns need an end time" }, { status: 400 });
     }
-    if (effectiveOpenJoinEnabled) {
+    // Only the transition into open-join needs this guard — once a campaign is
+    // open-join-enabled, its candidates are all self-registrations (the two
+    // candidate-creation routes already refuse to add anyone else), so every
+    // later PATCH to the same already-enabled campaign must not re-trigger it.
+    if (effectiveOpenJoinEnabled && !existing.openJoinEnabled) {
       const candidateCount = await prisma.candidate.count({ where: { campaignId: id } });
       if (candidateCount > 0) {
         return NextResponse.json(

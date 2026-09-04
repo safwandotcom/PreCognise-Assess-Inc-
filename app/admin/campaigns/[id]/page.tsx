@@ -261,6 +261,11 @@ function OverviewTab({
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [showRestartForm, setShowRestartForm] = useState(false);
+  const [restartScheduledEnd, setRestartScheduledEnd] = useState("");
+  const [restarting, setRestarting] = useState(false);
+  const [restartError, setRestartError] = useState<string | null>(null);
+  const [duplicating, setDuplicating] = useState(false);
 
   // Sync form when campaign changes (e.g. after reload)
   useEffect(() => {
@@ -363,6 +368,47 @@ function OverviewTab({
     window.location.href = "/admin/campaigns";
   }
 
+  async function handleRestart() {
+    setRestarting(true);
+    setRestartError(null);
+    try {
+      const res = await fetch(`/api/admin/campaigns/${campaign.id}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          delayMinutes: 0,
+          newScheduledEnd: restartScheduledEnd || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        setRestartError(d.error ?? "We couldn't restart this campaign. Please try again.");
+        return;
+      }
+      window.location.href = "/admin/session";
+    } finally {
+      setRestarting(false);
+    }
+  }
+
+  async function handleDuplicate() {
+    setDuplicating(true);
+    try {
+      const res = await fetch(`/api/admin/campaigns/${campaign.id}/duplicate`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        alert(d.error ?? "We couldn't duplicate this campaign. Please try again.");
+        return;
+      }
+      const { campaign: newCampaign } = await res.json();
+      window.location.href = `/admin/campaigns/${newCampaign.id}`;
+    } finally {
+      setDuplicating(false);
+    }
+  }
+
   const joinLink =
     typeof window !== "undefined"
       ? `${window.location.origin}/join/${campaign.joinToken}`
@@ -429,6 +475,13 @@ function OverviewTab({
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowRestartForm((v) => !v)}
+                className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+              >
+                Restart
+              </button>
               <Link
                 href={`/admin/campaigns/${campaign.id}/analytics`}
                 className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
@@ -443,6 +496,52 @@ function OverviewTab({
               </Link>
             </div>
           </div>
+          {showRestartForm && (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
+              <p className="text-sm text-[#0F172A]">
+                Reopens this campaign — existing candidates and their results
+                are untouched. New candidates can join again until the new end
+                time below.
+              </p>
+              <div className="mt-3">
+                <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                  New end time{campaign.scheduledEnd ? "" : " (optional)"}
+                </label>
+                <input
+                  type="datetime-local"
+                  value={restartScheduledEnd}
+                  onChange={(e) => setRestartScheduledEnd(e.target.value)}
+                  className="w-full max-w-xs rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#6366F1]"
+                />
+                {campaign.scheduledEnd && (
+                  <p className="mt-1 text-xs text-[#64748B]">
+                    This campaign had a scheduled end time — set a new one so
+                    it doesn&apos;t close again immediately.
+                  </p>
+                )}
+              </div>
+              {restartError && (
+                <p className="mt-2 text-sm text-red-600">{restartError}</p>
+              )}
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleRestart}
+                  disabled={restarting}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                >
+                  {restarting ? "Restarting…" : "Restart now"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRestartForm(false)}
+                  className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#64748B] hover:bg-[#F1F5F9]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -1087,6 +1186,23 @@ function OverviewTab({
             </button>
           </div>
         </form>
+      </section>
+
+      {/* Duplicate */}
+      <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-[#0F172A]">Duplicate campaign</h2>
+        <p className="mb-3 text-sm text-[#64748B]">
+          Creates a new draft campaign with the same questions and settings —
+          no candidates, no schedule, a fresh join link.
+        </p>
+        <button
+          type="button"
+          onClick={handleDuplicate}
+          disabled={duplicating}
+          className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-[#F8FAFC] disabled:opacity-60"
+        >
+          {duplicating ? "Duplicating…" : "Duplicate"}
+        </button>
       </section>
 
       {/* Danger zone */}

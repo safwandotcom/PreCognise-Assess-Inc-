@@ -60,21 +60,35 @@ schema and in their existing fallback behavior — see below.
 
 ### How the window close is determined
 
+Two related but distinct questions, both answered by `lib/campaign-window.ts`:
+"can a *new* candidate still join" (`campaignLastEntryAt`) and "must an
+*in-progress* exam be force-ended now" (`campaignCloseAt`). They coincide
+once `scheduledEnd` is set, but diverge for legacy campaigns — see the
+correction in "Hard cutoff for in-progress exams" below; this section
+states the corrected rule directly.
+
 For **any** campaign (invite-only or open-join):
 
-- **`scheduledEnd` is set:** this is the authoritative close time.
-  `gracePeriodMin` is ignored entirely. The last moment a candidate may
-  join is computed, not stored: `lastEntryAt = scheduledEnd - durationSec`
-  (both are timestamps/seconds already on the campaign; `durationSec` is
-  the existing auto-recomputed sum of question `timeLimitSec`, described
+- **`scheduledEnd` is set:** it is both the entry cutoff and the hard
+  close. The last moment a candidate may join is computed, not stored:
+  `lastEntryAt = scheduledEnd - durationSec` (`durationSec` is the
+  existing auto-recomputed sum of question `timeLimitSec`, described
   below). Because it's computed at check time rather than stored, editing
   questions after `scheduledEnd` is set automatically moves `lastEntryAt`
   — if the exam gets longer, the cutoff moves earlier; shorter, it moves
-  later. This is the mechanism your 43-minute/9pm/8:13pm example describes.
-- **`scheduledEnd` is not set (`null`, the default):** exactly today's
-  behavior — `gracePeriodMin` minutes after `scheduledAt` is the close
-  time, with `gracePeriodMin === 0` meaning "no cutoff" (existing
-  `JoinGate.tsx` semantics, unchanged).
+  later. This is the mechanism your 43-minute/9pm/8:17pm example describes
+  (9:00pm − 43min = 8:17pm). Any exam still in progress is force-ended
+  exactly at `scheduledEnd`, regardless of how early the candidate joined.
+- **`scheduledEnd` is not set (`null`, the default):** the entry cutoff is
+  exactly today's pre-existing behavior — `gracePeriodMin` minutes after
+  `startedAt` (when the campaign actually went live, not `scheduledAt`,
+  which may differ if it was started manually or late), with
+  `gracePeriodMin === 0` meaning "no cutoff" (existing `JoinGate.tsx`
+  semantics, unchanged). There is **no hard close** for in-progress exams
+  in this legacy model — `gracePeriodMin` only ever gated new entry, never
+  exam duration, and must not start doing so now. This is what "existing
+  invite-only campaigns are completely unaffected" (Goals, above) means in
+  practice.
 
 `durationSec` itself is still **not** an input to anything here beyond this
 one derived subtraction — it remains owned entirely by the question editor
@@ -102,12 +116,13 @@ is not otherwise touched by this feature.
 
 The DRAFT / SCHEDULED / ENDED states are unchanged. The LIVE/PAUSED state's
 entry-window check gains a branch: `JoinPage` now also selects
-`openJoinEnabled`, `scheduledEnd`, and `durationSec` from the campaign and
-passes them to `JoinGate`, which computes the close time per the rule
-above (`scheduledEnd` if set, else today's `scheduledAt + gracePeriodMin`)
-instead of always using `gracePeriodMin`. The rendered UI is the same
-either way — "Entry closes in [countdown]" / "Entry period has closed" —
-only the time it counts down to changes.
+`openJoinEnabled`, `scheduledEnd`, `durationSec`, and (still, as before)
+`startedAt` from the campaign and passes them to `JoinGate`, which computes
+the entry cutoff via `campaignLastEntryAt` per the rule above (`scheduledEnd`
+if set, else today's `startedAt + gracePeriodMin`) instead of inlining the
+grace-period math itself. The rendered UI is the same either way — "Entry
+closes in [countdown]" / "Entry period has closed" — only the time it
+counts down to changes.
 
 `JoinGate`'s "Join Now" button routes to:
 
@@ -143,11 +158,11 @@ When `body.mode === "open"`:
    the UI shouldn't reach here otherwise).
 4. Reject if the campaign is not currently within its window:
    `campaign.status` must be `LIVE` or `PAUSED`, **and** `now` must be
-   before the close time computed per the Data Model rule above
-   (`scheduledEnd - durationSec` if `scheduledEnd` is set, else
-   `scheduledAt + gracePeriodMin`). This is the same condition `JoinGate`
-   already renders client-side as "Entry period has closed" — the API
-   enforces it too, so a direct POST after the window can't bypass the UI.
+   before `campaignLastEntryAt(campaign)` (`scheduledEnd - durationSec` if
+   `scheduledEnd` is set, else `startedAt + gracePeriodMin`). This is the
+   same condition `JoinGate` already renders client-side as "Entry period
+   has closed" — the API enforces it too, so a direct POST after the
+   window can't bypass the UI.
    (This same check does not currently exist for the invite-only branch
    either — a pre-existing gap, now closed as part of this feature since
    the close-time computation is shared code, not duplicated per branch.)
@@ -189,45 +204,67 @@ like any other.
 ## Hard cutoff for in-progress exams
 
 Today, nothing stops `submit-answer` or `next-question` from succeeding
-after a campaign's window has closed — only the login route (and now, per
-above, only weakly) gates entry. This is the concrete fix for "runs only
-during those hours strictly," and it's where `scheduledEnd` (when set)
-matters most: the hard cutoff is `scheduledEnd` itself, not the
-`lastEntryAt` used for gating new joins — a candidate who legitimately
-joined before `lastEntryAt` still gets force-ended at `scheduledEnd`,
-same as everyone else.
+after a campaign's window has closed — only the login route gates entry.
+This is the concrete fix for "runs only during those hours strictly," and
+it applies **only when `scheduledEnd` is set** — see the correction below
+for why a legacy campaign must not get a hard cutoff at all.
 
-A shared helper (e.g. `lib/campaign-window.ts`) centralizes this
-computation so it isn't duplicated across the login route, `submit-answer`,
-`next-question`, and `JoinGate`'s server-passed props:
+**Correction (post-implementation-review):** an earlier version of this
+section had `campaignCloseAt` fall back to `scheduledAt + gracePeriodMin`
+for campaigns that never set `scheduledEnd`, and applied that as a hard
+cutoff to `submit-answer`/`next-question`. That was wrong: `gracePeriodMin`
+has never meant "how long the assessment runs" — pre-existing `JoinGate`
+uses it (and only it) to gate whether a *new* candidate may still click
+"Join Now," measured from `startedAt` (when the campaign actually went
+live), not `scheduledAt` (when it was scheduled to). Its default is 10
+minutes. Treating that as an exam-duration ceiling would force-end every
+invite-only candidate's exam roughly ten minutes after the campaign
+started, and would lock out entry entirely on any campaign started later
+than its `scheduledAt` (a manual "Go live" click after the scheduled time,
+cron lag, a reschedule) — a severe regression of existing behavior for
+every campaign that doesn't opt into `scheduledEnd`, which directly
+contradicts this spec's own Goals section ("existing invite-only campaigns
+are completely unaffected unless the admin explicitly sets the new
+end-time field"). The corrected rule:
 
 ```ts
-function campaignCloseAt(campaign: { scheduledAt: Date | null; scheduledEnd: Date | null; gracePeriodMin: number }): Date | null {
-  if (campaign.scheduledEnd) return campaign.scheduledEnd;
-  if (!campaign.scheduledAt) return null;
-  return new Date(campaign.scheduledAt.getTime() + campaign.gracePeriodMin * 60_000);
+function campaignCloseAt(campaign: { scheduledEnd: Date | null }): Date | null {
+  // No scheduledEnd ⇒ no hard cutoff at all — this is exactly the "legacy
+  // campaigns are unaffected" guarantee. gracePeriodMin never bounded exam
+  // duration and must not start now.
+  return campaign.scheduledEnd;
 }
 
-function campaignLastEntryAt(campaign: { scheduledAt: Date | null; scheduledEnd: Date | null; gracePeriodMin: number; durationSec: number }): Date | null {
+function campaignLastEntryAt(campaign: { scheduledEnd: Date | null; durationSec: number; startedAt: Date | null; gracePeriodMin: number }): Date | null {
   if (campaign.scheduledEnd) return new Date(campaign.scheduledEnd.getTime() - campaign.durationSec * 1000);
-  return campaignCloseAt(campaign); // no separate lastEntry concept in the legacy gracePeriodMin model
+  // Legacy entry-window rule, unchanged from pre-existing JoinGate:
+  // measured from startedAt (when the campaign actually went live), not
+  // scheduledAt, and gracePeriodMin === 0 still means "never closes."
+  if (!campaign.startedAt || campaign.gracePeriodMin === 0) return null;
+  return new Date(campaign.startedAt.getTime() + campaign.gracePeriodMin * 60_000);
 }
 ```
+
+A shared helper (`lib/campaign-window.ts`) centralizes this computation so
+it isn't duplicated across the login route, `submit-answer`,
+`next-question`, and `JoinGate`'s server-passed props.
 
 In `app/api/assessment/submit-answer/route.ts` and
 `app/api/assessment/next-question/route.ts`, after resolving the
 candidate's campaign, reject with a clear "time's up" error (`403`) when
-`now > campaignCloseAt(campaign)`. `JoinGate` and the login route use
-`campaignLastEntryAt(campaign)` for the entry-window check instead.
+`campaignCloseAt(campaign)` is non-null and `now` is past it — which, per
+the correction above, only fires for campaigns that set `scheduledEnd`.
+`JoinGate` and the login route use `campaignLastEntryAt(campaign)` for the
+entry-window check, which fires in both models (matching the pre-existing
+`JoinGate` behavior exactly when `scheduledEnd` is unset).
 
-This check is **not** gated on `openJoinEnabled` — it applies to any
-campaign with a `scheduledAt` set, open-join or invite-only alike, since the
-underlying gap (nothing enforces the window server-side once a candidate is
-past login) is identical in both modes and this is the correctness fix for
-it. Invite-only campaigns without `scheduledEnd` set keep their current
-default `gracePeriodMin` of 10 minutes, so this only changes behavior for
-campaigns that were already supposed to have closed 10+ minutes ago — not a
-behavior change for anyone inside a normal exam window today.
+This entry-window check is **not** gated on `openJoinEnabled` — the
+invite-only login route (`POST /api/auth/login`'s accessId/password
+branch) gets it too, closing the pre-existing gap where the UI blocked
+late entry but a direct API call didn't. The hard-cutoff check on
+`submit-answer`/`next-question`, by contrast, **is** effectively gated on
+`scheduledEnd` being set (via `campaignCloseAt` returning `null`
+otherwise) — it must not fire for any campaign that hasn't opted in.
 
 The candidate-facing exam page (`app/candidate/exam/page.tsx`) shows the
 resulting error as a dedicated "time's up" state rather than the generic
@@ -311,6 +348,25 @@ option-frequency charts, negative marking, and CSV/PDF export.
   cap, `nextAccessSeq` naturally exceeding it is out of scope for this
   feature (existing behavior for the invite-only path is unspecified here
   too — not introduced or worsened by this change).
+- **Correction (post-implementation-review): open-join must not be
+  enabled on a campaign that already has candidates.** As first
+  implemented, the open-join login branch treated *any* `Candidate` row
+  matching the submitted email as a returning open-join candidate and
+  logged them in with the email as the sole credential — including a row
+  an admin had CSV-imported or manually added, which normally requires a
+  real password to log into. That means enabling `openJoinEnabled` on a
+  campaign that already has candidates turns every one of their password
+  logins into an email-only login: anyone who knows a colleague's email
+  address could sit their assessment in their place. There is no existing
+  field that distinguishes an open-join-created row from an admin-added
+  one (both populate `generatedPassword`), so rather than adding one, the
+  fix is to prevent the dangerous combination from existing at all: the
+  campaign-update validation (already checking "open-join requires
+  `scheduledEnd`") gains a second precondition — `openJoinEnabled` cannot
+  be turned on (or a campaign already open-join-enabled cannot gain
+  admin-added candidates) while the campaign has any candidates. An admin
+  who wants both must choose one model for a given campaign, not mix
+  them.
 
 ## Open items for the implementation plan
 

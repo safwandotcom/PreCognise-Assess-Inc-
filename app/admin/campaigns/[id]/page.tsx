@@ -1441,7 +1441,7 @@ function QuestionsTab({
                         setQCorrect(0);
                       } else if (
                         (nextType === "mcq" || nextType === "image") &&
-                        prevType !== "mcq" && prevType !== "image"
+                        (prevType === "true_false" || prevType === "multi_select")
                       ) {
                         setQOptions(["", "", "", ""]);
                         setQCorrect(0);

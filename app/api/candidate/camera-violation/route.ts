@@ -16,7 +16,11 @@ export async function POST(req: NextRequest) {
 
     const candidate = await prisma.candidate.findUnique({
       where: { id: candidateId },
-      select: { cameraViolationCount: true },
+      select: {
+        cameraViolationCount: true,
+        disqualifyReason: true,
+        campaign: { select: { autoDisqualifyOnViolation: true } },
+      },
     });
     if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -24,16 +28,30 @@ export async function POST(req: NextRequest) {
     const exceeded = newCount >= CAMERA_VIOLATION_LIMIT;
 
     if (exceeded) {
+      const reasonLine = `Flagged: camera/microphone access denied ${CAMERA_VIOLATION_LIMIT} times.`;
+      if (candidate.campaign.autoDisqualifyOnViolation) {
+        await prisma.candidate.update({
+          where: { id: candidateId },
+          data: {
+            cameraViolationCount: newCount,
+            status: CandidateStatus.DISQUALIFIED,
+            disqualifyReason: `Disqualified: camera/microphone access denied ${CAMERA_VIOLATION_LIMIT} times.`,
+            activeToken: null,
+          },
+        });
+        return NextResponse.json({ count: newCount, limit: CAMERA_VIOLATION_LIMIT, disqualified: true });
+      }
+      // Flag-only mode: record the reason, leave status/activeToken alone.
       await prisma.candidate.update({
         where: { id: candidateId },
         data: {
           cameraViolationCount: newCount,
-          status: CandidateStatus.DISQUALIFIED,
-          disqualifyReason: `Disqualified: camera/microphone access denied ${CAMERA_VIOLATION_LIMIT} times.`,
-          activeToken: null,
+          disqualifyReason: candidate.disqualifyReason
+            ? `${candidate.disqualifyReason}\n${reasonLine}`
+            : reasonLine,
         },
       });
-      return NextResponse.json({ count: newCount, limit: CAMERA_VIOLATION_LIMIT, disqualified: true });
+      return NextResponse.json({ count: newCount, limit: CAMERA_VIOLATION_LIMIT, disqualified: false });
     }
 
     await prisma.candidate.update({

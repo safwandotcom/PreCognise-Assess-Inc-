@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const candidate = await prisma.candidate.findUnique({
       where: { id: candidateId },
-      include: { campaign: { select: { antiCheatTabSwitch: true, tabSwitchLimit: true } } },
+      include: { campaign: { select: { antiCheatTabSwitch: true, tabSwitchLimit: true, autoDisqualifyOnViolation: true } } },
     });
     if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -25,16 +25,31 @@ export async function POST(req: NextRequest) {
     const exceeded = limit > 0 && newCount > limit;
 
     if (exceeded) {
+      const reasonLine = `Flagged: exceeded tab switch limit (${limit} allowed).`;
+      if (candidate.campaign.autoDisqualifyOnViolation) {
+        await prisma.candidate.update({
+          where: { id: candidateId },
+          data: {
+            tabSwitchCount: newCount,
+            status: CandidateStatus.DISQUALIFIED,
+            disqualifyReason: `Disqualified: exceeded tab switch limit (${limit} allowed).`,
+            activeToken: null,
+          },
+        });
+        return NextResponse.json({ count: newCount, limit, disqualified: true });
+      }
+      // Flag-only mode: record the reason, leave status/activeToken alone —
+      // the candidate continues completely uninterrupted.
       await prisma.candidate.update({
         where: { id: candidateId },
         data: {
           tabSwitchCount: newCount,
-          status: CandidateStatus.DISQUALIFIED,
-          disqualifyReason: `Disqualified: exceeded tab switch limit (${limit} allowed).`,
-          activeToken: null,
+          disqualifyReason: candidate.disqualifyReason
+            ? `${candidate.disqualifyReason}\n${reasonLine}`
+            : reasonLine,
         },
       });
-      return NextResponse.json({ count: newCount, limit, disqualified: true });
+      return NextResponse.json({ count: newCount, limit, disqualified: false });
     }
 
     await prisma.candidate.update({

@@ -23,6 +23,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       disqualifyReason: true,
       tabSwitchCount: true,
       generatedPassword: true,
+      responses: { select: { score: true } },
     },
   });
   const seqOf = (accessId: string) => {
@@ -30,7 +31,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return m ? parseInt(m[1], 10) : 0;
   };
   candidates.sort((a, b) => seqOf(a.accessId) - seqOf(b.accessId));
-  return NextResponse.json({ candidates });
+  const withScore = candidates.map(({ responses, ...c }) => ({
+    ...c,
+    score: responses.reduce((sum, r) => sum + r.score, 0),
+    flagged: c.status !== "DISQUALIFIED" && !!c.disqualifyReason,
+  }));
+  return NextResponse.json({ candidates: withScore });
 }
 
 export async function POST(req: NextRequest, { params }: Params) {

@@ -32,6 +32,7 @@ enum QuestionType {
   short_answer
   long_answer
   true_false
+  multi_select
 }
 
 model AssessmentSettings {
@@ -137,8 +138,9 @@ model Question {
   text          String
   imageUrl      String?
   options       Json
-  correctOption Int?
-  wordLimit     Int?
+  correctOption  Int?
+  correctOptions Int[]   @default([])
+  wordLimit      Int?
   timeLimitSec  Int
   basePoints    Int
   speedBonusMax Int          @default(0)

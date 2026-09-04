@@ -14,6 +14,7 @@ export enum QuestionType {
   SHORT_ANSWER = "short_answer",
   LONG_ANSWER = "long_answer",
   TRUE_FALSE = "true_false",
+  MULTI_SELECT = "multi_select",
 }
 
 // Question types that carry an `options` array + `correctOption` and are
@@ -28,12 +29,14 @@ export function isOptionBasedQuestionType(type: string): boolean {
   return (
     type === QuestionType.MCQ ||
     type === QuestionType.IMAGE ||
-    type === QuestionType.TRUE_FALSE
+    type === QuestionType.TRUE_FALSE ||
+    type === QuestionType.MULTI_SELECT
   );
 }
 
 // Sanitized question shape sent to the candidate client.
-// correctOption must never appear here.
+// correctOption/correctOptions must never appear here — only the COUNT of
+// correct options for multi-select (correctCount), never which ones.
 export interface PublicQuestion {
   id: string;
   type: QuestionType;
@@ -41,6 +44,7 @@ export interface PublicQuestion {
   imageUrl: string | null;
   options: (string | number)[];
   wordLimit: number | null;
+  correctCount: number | null;
   timeLimitSec: number;
   basePoints: number;
   speedBonusMax: number;
@@ -49,11 +53,12 @@ export interface PublicQuestion {
 
 // What the candidate's client sends to submit-answer.
 // value is null when the timer expired and the question was skipped; a
-// string for short_answer/long_answer questions, a number (option index or
-// mood/rating value) for every other type.
+// string for short_answer/long_answer questions, a number[] of selected
+// display-indices for multi_select, a number (option index or mood/rating
+// value) for every other type.
 export interface AnswerPayload {
   questionId: string;
-  value: number | string | null;
+  value: number | number[] | string | null;
   responseTimeMs: number;
 }
 

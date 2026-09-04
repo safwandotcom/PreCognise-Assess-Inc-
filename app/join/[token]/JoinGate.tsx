@@ -8,6 +8,7 @@ interface Props {
   name: string;
   status: string;
   scheduledAt: string | null;
+  startedAt: string | null;
   scheduledEnd: string | null;
   gracePeriodMin: number;
   durationSec: number;
@@ -29,7 +30,7 @@ function formatCountdown(ms: number) {
   return `${pad(m)}:${pad(s)}`;
 }
 
-export default function JoinGate({ name, status, scheduledAt, scheduledEnd, gracePeriodMin, durationSec, openJoinEnabled, token }: Props) {
+export default function JoinGate({ name, status, scheduledAt, startedAt, scheduledEnd, gracePeriodMin, durationSec, openJoinEnabled, token }: Props) {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
 
@@ -108,10 +109,10 @@ export default function JoinGate({ name, status, scheduledAt, scheduledEnd, grac
   // ── LIVE or PAUSED — window entry check ───────────────────────────────────
   if (status === "LIVE" || status === "PAUSED") {
     const lastEntryAt = campaignLastEntryAt({
-      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null,
-      gracePeriodMin,
       durationSec,
+      startedAt: startedAt ? new Date(startedAt) : null,
+      gracePeriodMin,
     });
     const withinWindow = !lastEntryAt || now <= lastEntryAt.getTime();
     const entryMsLeft = lastEntryAt ? Math.max(0, lastEntryAt.getTime() - now) : 0;

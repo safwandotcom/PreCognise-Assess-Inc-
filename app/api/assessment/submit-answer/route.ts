@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     where: { id: candidateId },
     select: {
       status: true,
-      campaign: { select: { scheduledAt: true, scheduledEnd: true, gracePeriodMin: true } },
+      campaign: { select: { scheduledEnd: true } },
     },
   });
   if (!candidate) {

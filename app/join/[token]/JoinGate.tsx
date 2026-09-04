@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { campaignLastEntryAt } from "@/lib/campaign-window";
 
 interface Props {
   name: string;
   status: string;
   scheduledAt: string | null;
-  startedAt: string | null;
+  scheduledEnd: string | null;
   gracePeriodMin: number;
+  durationSec: number;
+  openJoinEnabled: boolean;
   token: string;
 }
 
@@ -26,7 +29,7 @@ function formatCountdown(ms: number) {
   return `${pad(m)}:${pad(s)}`;
 }
 
-export default function JoinGate({ name, status, scheduledAt, startedAt, gracePeriodMin, token }: Props) {
+export default function JoinGate({ name, status, scheduledAt, scheduledEnd, gracePeriodMin, durationSec, openJoinEnabled, token }: Props) {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
 
@@ -35,7 +38,9 @@ export default function JoinGate({ name, status, scheduledAt, startedAt, gracePe
     return () => clearInterval(id);
   }, []);
 
-  const loginUrl = `/candidate/login?token=${token}`;
+  const loginUrl = openJoinEnabled
+    ? `/candidate/login?token=${token}&mode=open`
+    : `/candidate/login?token=${token}`;
 
   // ── ENDED ──────────────────────────────────────────────────────────────────
   if (status === "ENDED") {
@@ -100,21 +105,24 @@ export default function JoinGate({ name, status, scheduledAt, startedAt, gracePe
     );
   }
 
-  // ── LIVE or PAUSED — grace period check ───────────────────────────────────
+  // ── LIVE or PAUSED — window entry check ───────────────────────────────────
   if (status === "LIVE" || status === "PAUSED") {
-    const gracePeriodMs = gracePeriodMin * 60 * 1000;
-    const startedMs = startedAt ? new Date(startedAt).getTime() : null;
-    const elapsed = startedMs ? now - startedMs : 0;
-    const withinGrace = gracePeriodMin === 0 || elapsed <= gracePeriodMs;
-    const graceMsLeft = startedMs ? Math.max(0, startedMs + gracePeriodMs - now) : 0;
+    const lastEntryAt = campaignLastEntryAt({
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null,
+      gracePeriodMin,
+      durationSec,
+    });
+    const withinWindow = !lastEntryAt || now <= lastEntryAt.getTime();
+    const entryMsLeft = lastEntryAt ? Math.max(0, lastEntryAt.getTime() - now) : 0;
 
-    if (!withinGrace) {
+    if (!withinWindow) {
       return (
         <Shell name={name}>
           <StatusIcon type="late" />
           <h2 className="mt-4 text-base font-semibold text-[#0F172A]">Entry period has closed</h2>
           <p className="mt-1 text-sm text-[#64748B]">
-            The assessment is underway but the entry window ({gracePeriodMin} min) has passed. You can no longer join.
+            The assessment is underway but the entry window has passed. You can no longer join.
           </p>
         </Shell>
       );
@@ -130,11 +138,11 @@ export default function JoinGate({ name, status, scheduledAt, startedAt, gracePe
             : "The assessment has started. Join now before the entry window closes."}
         </p>
 
-        {gracePeriodMin > 0 && graceMsLeft > 0 && status === "LIVE" && (
+        {lastEntryAt && entryMsLeft > 0 && status === "LIVE" && (
           <div className="mt-4 text-center">
             <p className="text-xs text-[#94A3B8] mb-1">Entry closes in</p>
             <span className="inline-block rounded-xl border border-amber-200 bg-amber-50 px-5 py-2 font-mono text-lg font-bold text-amber-700">
-              {formatCountdown(graceMsLeft)}
+              {formatCountdown(entryMsLeft)}
             </span>
           </div>
         )}

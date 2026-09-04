@@ -9,8 +9,10 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
       name: true,
       status: true,
       scheduledAt: true,
-      startedAt: true,
+      scheduledEnd: true,
       gracePeriodMin: true,
+      durationSec: true,
+      openJoinEnabled: true,
     },
   });
 
@@ -30,8 +32,10 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
       name={campaign.name}
       status={campaign.status}
       scheduledAt={campaign.scheduledAt?.toISOString() ?? null}
-      startedAt={campaign.startedAt?.toISOString() ?? null}
+      scheduledEnd={campaign.scheduledEnd?.toISOString() ?? null}
       gracePeriodMin={campaign.gracePeriodMin}
+      durationSec={campaign.durationSec}
+      openJoinEnabled={campaign.openJoinEnabled}
       token={token}
     />
   );

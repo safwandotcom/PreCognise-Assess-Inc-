@@ -693,12 +693,12 @@ function OverviewTab({
           )}
 
           {/* Open join */}
-          <label className="flex items-center justify-between gap-4">
+          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
             <div>
-              <span className="block text-xs font-medium text-[#0F172A]">
+              <p className="text-sm font-medium text-[#0F172A]">
                 Open join (no pre-added candidates)
-              </span>
-              <p className="mt-0.5 text-xs text-[#64748B]">
+              </p>
+              <p className="text-xs text-[#64748B]">
                 Anyone with the join link can enter their name and email to
                 take the assessment — no candidates need to be added ahead of
                 time. Requires &quot;Assessment ends at&quot; to be set above.

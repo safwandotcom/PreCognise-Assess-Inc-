@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const existing = await ownedCampaign(id, ownerId);
     if (!existing) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     const body = await req.json();
-    const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor, gracePeriodMin, disqualifyOnDuplicateLogin, antiCheatTabSwitch, tabSwitchLimit, antiCheatFullscreen, antiCheatCopyPaste, antiCheatRightClick, antiCheatScreenshot, antiCheatDevTools, antiCheatCamera, antiCheatMultiDisplay, antiCheatShuffleQuestions, antiCheatShuffleAnswers, completionMessage, instructionsHtml, scheduledEnd, openJoinEnabled } = body;
+    const { name, scheduledAt, autoStart, maxCandidates, negativeMarking, negativeMarkingValue, logoUrl, bgColor, gracePeriodMin, disqualifyOnDuplicateLogin, autoDisqualifyOnViolation, antiCheatTabSwitch, tabSwitchLimit, antiCheatFullscreen, antiCheatCopyPaste, antiCheatRightClick, antiCheatScreenshot, antiCheatDevTools, antiCheatCamera, antiCheatMultiDisplay, antiCheatShuffleQuestions, antiCheatShuffleAnswers, completionMessage, instructionsHtml, scheduledEnd, openJoinEnabled } = body;
     if (name !== undefined && !name.trim()) {
       return NextResponse.json({ error: "Campaign name cannot be empty" }, { status: 400 });
     }
@@ -95,6 +95,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         ...(scheduledEnd !== undefined && { scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null }),
         ...(openJoinEnabled !== undefined && { openJoinEnabled }),
         ...(disqualifyOnDuplicateLogin !== undefined && { disqualifyOnDuplicateLogin }),
+        ...(autoDisqualifyOnViolation !== undefined && { autoDisqualifyOnViolation }),
         ...(antiCheatTabSwitch !== undefined && { antiCheatTabSwitch }),
         ...(tabSwitchLimit !== undefined && { tabSwitchLimit: Number(tabSwitchLimit) }),
         ...(antiCheatFullscreen !== undefined && { antiCheatFullscreen }),

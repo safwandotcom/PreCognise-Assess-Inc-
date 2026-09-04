@@ -47,6 +47,8 @@ interface Campaign {
   negativeMarking: boolean;
   negativeMarkingValue: number;
   gracePeriodMin: number;
+  scheduledEnd: string | null;
+  openJoinEnabled: boolean;
   disqualifyOnDuplicateLogin: boolean;
   antiCheatTabSwitch: boolean;
   tabSwitchLimit: number;
@@ -211,6 +213,10 @@ function OverviewTab({
     campaign.negativeMarkingValue.toString(),
   );
   const [gracePeriodMin, setGracePeriodMin] = useState(campaign.gracePeriodMin);
+  const [scheduledEnd, setScheduledEnd] = useState(
+    campaign.scheduledEnd ? campaign.scheduledEnd.slice(0, 16) : "",
+  );
+  const [openJoinEnabled, setOpenJoinEnabled] = useState(campaign.openJoinEnabled);
   const [disqualifyOnDuplicateLogin, setDisqualifyOnDuplicateLogin] = useState(
     campaign.disqualifyOnDuplicateLogin,
   );
@@ -268,6 +274,8 @@ function OverviewTab({
     setNegativeMarking(campaign.negativeMarking);
     setNegativeMarkingValue(campaign.negativeMarkingValue.toString());
     setGracePeriodMin(campaign.gracePeriodMin);
+    setScheduledEnd(campaign.scheduledEnd ? campaign.scheduledEnd.slice(0, 16) : "");
+    setOpenJoinEnabled(campaign.openJoinEnabled);
     setDisqualifyOnDuplicateLogin(campaign.disqualifyOnDuplicateLogin);
     setAntiCheatTabSwitch(campaign.antiCheatTabSwitch);
     setTabSwitchLimit(campaign.tabSwitchLimit);
@@ -301,6 +309,8 @@ function OverviewTab({
           negativeMarking,
           negativeMarkingValue: Number(negativeMarkingValue),
           gracePeriodMin,
+          scheduledEnd: scheduledEnd || null,
+          openJoinEnabled,
           disqualifyOnDuplicateLogin,
           antiCheatTabSwitch,
           tabSwitchLimit,
@@ -356,6 +366,18 @@ function OverviewTab({
     typeof window !== "undefined"
       ? `${window.location.origin}/join/${campaign.joinToken}`
       : `/join/${campaign.joinToken}`;
+
+  const lastEntryPreview = (() => {
+    if (!scheduledEnd) return null;
+    const endDate = new Date(scheduledEnd);
+    if (Number.isNaN(endDate.getTime())) return null;
+    const lastEntry = new Date(endDate.getTime() - campaign.durationSec * 1000);
+    const startDate = scheduledAt ? new Date(scheduledAt) : null;
+    return {
+      time: lastEntry.toLocaleString(),
+      tooLate: !!startDate && !Number.isNaN(startDate.getTime()) && lastEntry < startDate,
+    };
+  })();
 
   return (
     <div className="space-y-6">
@@ -489,7 +511,7 @@ function OverviewTab({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-                Scheduled start
+                {openJoinEnabled ? "Window opens at" : "Scheduled start"}
               </label>
               <input
                 type="datetime-local"
@@ -616,32 +638,88 @@ function OverviewTab({
             </button>
           </label>
 
-          {/* Candidate entry grace period */}
+          {/* Assessment ends at — the authoritative close time when set */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
-              Late join window
+              Assessment ends at
             </label>
-            <p className="mb-2 text-xs text-[#64748B]">
-              How long after the assessment starts candidates can still join.
-              Set to 0 to allow no late entry.
+            <input
+              type="datetime-local"
+              value={scheduledEnd}
+              onChange={(e) => setScheduledEnd(e.target.value)}
+              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2 text-sm text-[#0F172A] outline-none focus:border-[#6366F1]"
+            />
+            <p className="mt-1 text-xs text-[#64748B]">
+              Optional. When set, this is the authoritative close time — the
+              &quot;Late join window&quot; setting below is ignored, and any
+              exam still in progress ends at this instant.
             </p>
-            <div className="flex flex-wrap gap-2">
-              {[0, 5, 10, 15, 20, 30, 60].map((min) => (
-                <button
-                  key={min}
-                  type="button"
-                  onClick={() => setGracePeriodMin(min)}
-                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                    gracePeriodMin === min
-                      ? "border-[#6366F1] bg-[#6366F1] text-white"
-                      : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1] hover:text-[#6366F1]"
-                  }`}
-                >
-                  {min === 0 ? "No late entry" : `${min} min`}
-                </button>
-              ))}
-            </div>
+            {lastEntryPreview && (
+              <p className={`mt-1 text-xs ${lastEntryPreview.tooLate ? "text-red-600" : "text-[#64748B]"}`}>
+                {lastEntryPreview.tooLate
+                  ? "The current questions take longer than this window allows — nobody will be able to join."
+                  : `Last entry allowed: ${lastEntryPreview.time} (assessment takes ~${Math.round(campaign.durationSec / 60)} min)`}
+              </p>
+            )}
           </div>
+
+          {/* Candidate entry grace period — ignored once "Assessment ends at" is set */}
+          {!scheduledEnd && (
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">
+                Late join window
+              </label>
+              <p className="mb-2 text-xs text-[#64748B]">
+                How long after the assessment starts candidates can still join.
+                Set to 0 to allow no late entry.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[0, 5, 10, 15, 20, 30, 60].map((min) => (
+                  <button
+                    key={min}
+                    type="button"
+                    onClick={() => setGracePeriodMin(min)}
+                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                      gracePeriodMin === min
+                        ? "border-[#6366F1] bg-[#6366F1] text-white"
+                        : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#6366F1] hover:text-[#6366F1]"
+                    }`}
+                  >
+                    {min === 0 ? "No late entry" : `${min} min`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Open join */}
+          <label className="flex items-center justify-between gap-4">
+            <div>
+              <span className="block text-xs font-medium text-[#0F172A]">
+                Open join (no pre-added candidates)
+              </span>
+              <p className="mt-0.5 text-xs text-[#64748B]">
+                Anyone with the join link can enter their name and email to
+                take the assessment — no candidates need to be added ahead of
+                time. Requires &quot;Assessment ends at&quot; to be set above.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={openJoinEnabled}
+              onClick={() => setOpenJoinEnabled((v) => !v)}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                openJoinEnabled ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                  openJoinEnabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </label>
 
           {/* Completion message */}
           <div>
@@ -1847,11 +1925,13 @@ function CandidatesTab({
   campaignName,
   candidates,
   onChanged,
+  openJoinEnabled,
 }: {
   campaignId: string;
   campaignName: string;
   candidates: Candidate[];
   onChanged: () => void;
+  openJoinEnabled: boolean;
 }) {
   // Revealed passwords panel
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
@@ -2079,6 +2159,17 @@ function CandidatesTab({
 
   return (
     <div className="space-y-6">
+      {openJoinEnabled && (
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
+          <p className="text-sm text-[#64748B]">
+            Candidates join directly via the link above — nothing to add here.
+            Anyone who joins during the assessment window appears in the table
+            below.
+          </p>
+        </section>
+      )}
+      {!openJoinEnabled && (
+      <>
       {/* ── Add manually ── */}
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
         <h2 className="mb-4 text-sm font-semibold text-[#0F172A]">
@@ -2327,6 +2418,8 @@ function CandidatesTab({
             {sendMsg}
           </div>
         )}
+      </>
+      )}
       {/* ── Candidate table ── */}
       <section className="rounded-2xl border border-[#E2E8F0] bg-white overflow-hidden">
         <div className="border-b border-[#E2E8F0] px-5 py-4 flex items-center justify-between">
@@ -2675,6 +2768,7 @@ export default function CampaignManagePage({
           campaignName={campaign.name}
           candidates={candidates}
           onChanged={fetchCandidates}
+          openJoinEnabled={campaign.openJoinEnabled}
         />
       )}
     </div>

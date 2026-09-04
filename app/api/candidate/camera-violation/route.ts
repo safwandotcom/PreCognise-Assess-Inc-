@@ -46,9 +46,12 @@ export async function POST(req: NextRequest) {
         where: { id: candidateId },
         data: {
           cameraViolationCount: newCount,
-          disqualifyReason: candidate.disqualifyReason
-            ? `${candidate.disqualifyReason}\n${reasonLine}`
-            : reasonLine,
+          disqualifyReason:
+            candidate.disqualifyReason?.includes(reasonLine)
+              ? candidate.disqualifyReason
+              : candidate.disqualifyReason
+                ? `${candidate.disqualifyReason}\n${reasonLine}`
+                : reasonLine,
         },
       });
       return NextResponse.json({ count: newCount, limit: CAMERA_VIOLATION_LIMIT, disqualified: false });

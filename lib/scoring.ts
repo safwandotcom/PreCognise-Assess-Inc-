@@ -1,16 +1,6 @@
 import { QuestionType } from "@/types";
 
 /**
- * Scores a single candidate response.
- *
- * - psychometric / rating: no "correct" answer — always award full basePoints
- * - short_answer / long_answer: always 0 at submission time — graded manually
- *     later via PATCH /api/admin/responses/[id]/grade
- * - mcq / image: scored against correctOption
- *     correct -> basePoints + speed bonus (faster = more bonus, capped at speedBonusMax)
- *     wrong   -> 0
- */
-/**
  * Exact-set equality check for multi-select answers — order-independent.
  * The candidate's selected set must match the correct set precisely (same
  * length, same members) to count as correct; there is no partial credit.
@@ -28,6 +18,19 @@ export function isMultiSelectAnswerCorrect(
   return sortedSelected.every((v, i) => v === sortedCorrect[i]);
 }
 
+/**
+ * Scores a single candidate response.
+ *
+ * - psychometric / rating: no "correct" answer — always award full basePoints
+ * - short_answer / long_answer: always 0 at submission time — graded manually
+ *     later via PATCH /api/admin/responses/[id]/grade
+ * - mcq / image / true_false: scored against correctOption
+ *     correct -> basePoints + speed bonus (faster = more bonus, capped at speedBonusMax)
+ *     wrong   -> 0
+ * - multi_select: scored against correctOptions via isMultiSelectAnswerCorrect (see above)
+ *     correct -> basePoints + speed bonus (faster = more bonus, capped at speedBonusMax)
+ *     wrong   -> 0
+ */
 export function calculateScore(
   isCorrect: boolean,
   questionType: QuestionType,

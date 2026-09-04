@@ -114,8 +114,6 @@ function discriminationLabel(d: number) {
   return { label: "Problematic", color: "text-red-600" };
 }
 
-const OPTION_LETTERS = ["A", "B", "C", "D", "E"];
-
 // ── CSV export ────────────────────────────────────────────────────────────────
 
 function downloadCSV(data: AnalyticsData) {
@@ -512,9 +510,9 @@ export default function AnalyticsPage({ params }: { params: Promise<{ id: string
                               <span
                                 key={idx}
                                 className={`text-[10px] rounded px-1 py-0.5 font-medium ${isScorable && idx === (q as { correctOption?: number }).correctOption ? "bg-emerald-100 text-emerald-700" : "bg-[#F1F5F9] text-[#64748B]"}`}
-                                title={`Option ${OPTION_LETTERS[idx]}: ${freq} chose this`}
+                                title={`Option ${String.fromCharCode(65 + idx)}: ${freq} chose this`}
                               >
-                                {OPTION_LETTERS[idx]}: {freq}
+                                {String.fromCharCode(65 + idx)}: {freq}
                               </span>
                             ))}
                           </div>

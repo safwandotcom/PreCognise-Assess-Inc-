@@ -4,6 +4,7 @@ import React, { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { campaignStatusLabel, candidateStatusLabel } from "@/lib/labels";
 import { rowsFromCells, parseCsvToCells, parseXlsxToCells } from "@/lib/candidate-import";
+import { campaignLastEntryAt } from "@/lib/campaign-window";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -371,7 +372,15 @@ function OverviewTab({
     if (!scheduledEnd) return null;
     const endDate = new Date(scheduledEnd);
     if (Number.isNaN(endDate.getTime())) return null;
-    const lastEntry = new Date(endDate.getTime() - campaign.durationSec * 1000);
+    // startedAt/gracePeriodMin are irrelevant to this call — scheduledEnd is
+    // set, so campaignLastEntryAt takes the scheduledEnd branch regardless.
+    const lastEntry = campaignLastEntryAt({
+      scheduledEnd: endDate,
+      durationSec: campaign.durationSec,
+      startedAt: null,
+      gracePeriodMin: 0,
+    });
+    if (!lastEntry) return null;
     const startDate = scheduledAt ? new Date(scheduledAt) : null;
     return {
       time: lastEntry.toLocaleString(),

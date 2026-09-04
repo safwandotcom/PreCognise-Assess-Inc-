@@ -84,7 +84,7 @@ model Campaign {
   negativeMarkingValue       Float          @default(0.25)
   gracePeriodMin             Int            @default(10)
   scheduledEnd               DateTime?
-  openJoinEnabled             Boolean        @default(false)
+  openJoinEnabled            Boolean        @default(false)
   disqualifyOnDuplicateLogin Boolean        @default(true)
   antiCheatTabSwitch         Boolean        @default(false)
   tabSwitchLimit             Int            @default(3)
@@ -135,21 +135,21 @@ model Candidate {
 }
 
 model Question {
-  id            String       @id @default(cuid())
-  type          QuestionType
-  text          String
-  imageUrl      String?
-  options       Json
+  id             String       @id @default(cuid())
+  type           QuestionType
+  text           String
+  imageUrl       String?
+  options        Json
   correctOption  Int?
-  correctOptions Int[]   @default([])
+  correctOptions Int[]        @default([])
   wordLimit      Int?
-  timeLimitSec  Int
-  basePoints    Int
-  speedBonusMax Int          @default(0)
-  orderIndex    Int
-  campaignId    String
-  campaign      Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  responses     Response[]
+  timeLimitSec   Int
+  basePoints     Int
+  speedBonusMax  Int          @default(0)
+  orderIndex     Int
+  campaignId     String
+  campaign       Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  responses      Response[]
 }
 
 model Response {

@@ -14,6 +14,7 @@ export type AssessmentSettings = {
   tabSwitchLimit: number;
   antiCheatFullscreen: boolean;
   antiCheatRightClick: boolean;
+  autoDisqualifyOnViolation: boolean;
 };
 
 export const SETTINGS_DEFAULTS: AssessmentSettings = {
@@ -30,6 +31,7 @@ export const SETTINGS_DEFAULTS: AssessmentSettings = {
   tabSwitchLimit: 3,
   antiCheatFullscreen: false,
   antiCheatRightClick: true,
+  autoDisqualifyOnViolation: true,
 };
 
 export async function getSettings(ownerId: string): Promise<AssessmentSettings> {
@@ -56,5 +58,6 @@ export async function getSettings(ownerId: string): Promise<AssessmentSettings> 
     tabSwitchLimit: SETTINGS_DEFAULTS.tabSwitchLimit,
     antiCheatFullscreen: SETTINGS_DEFAULTS.antiCheatFullscreen,
     antiCheatRightClick: SETTINGS_DEFAULTS.antiCheatRightClick,
+    autoDisqualifyOnViolation: SETTINGS_DEFAULTS.autoDisqualifyOnViolation,
   };
 }

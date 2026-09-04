@@ -192,7 +192,9 @@ export default function ExamPage() {
     } catch {
       // network error — still emit socket event so admin can see it
     }
-    socket.emit(SocketEvents.TAB_SWITCH);
+    if (settingsRef.current.autoDisqualifyOnViolation) {
+      socket.emit(SocketEvents.TAB_SWITCH);
+    }
   }, [router]);
 
   // Dedicated camera/mic violation reporter — fixed at 3 attempts, independent
@@ -399,7 +401,9 @@ export default function ExamPage() {
     const onBlur = () => {
       handleTabSwitch();
     };
-    const onBeforeUnload = () => socket.emit(SocketEvents.PAGE_REFRESH);
+    const onBeforeUnload = () => {
+      if (settingsRef.current.autoDisqualifyOnViolation) socket.emit(SocketEvents.PAGE_REFRESH);
+    };
     const onContextMenu = (e: MouseEvent) => {
       if (settingsRef.current.antiCheatContextMenu) e.preventDefault();
     };
@@ -538,7 +542,7 @@ export default function ExamPage() {
             If your browser isn&apos;t showing a permission prompt, access may already be blocked —
             click the camera icon in your address bar to allow it, then try again.
           </p>
-          <p className="text-xs font-semibold text-amber-400">Attempt {cameraAttempts.count} of {cameraAttempts.limit}</p>
+          <p className="text-xs font-semibold text-amber-400">Attempt {Math.min(cameraAttempts.count, cameraAttempts.limit)} of {cameraAttempts.limit}</p>
           <button
             type="button"
             onClick={requestCamera}

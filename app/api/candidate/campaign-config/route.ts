@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
             antiCheatDevTools: true,
             antiCheatCamera: true,
             antiCheatMultiDisplay: true,
+            autoDisqualifyOnViolation: true,
           },
         },
       },

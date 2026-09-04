@@ -34,6 +34,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl }),
       ...(body.options !== undefined && { options: body.options }),
       ...(body.correctOption !== undefined && { correctOption: body.correctOption }),
+      ...(body.correctOptions !== undefined && { correctOptions: body.correctOptions }),
       ...(body.timeLimitSec !== undefined && { timeLimitSec: body.timeLimitSec }),
       ...(body.basePoints !== undefined && { basePoints: body.basePoints }),
       ...(body.speedBonusMax !== undefined && { speedBonusMax: body.speedBonusMax }),

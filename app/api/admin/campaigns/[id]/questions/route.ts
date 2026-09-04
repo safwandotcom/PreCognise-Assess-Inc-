@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const campaign = await ownedCampaign(id, ownerId);
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const body = await req.json();
-  const { type, text, imageUrl, options, correctOption, wordLimit, timeLimitSec, basePoints, speedBonusMax } = body;
+  const { type, text, imageUrl, options, correctOption, correctOptions, wordLimit, timeLimitSec, basePoints, speedBonusMax } = body;
 
   const count = await prisma.question.count({ where: { campaignId: id } });
   const question = await prisma.question.create({
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       imageUrl: imageUrl ?? null,
       options,
       correctOption: correctOption ?? null,
+      correctOptions: correctOptions ?? [],
       wordLimit: wordLimit ?? null,
       timeLimitSec,
       basePoints,

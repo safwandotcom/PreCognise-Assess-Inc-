@@ -30,11 +30,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Auto-end campaigns that have exceeded durationSec
+    // Auto-end campaigns that have exceeded durationSec, or whose scheduledEnd has passed
     const live = await prisma.campaign.findMany({
       where: { status: { in: [CampaignStatus.LIVE, CampaignStatus.PAUSED] }, startedAt: { not: null } },
     });
     const toEnd = live.filter(c => {
+      if (c.scheduledEnd && now >= c.scheduledEnd) return true;
       if (!c.startedAt || !c.durationSec) return false;
       const elapsed = (now.getTime() - c.startedAt.getTime()) / 1000;
       return elapsed >= c.durationSec;

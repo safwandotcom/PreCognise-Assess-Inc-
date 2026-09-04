@@ -12,6 +12,7 @@ import McqCard from "@/components/exam/McqCard";
 import PsychometricCard from "@/components/exam/PsychometricCard";
 import RatingCard from "@/components/exam/RatingCard";
 import TextAnswerCard from "@/components/exam/TextAnswerCard";
+import MultiSelectCard from "@/components/exam/MultiSelectCard";
 import TabSwitchModal from "@/components/exam/TabSwitchModal";
 import BroadcastToast from "@/components/exam/BroadcastToast";
 import QuestionProgress from "@/components/exam/QuestionProgress";
@@ -68,7 +69,7 @@ export default function ExamPage() {
     return () => clearTimeout(t);
   }, [screenshotFlash]);
 
-  const submitAnswer = useCallback(async (value: number | string | null) => {
+  const submitAnswer = useCallback(async (value: number | number[] | string | null) => {
     if (!question) return;
     const responseTimeMs = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
     await fetch("/api/assessment/submit-answer", {
@@ -129,7 +130,7 @@ export default function ExamPage() {
   // Double-answer prevention — submittingRef blocks concurrent calls.
   // Grace timer is also cancelled so a pending null-submit doesn't bleed into
   // the next question after a real answer arrives.
-  const handleAnswer = useCallback(async (value: number | string | null) => {
+  const handleAnswer = useCallback(async (value: number | number[] | string | null) => {
     if (submittingRef.current) return;
     if (graceTimerRef.current !== null) {
       clearTimeout(graceTimerRef.current);
@@ -585,6 +586,9 @@ export default function ExamPage() {
           question.type === QuestionType.IMAGE ||
           question.type === QuestionType.TRUE_FALSE) && (
           <McqCard question={question} branding={branding} onAnswer={(v) => handleAnswer(v)} />
+        )}
+        {question.type === QuestionType.MULTI_SELECT && (
+          <MultiSelectCard question={question} branding={branding} onAnswer={(v) => handleAnswer(v)} />
         )}
         {question.type === QuestionType.PSYCHOMETRIC && (
           <PsychometricCard question={question} branding={branding} onAnswer={(v) => handleAnswer(v)} />

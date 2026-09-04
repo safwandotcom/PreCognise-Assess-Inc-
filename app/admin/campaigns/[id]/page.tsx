@@ -33,6 +33,8 @@ interface Candidate {
   disqualifyReason: string | null;
   tabSwitchCount: number;
   generatedPassword: string | null;
+  score: number;
+  flagged: boolean;
 }
 
 interface Campaign {
@@ -52,6 +54,7 @@ interface Campaign {
   scheduledEnd: string | null;
   openJoinEnabled: boolean;
   disqualifyOnDuplicateLogin: boolean;
+  autoDisqualifyOnViolation: boolean;
   antiCheatTabSwitch: boolean;
   tabSwitchLimit: number;
   antiCheatFullscreen: boolean;
@@ -218,6 +221,9 @@ function OverviewTab({
   const [disqualifyOnDuplicateLogin, setDisqualifyOnDuplicateLogin] = useState(
     campaign.disqualifyOnDuplicateLogin,
   );
+  const [autoDisqualifyOnViolation, setAutoDisqualifyOnViolation] = useState(
+    campaign.autoDisqualifyOnViolation,
+  );
   const [antiCheatTabSwitch, setAntiCheatTabSwitch] = useState(
     campaign.antiCheatTabSwitch,
   );
@@ -278,6 +284,7 @@ function OverviewTab({
     setScheduledEnd(toDatetimeLocalValue(campaign.scheduledEnd));
     setOpenJoinEnabled(campaign.openJoinEnabled);
     setDisqualifyOnDuplicateLogin(campaign.disqualifyOnDuplicateLogin);
+    setAutoDisqualifyOnViolation(campaign.autoDisqualifyOnViolation);
     setAntiCheatTabSwitch(campaign.antiCheatTabSwitch);
     setTabSwitchLimit(campaign.tabSwitchLimit);
     setAntiCheatFullscreen(campaign.antiCheatFullscreen);
@@ -313,6 +320,7 @@ function OverviewTab({
           scheduledEnd: fromDatetimeLocalValue(scheduledEnd),
           openJoinEnabled,
           disqualifyOnDuplicateLogin,
+          autoDisqualifyOnViolation,
           antiCheatTabSwitch,
           tabSwitchLimit,
           antiCheatFullscreen,
@@ -849,6 +857,33 @@ function OverviewTab({
               Anti-cheat &amp; Security
             </p>
             <div className="flex flex-col gap-3">
+              {/* Auto-disqualify policy — governs what happens when a violation below crosses its limit */}
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A]">
+                    Auto-disqualify on violations
+                  </p>
+                  <p className="text-xs text-[#64748B]">
+                    On: exceeding the tab-switch or camera violation limit disqualifies the candidate immediately and ends their session. Off: violations are recorded and visible to you here, but the candidate&apos;s session continues uninterrupted — nothing is shown to them.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={autoDisqualifyOnViolation}
+                  onClick={() => setAutoDisqualifyOnViolation((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                    autoDisqualifyOnViolation ? "bg-[#6366F1]" : "bg-[#E2E8F0]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      autoDisqualifyOnViolation ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+
               {/* Tab switch detection */}
               <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E2E8F0] px-4 py-3">
                 <div>
@@ -2651,6 +2686,7 @@ function CandidatesTab({
                   <th className="px-5 py-3 text-left">Name</th>
                   <th className="px-5 py-3 text-left">Email</th>
                   <th className="px-5 py-3 text-left">Status</th>
+                  <th className="px-5 py-3 text-left">Score</th>
                   <th className="px-5 py-3 text-left">Password</th>
                   <th className="px-5 py-3 text-right"></th>
                 </tr>
@@ -2677,6 +2713,7 @@ function CandidatesTab({
                       <td className="px-5 py-3 text-[#64748B]">{c.email}</td>
                       <td className="px-5 py-3">
                         <span
+                          title={c.status === "DISQUALIFIED" ? c.disqualifyReason ?? undefined : undefined}
                           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                             CANDIDATE_STATUS_STYLES[c.status] ??
                             "bg-gray-100 text-gray-600"
@@ -2684,7 +2721,24 @@ function CandidatesTab({
                         >
                           {candidateStatusLabel(c.status)}
                         </span>
+                        {c.status === "DISQUALIFIED" && c.disqualifyReason && (
+                          <p className="mt-0.5 max-w-[240px] whitespace-pre-line text-xs text-[#94A3B8]">{c.disqualifyReason}</p>
+                        )}
+                        {c.flagged && (
+                          <>
+                            <span
+                              title={c.disqualifyReason ?? undefined}
+                              className="ml-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+                            >
+                              Flagged
+                            </span>
+                            {c.disqualifyReason && (
+                              <p className="mt-0.5 max-w-[240px] whitespace-pre-line text-xs text-[#94A3B8]">{c.disqualifyReason}</p>
+                            )}
+                          </>
+                        )}
                       </td>
+                      <td className="px-5 py-3 text-[#0F172A]">{c.score}</td>
                       <td className="px-5 py-3">
                         {c.generatedPassword ? (
                           <button

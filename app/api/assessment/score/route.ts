@@ -93,11 +93,16 @@ export async function GET(req: NextRequest) {
   if (campaign?.negativeMarking) {
     let penalty = 0;
     for (const r of responses) {
+      // score === 0 on an auto-scored, option-based type that wasn't
+      // skipped (answer !== null) already fully means "answered wrong" —
+      // this doesn't need to re-derive "wrong" by comparing against
+      // correctOption, which only exists for single-answer types and is
+      // always null for multi_select (whose answer key lives in
+      // correctOptions instead). Matches the same fix already applied to
+      // the admin analytics and results routes.
       if (
         isScoredType(r.question.type) &&
-        r.question.correctOption !== null &&
         r.answer !== null &&
-        r.answer !== r.question.correctOption &&
         r.score === 0
       ) {
         penalty += r.question.basePoints * (campaign.negativeMarkingValue ?? 0.25);

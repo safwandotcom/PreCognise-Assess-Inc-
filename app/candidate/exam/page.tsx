@@ -275,7 +275,24 @@ export default function ExamPage() {
         settingsRef.current = { ...SETTINGS_DEFAULTS, ...data };
         configLoadedRef.current = true;
         if (settingsRef.current.antiCheatFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
+          // requestFullscreen() can fail silently here — this runs inside an
+          // async fetch().then(), not a direct user-gesture handler, so it
+          // frequently lacks the "transient activation" the Fullscreen API
+          // requires and rejects with no error surfaced. It can also resolve
+          // and then get auto-exited a moment later by the browser itself
+          // (Chrome exits fullscreen the instant a permission prompt, e.g.
+          // the camera/mic request below, appears — a built-in anti-phishing
+          // measure). The existing fullscreenchange listener only fires on a
+          // *transition*, so if fullscreen never actually engaged in the
+          // first place, no exit event ever fires and nothing catches it.
+          // Explicitly verify the real state after the promise settles
+          // (success or failure) and surface the same blocking overlay a
+          // real exit would, instead of assuming requestFullscreen() worked.
+          document.documentElement.requestFullscreen().catch(() => {}).then(() => {
+            if (mountedRef.current && !document.fullscreenElement) {
+              setFullscreenWarning(true);
+            }
+          });
         }
         if (settingsRef.current.antiCheatCamera) {
           setCameraRequired(true);
@@ -481,8 +498,16 @@ export default function ExamPage() {
           <button
             type="button"
             onClick={() => {
-              document.documentElement.requestFullscreen().catch(() => {});
-              setFullscreenWarning(false);
+              // Only dismiss the overlay once fullscreen is confirmed active —
+              // this click is a genuine user gesture, so requestFullscreen()
+              // reliably succeeds here, but the dismissal must stay gated on
+              // the actual result rather than assumed, so a rejection (e.g.
+              // the request racing another permission prompt) leaves the
+              // candidate correctly blocked instead of silently let through.
+              document.documentElement.requestFullscreen().then(
+                () => setFullscreenWarning(false),
+                () => {}
+              );
             }}
             className="mt-2 rounded-lg bg-[#6366F1] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#4F46E5]"
           >

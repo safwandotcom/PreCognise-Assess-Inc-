@@ -26,6 +26,8 @@ interface Candidate {
   email: string;
   status: string;
   disqualifyReason: string | null;
+  score: number;
+  flagged: boolean;
 }
 
 export default function LiveSessionPage() {
@@ -238,6 +240,7 @@ export default function LiveSessionPage() {
                   <th className="pb-2 pr-4">Name</th>
                   <th className="pb-2 pr-4">Email</th>
                   <th className="pb-2 pr-4">Status</th>
+                  <th className="pb-2 pr-4">Score</th>
                   <th className="pb-2"></th>
                 </tr>
               </thead>
@@ -258,9 +261,23 @@ export default function LiveSessionPage() {
                         }`}
                       >{candidateStatusLabel(c.status)}</span>
                       {c.status === "DISQUALIFIED" && c.disqualifyReason && (
-                        <p className="mt-0.5 max-w-[220px] text-[10px] text-[#94A3B8]">{c.disqualifyReason}</p>
+                        <p className="mt-0.5 max-w-[220px] whitespace-pre-line text-[10px] text-[#94A3B8]">{c.disqualifyReason}</p>
+                      )}
+                      {c.flagged && (
+                        <>
+                          <span
+                            title={c.disqualifyReason ?? undefined}
+                            className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
+                          >
+                            Flagged
+                          </span>
+                          {c.disqualifyReason && (
+                            <p className="mt-0.5 max-w-[220px] whitespace-pre-line text-[10px] text-[#94A3B8]">{c.disqualifyReason}</p>
+                          )}
+                        </>
                       )}
                     </td>
+                    <td className="py-1.5 pr-4">{c.score}</td>
                     <td className="py-1.5">
                       <button
                         onClick={() => removeCandidate(liveCampaign.id, c.id)}

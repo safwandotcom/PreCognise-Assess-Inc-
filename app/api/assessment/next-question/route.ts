@@ -122,6 +122,9 @@ export async function GET(req: NextRequest) {
         imageUrl: next.imageUrl,
         options: displayOptions,
         wordLimit: next.wordLimit,
+        // Only the COUNT of correct options ever reaches the candidate —
+        // never which ones. null for every type except multi_select.
+        correctCount: next.type === "multi_select" ? next.correctOptions.length : null,
         timeLimitSec: next.timeLimitSec,
         basePoints: next.basePoints,
         // Respect global speed bonus toggle — zero it out if disabled

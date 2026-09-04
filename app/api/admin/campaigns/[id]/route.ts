@@ -56,6 +56,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (effectiveOpenJoinEnabled && !effectiveScheduledEnd) {
       return NextResponse.json({ error: "Open-join campaigns need an end time" }, { status: 400 });
     }
+    if (effectiveOpenJoinEnabled) {
+      const candidateCount = await prisma.candidate.count({ where: { campaignId: id } });
+      if (candidateCount > 0) {
+        return NextResponse.json(
+          { error: "Can't enable open join on a campaign that already has candidates — remove them first, or use a new campaign." },
+          { status: 400 }
+        );
+      }
+    }
     // Regenerate the join slug only when a DRAFT campaign is renamed — never for a
     // live/ended campaign, whose join link may already have been distributed.
     let joinTokenUpdate: { joinToken?: string } = {};

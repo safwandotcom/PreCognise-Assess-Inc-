@@ -2,9 +2,71 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { signToken } from "@/lib/jwt";
-import { CampaignStatus, CandidateStatus, type Candidate } from "@prisma/client";
+import { CampaignStatus, CandidateStatus, Prisma, type Candidate } from "@prisma/client";
 import { generatePassword, hashPassword, makeAccessId, nextAccessSeq } from "@/lib/campaign-utils";
 import { campaignLastEntryAt } from "@/lib/campaign-window";
+
+const MAX_OPEN_JOIN_CREATE_ATTEMPTS = 3;
+
+// Marker used to signal "campaign is at capacity" out of the retry loop
+// below without it being swallowed as a generic 500.
+class CampaignAtCapacityError extends Error {}
+
+// Concurrent open-join registrations can race: two requests (even with
+// different emails) can both read the same existingAccessIds, compute the
+// same nextAccessSeq, and collide on the @@unique([accessId, campaignId])
+// constraint at create time. Retry on that specific race — re-checking for
+// a same-email winner first (another request may have already created
+// exactly this candidate; adopt it), otherwise re-rolling the accessId with
+// a fresh read (a different-email accessId collision) — rather than
+// failing the registration outright.
+async function createOpenJoinCandidate(
+  campaign: { id: string; name: string; maxCandidates: number | null },
+  emailNorm: string,
+  trimmedName: string,
+): Promise<Candidate> {
+  for (let attempt = 1; attempt <= MAX_OPEN_JOIN_CREATE_ATTEMPTS; attempt++) {
+    const existingAccessIds = await prisma.candidate.findMany({
+      where: { campaignId: campaign.id },
+      select: { accessId: true },
+    });
+
+    if (campaign.maxCandidates && existingAccessIds.length >= campaign.maxCandidates) {
+      throw new CampaignAtCapacityError();
+    }
+
+    const nextSeq = nextAccessSeq(existingAccessIds);
+    const newAccessId = makeAccessId(campaign.name, nextSeq, campaign.maxCandidates);
+    const plainPassword = generatePassword();
+
+    try {
+      return await prisma.candidate.create({
+        data: {
+          accessId: newAccessId,
+          email: emailNorm,
+          name: trimmedName,
+          passwordHash: await hashPassword(plainPassword),
+          generatedPassword: plainPassword,
+          campaignId: campaign.id,
+          status: CandidateStatus.REGISTERED,
+        },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        // Someone else won the race — either the same email (adopt their
+        // row) or a different email that collided on accessId (retry with
+        // a freshly-read sequence).
+        const winner = await prisma.candidate.findFirst({
+          where: { email: emailNorm, campaignId: campaign.id },
+        });
+        if (winner) return winner;
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Could not register candidate after multiple attempts");
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,24 +109,14 @@ export async function POST(req: NextRequest) {
       if (existingCandidate) {
         candidate = existingCandidate;
       } else {
-        const existingAccessIds = await prisma.candidate.findMany({
-          where: { campaignId: campaign.id },
-          select: { accessId: true },
-        });
-        const nextSeq = nextAccessSeq(existingAccessIds);
-        const newAccessId = makeAccessId(campaign.name, nextSeq, campaign.maxCandidates);
-        const plainPassword = generatePassword();
-        candidate = await prisma.candidate.create({
-          data: {
-            accessId: newAccessId,
-            email: emailNorm,
-            name: name.trim(),
-            passwordHash: await hashPassword(plainPassword),
-            generatedPassword: plainPassword,
-            campaignId: campaign.id,
-            status: CandidateStatus.REGISTERED,
-          },
-        });
+        try {
+          candidate = await createOpenJoinCandidate(campaign, emailNorm, name.trim());
+        } catch (err) {
+          if (err instanceof CampaignAtCapacityError) {
+            return NextResponse.json({ error: "Campaign is at maximum candidate capacity" }, { status: 422 });
+          }
+          throw err;
+        }
       }
 
       if (candidate.status === CandidateStatus.DISQUALIFIED) {
@@ -85,6 +137,11 @@ export async function POST(req: NextRequest) {
 
       if (found.status === CandidateStatus.DISQUALIFIED) {
         return NextResponse.json({ error: "You have been disqualified from this assessment" }, { status: 403 });
+      }
+
+      const lastEntryAt = campaignLastEntryAt(campaign);
+      if (lastEntryAt && new Date() > lastEntryAt) {
+        return NextResponse.json({ error: "This assessment's entry window has closed" }, { status: 403 });
       }
 
       const valid = await bcrypt.compare(password, found.passwordHash);

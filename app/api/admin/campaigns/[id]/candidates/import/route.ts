@@ -21,6 +21,13 @@ async function handleImport(req: NextRequest, params: Params["params"]) {
   const campaign = await ownedCampaign(id, ownerId);
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  if (campaign.openJoinEnabled) {
+    return NextResponse.json(
+      { error: "Can't add candidates to an open-join campaign — candidates join directly via the link." },
+      { status: 400 }
+    );
+  }
+
   const body = await req.json();
   const rows: { name: string; email: string }[] = body.rows ?? [];
 

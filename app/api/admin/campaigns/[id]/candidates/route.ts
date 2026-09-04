@@ -23,17 +23,22 @@ export async function GET(_req: NextRequest, { params }: Params) {
       disqualifyReason: true,
       tabSwitchCount: true,
       generatedPassword: true,
-      responses: { select: { score: true } },
     },
   });
+  const scoreSums = await prisma.response.groupBy({
+    by: ["candidateId"],
+    where: { candidate: { campaignId: id } },
+    _sum: { score: true },
+  });
+  const scoreByCandidateId = new Map(scoreSums.map((s) => [s.candidateId, s._sum.score ?? 0]));
   const seqOf = (accessId: string) => {
     const m = accessId.match(/-(\d+)$/);
     return m ? parseInt(m[1], 10) : 0;
   };
   candidates.sort((a, b) => seqOf(a.accessId) - seqOf(b.accessId));
-  const withScore = candidates.map(({ responses, ...c }) => ({
+  const withScore = candidates.map((c) => ({
     ...c,
-    score: responses.reduce((sum, r) => sum + r.score, 0),
+    score: scoreByCandidateId.get(c.id) ?? 0,
     flagged: c.status !== "DISQUALIFIED" && !!c.disqualifyReason,
   }));
   return NextResponse.json({ candidates: withScore });

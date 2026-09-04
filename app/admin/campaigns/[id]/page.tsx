@@ -5,6 +5,7 @@ import Link from "next/link";
 import { campaignStatusLabel, candidateStatusLabel } from "@/lib/labels";
 import { rowsFromCells, parseCsvToCells, parseXlsxToCells } from "@/lib/candidate-import";
 import { campaignLastEntryAt } from "@/lib/campaign-window";
+import { toDatetimeLocalValue, fromDatetimeLocalValue } from "@/lib/datetime-local";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -200,9 +201,7 @@ function OverviewTab({
   const [name, setName] = useState(campaign.name);
   const [logoUrl, setLogoUrl] = useState(campaign.logoUrl ?? "");
   const [bgColor, setBgColor] = useState(campaign.bgColor ?? "#F8FAFC");
-  const [scheduledAt, setScheduledAt] = useState(
-    campaign.scheduledAt ? campaign.scheduledAt.slice(0, 16) : "",
-  );
+  const [scheduledAt, setScheduledAt] = useState(toDatetimeLocalValue(campaign.scheduledAt));
   const [autoStart, setAutoStart] = useState(campaign.autoStart);
   const [maxCandidates, setMaxCandidates] = useState(
     campaign.maxCandidates?.toString() ?? "",
@@ -214,9 +213,7 @@ function OverviewTab({
     campaign.negativeMarkingValue.toString(),
   );
   const [gracePeriodMin, setGracePeriodMin] = useState(campaign.gracePeriodMin);
-  const [scheduledEnd, setScheduledEnd] = useState(
-    campaign.scheduledEnd ? campaign.scheduledEnd.slice(0, 16) : "",
-  );
+  const [scheduledEnd, setScheduledEnd] = useState(toDatetimeLocalValue(campaign.scheduledEnd));
   const [openJoinEnabled, setOpenJoinEnabled] = useState(campaign.openJoinEnabled);
   const [disqualifyOnDuplicateLogin, setDisqualifyOnDuplicateLogin] = useState(
     campaign.disqualifyOnDuplicateLogin,
@@ -272,15 +269,13 @@ function OverviewTab({
     setName(campaign.name);
     setLogoUrl(campaign.logoUrl ?? "");
     setBgColor(campaign.bgColor ?? "#F8FAFC");
-    setScheduledAt(
-      campaign.scheduledAt ? campaign.scheduledAt.slice(0, 16) : "",
-    );
+    setScheduledAt(toDatetimeLocalValue(campaign.scheduledAt));
     setAutoStart(campaign.autoStart);
     setMaxCandidates(campaign.maxCandidates?.toString() ?? "");
     setNegativeMarking(campaign.negativeMarking);
     setNegativeMarkingValue(campaign.negativeMarkingValue.toString());
     setGracePeriodMin(campaign.gracePeriodMin);
-    setScheduledEnd(campaign.scheduledEnd ? campaign.scheduledEnd.slice(0, 16) : "");
+    setScheduledEnd(toDatetimeLocalValue(campaign.scheduledEnd));
     setOpenJoinEnabled(campaign.openJoinEnabled);
     setDisqualifyOnDuplicateLogin(campaign.disqualifyOnDuplicateLogin);
     setAntiCheatTabSwitch(campaign.antiCheatTabSwitch);
@@ -309,13 +304,13 @@ function OverviewTab({
           name: name.trim(),
           logoUrl: logoUrl.trim() || null,
           bgColor: bgColor.trim() || "#F8FAFC",
-          scheduledAt: scheduledAt || null,
+          scheduledAt: fromDatetimeLocalValue(scheduledAt),
           autoStart,
           maxCandidates: maxCandidates ? Number(maxCandidates) : null,
           negativeMarking,
           negativeMarkingValue: Number(negativeMarkingValue),
           gracePeriodMin,
-          scheduledEnd: scheduledEnd || null,
+          scheduledEnd: fromDatetimeLocalValue(scheduledEnd),
           openJoinEnabled,
           disqualifyOnDuplicateLogin,
           antiCheatTabSwitch,
@@ -377,7 +372,7 @@ function OverviewTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           delayMinutes: 0,
-          newScheduledEnd: restartScheduledEnd || undefined,
+          newScheduledEnd: fromDatetimeLocalValue(restartScheduledEnd) ?? undefined,
         }),
       });
       if (!res.ok) {

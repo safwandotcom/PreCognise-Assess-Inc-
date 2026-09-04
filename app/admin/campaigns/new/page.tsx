@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { fromDatetimeLocalValue } from "@/lib/datetime-local";
 
 const STEPS = ["Details & Branding", "Schedule & Settings", "Questions", "Candidates"];
 
@@ -74,8 +75,8 @@ export default function NewCampaignPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          scheduledAt: draft.scheduledAt || null,
-          scheduledEnd: draft.scheduledEnd || null,
+          scheduledAt: fromDatetimeLocalValue(draft.scheduledAt),
+          scheduledEnd: fromDatetimeLocalValue(draft.scheduledEnd),
           autoStart: draft.autoStart,
           maxCandidates: draft.maxCandidates ? parseInt(draft.maxCandidates) : null,
           negativeMarking: draft.negativeMarking,

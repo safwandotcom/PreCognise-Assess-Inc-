@@ -25,6 +25,7 @@ interface Candidate {
   name: string;
   email: string;
   status: string;
+  disqualifyReason: string | null;
 }
 
 export default function LiveSessionPage() {
@@ -247,12 +248,18 @@ export default function LiveSessionPage() {
                     <td className="py-1.5 pr-4">{c.name}</td>
                     <td className="py-1.5 pr-4 text-[#64748B]">{c.email}</td>
                     <td className="py-1.5 pr-4">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        c.status === "ACTIVE" ? "bg-green-100 text-green-700" :
-                        c.status === "JOINED" ? "bg-blue-100 text-blue-700" :
-                        c.status === "COMPLETED" ? "bg-purple-100 text-purple-700" :
-                        "bg-[#F1F5F9] text-[#64748B]"
-                      }`}>{candidateStatusLabel(c.status)}</span>
+                      <span
+                        title={c.status === "DISQUALIFIED" ? c.disqualifyReason ?? undefined : undefined}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          c.status === "ACTIVE" ? "bg-green-100 text-green-700" :
+                          c.status === "JOINED" ? "bg-blue-100 text-blue-700" :
+                          c.status === "COMPLETED" ? "bg-purple-100 text-purple-700" :
+                          "bg-[#F1F5F9] text-[#64748B]"
+                        }`}
+                      >{candidateStatusLabel(c.status)}</span>
+                      {c.status === "DISQUALIFIED" && c.disqualifyReason && (
+                        <p className="mt-0.5 max-w-[220px] text-[10px] text-[#94A3B8]">{c.disqualifyReason}</p>
+                      )}
                     </td>
                     <td className="py-1.5">
                       <button

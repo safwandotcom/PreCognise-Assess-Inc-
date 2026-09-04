@@ -86,6 +86,7 @@ model Campaign {
   scheduledEnd               DateTime?
   openJoinEnabled            Boolean        @default(false)
   disqualifyOnDuplicateLogin Boolean        @default(true)
+  autoDisqualifyOnViolation  Boolean        @default(true)
   antiCheatTabSwitch         Boolean        @default(false)
   tabSwitchLimit             Int            @default(3)
   antiCheatFullscreen        Boolean        @default(false)

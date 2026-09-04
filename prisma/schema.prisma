@@ -83,6 +83,8 @@ model Campaign {
   negativeMarking            Boolean        @default(false)
   negativeMarkingValue       Float          @default(0.25)
   gracePeriodMin             Int            @default(10)
+  scheduledEnd               DateTime?
+  openJoinEnabled             Boolean        @default(false)
   disqualifyOnDuplicateLogin Boolean        @default(true)
   antiCheatTabSwitch         Boolean        @default(false)
   tabSwitchLimit             Int            @default(3)

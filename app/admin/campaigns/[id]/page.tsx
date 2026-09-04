@@ -499,9 +499,10 @@ function OverviewTab({
           {showRestartForm && (
             <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
               <p className="text-sm text-[#0F172A]">
-                Reopens this campaign — existing candidates and their results
-                are untouched. New candidates can join again until the new end
-                time below.
+                Reopens this campaign. Candidates who already completed or
+                were disqualified are untouched; anyone who was still mid-exam
+                when it ended can log back in and continue. New candidates can
+                join too, until the new end time below.
               </p>
               <div className="mt-3">
                 <label className="mb-1.5 block text-xs font-medium text-[#0F172A]">

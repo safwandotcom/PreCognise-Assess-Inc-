@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
-import { CampaignStatus } from "@prisma/client";
+import { CampaignStatus, CandidateStatus } from "@prisma/client";
 import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 
 type Params = { params: Promise<{ id: string }> };
@@ -47,6 +47,23 @@ export async function POST(req: NextRequest, { params }: Params) {
         );
       }
       scheduledEndUpdate = { scheduledEnd: parsedEnd };
+    }
+
+    // Restarting an ENDED campaign: candidates who were mid-exam when it
+    // ended keep their activeToken from that session (nothing else in the
+    // app clears it — only disqualification and the duplicate-login claim
+    // do). Left alone, they could never log back in — the atomic claim in
+    // POST /api/auth/login requires activeToken: null. Release the lock for
+    // anyone who didn't reach a terminal state, so they can resume; leave
+    // COMPLETED/DISQUALIFIED candidates as they are.
+    if (campaign.status === CampaignStatus.ENDED) {
+      await prisma.candidate.updateMany({
+        where: {
+          campaignId: id,
+          status: { notIn: [CandidateStatus.COMPLETED, CandidateStatus.DISQUALIFIED] },
+        },
+        data: { activeToken: null },
+      });
     }
 
     if (delayMinutes > 0) {

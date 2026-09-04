@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { getAdminSocket } from "@/lib/admin-socket-client";
 import { candidateStatusLabel } from "@/lib/labels";
+import { campaignCloseAt } from "@/lib/campaign-window";
 
 interface Campaign {
   id: string;
@@ -12,6 +13,7 @@ interface Campaign {
   scheduledAt: string | null;
   startedAt: string | null;
   endedAt: string | null;
+  scheduledEnd: string | null;
   durationSec: number;
   autoStart: boolean;
   _count: { candidates: number };
@@ -119,12 +121,22 @@ export default function LiveSessionPage() {
     fetchLiveCandidates();
   }
 
-  const elapsed = liveCampaign?.startedAt
-    ? Math.floor((Date.now() - new Date(liveCampaign.startedAt).getTime()) / 1000)
-    : 0;
-  const remaining = Math.max(0, (liveCampaign?.durationSec ?? 0) - elapsed);
-  const progressPct = liveCampaign?.durationSec
-    ? Math.min(100, (elapsed / liveCampaign.durationSec) * 100)
+  // Ticking clock so the countdown to closeAt updates every second, independent
+  // of the 60s campaign-list poll.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const closeAt = liveCampaign
+    ? campaignCloseAt({ scheduledEnd: liveCampaign.scheduledEnd ? new Date(liveCampaign.scheduledEnd) : null })
+    : null;
+  const startedAtMs = liveCampaign?.startedAt ? new Date(liveCampaign.startedAt).getTime() : null;
+  const closeAtMs = closeAt ? closeAt.getTime() : null;
+  const closesInSec = closeAtMs ? Math.max(0, Math.floor((closeAtMs - now) / 1000)) : null;
+  const progressPct = closeAtMs && startedAtMs && closeAtMs > startedAtMs
+    ? Math.min(100, ((now - startedAtMs) / (closeAtMs - startedAtMs)) * 100)
     : 0;
 
   const joined = liveCandidates.filter(c => ["JOINED", "ACTIVE", "COMPLETED"].includes(c.status)).length;
@@ -170,12 +182,18 @@ export default function LiveSessionPage() {
             </div>
           </div>
 
-          {/* Time bar */}
-          {liveCampaign.durationSec > 0 && (
+          {/* End-time bar — shows the campaign's actual scheduled close, not an
+              estimate from question time limits. Only renders when an end
+              time is actually set (campaignCloseAt is null otherwise). */}
+          {closeAt && (
             <div className="mb-4">
               <div className="flex justify-between text-xs text-[#64748B] mb-1">
-                <span>Elapsed: {formatDuration(elapsed)}</span>
-                <span>Remaining: {formatDuration(remaining)}</span>
+                <span>Ends: {closeAt.toLocaleString()}</span>
+                <span>
+                  {closesInSec !== null && closesInSec > 0
+                    ? `Closes in ${formatDuration(closesInSec)}`
+                    : "Closed"}
+                </span>
               </div>
               <div className="h-2 rounded-full bg-[#F1F5F9]">
                 <div className="h-2 rounded-full bg-[#6366F1]" style={{ width: `${progressPct}%` }} />

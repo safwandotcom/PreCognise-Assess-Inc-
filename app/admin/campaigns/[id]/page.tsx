@@ -2686,7 +2686,7 @@ function CandidatesTab({
                   <th className="px-5 py-3 text-left">Name</th>
                   <th className="px-5 py-3 text-left">Email</th>
                   <th className="px-5 py-3 text-left">Status</th>
-                  <th className="px-5 py-3 text-left">Score</th>
+                  <th className="px-5 py-3 text-left">Raw score</th>
                   <th className="px-5 py-3 text-left">Password</th>
                   <th className="px-5 py-3 text-right"></th>
                 </tr>
@@ -2738,7 +2738,12 @@ function CandidatesTab({
                           </>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-[#0F172A]">{c.score}</td>
+                      <td
+                        className="px-5 py-3 text-[#0F172A]"
+                        title="Sum of points earned, before any negative-marking penalty — see Results for the final adjusted score."
+                      >
+                        {c.score}
+                      </td>
                       <td className="px-5 py-3">
                         {c.generatedPassword ? (
                           <button
@@ -2794,7 +2799,7 @@ function CandidatesTab({
                         key={`${c.id}-reveal`}
                         className={i % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}
                       >
-                        <td colSpan={7} className="px-5 pb-3">
+                        <td colSpan={8} className="px-5 pb-3">
                           <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5">
                             <svg
                               className="h-4 w-4 text-amber-500 shrink-0"

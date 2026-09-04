@@ -240,7 +240,7 @@ export default function LiveSessionPage() {
                   <th className="pb-2 pr-4">Name</th>
                   <th className="pb-2 pr-4">Email</th>
                   <th className="pb-2 pr-4">Status</th>
-                  <th className="pb-2 pr-4">Score</th>
+                  <th className="pb-2 pr-4">Raw score</th>
                   <th className="pb-2"></th>
                 </tr>
               </thead>
@@ -277,7 +277,12 @@ export default function LiveSessionPage() {
                         </>
                       )}
                     </td>
-                    <td className="py-1.5 pr-4">{c.score}</td>
+                    <td
+                      className="py-1.5 pr-4"
+                      title="Sum of points earned, before any negative-marking penalty — see Results for the final adjusted score."
+                    >
+                      {c.score}
+                    </td>
                     <td className="py-1.5">
                       <button
                         onClick={() => removeCandidate(liveCampaign.id, c.id)}

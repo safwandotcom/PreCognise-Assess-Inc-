@@ -30,12 +30,19 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Auto-end campaigns that have exceeded durationSec, or whose scheduledEnd has passed
+    // Auto-end campaigns whose scheduledEnd has passed, or — only for
+    // campaigns that never set one — that have exceeded durationSec.
+    // scheduledEnd is the authoritative close time once set (matches
+    // lib/campaign-window.ts's campaignCloseAt semantics): a campaign with
+    // a real end time configured must never be cut off early by durationSec
+    // (the sum of question time limits, often much shorter than the
+    // admin's intended window). durationSec only applies as a safety net
+    // for campaigns that never configured an explicit end time at all.
     const live = await prisma.campaign.findMany({
       where: { status: { in: [CampaignStatus.LIVE, CampaignStatus.PAUSED] }, startedAt: { not: null } },
     });
     const toEnd = live.filter(c => {
-      if (c.scheduledEnd && now >= c.scheduledEnd) return true;
+      if (c.scheduledEnd) return now >= c.scheduledEnd;
       if (!c.startedAt || !c.durationSec) return false;
       const elapsed = (now.getTime() - c.startedAt.getTime()) / 1000;
       return elapsed >= c.durationSec;

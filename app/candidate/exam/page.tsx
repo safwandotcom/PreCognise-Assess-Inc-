@@ -170,6 +170,13 @@ export default function ExamPage() {
 
   // Shared anti-cheat violation reporter — used by tab-switch/visibility/blur
   // detection, the fullscreen-exit guard, and the camera/mic presence guard.
+  // /api/candidate/tab-switch (Postgres-backed) is the sole authority for
+  // counting violations and deciding disqualification — it persists to the
+  // DB and is unaffected by the candidate's socket reconnecting, which
+  // routinely happens when a browser tab is backgrounded (i.e. exactly when
+  // a real tab-switch occurs). The socket emit below is a fire-and-forget
+  // relay of that already-decided outcome, purely for the admin's live
+  // view — it is never itself the thing that decides pass/warn/disqualify.
   const handleTabSwitch = useCallback(async () => {
     if (!settingsRef.current.antiCheatTabSwitch) return;
     const socket = getSocket();
@@ -179,6 +186,15 @@ export default function ExamPage() {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
+
+      if (settingsRef.current.autoDisqualifyOnViolation) {
+        socket.emit(SocketEvents.TAB_SWITCH, {
+          count: data.count,
+          limit: data.limit,
+          disqualified: !!data.disqualified,
+        });
+      }
+
       if (data.disqualified) {
         sessionStorage.setItem(
           "disqualifyReason",
@@ -189,11 +205,12 @@ export default function ExamPage() {
         return;
       }
       setTabSwitchInfo({ count: data.count, limit: data.limit });
+      setShowWarning(true);
     } catch {
-      // network error — still emit socket event so admin can see it
-    }
-    if (settingsRef.current.autoDisqualifyOnViolation) {
-      socket.emit(SocketEvents.TAB_SWITCH);
+      // Network error — the REST call is the only source of truth for
+      // counting/disqualifying, so there is nothing reliable to relay or
+      // act on. The candidate is not warned or disqualified for this one
+      // occurrence; a later successful call reflects the real state.
     }
   }, [router]);
 
@@ -350,7 +367,10 @@ export default function ExamPage() {
   useEffect(() => {
     const socket = getSocket();
     socket.emit(SocketEvents.CANDIDATE_JOIN);
-    socket.on(SocketEvents.WARNING, () => setShowWarning(true));
+    // The tab-switch warning modal is driven directly by the REST response
+    // in handleTabSwitch now, not by a server-pushed "warning" event — see
+    // the comment there for why the socket layer is no longer a decision
+    // point for tab-switch handling.
     socket.on(SocketEvents.DISQUALIFIED, ({ reason }: { reason: string }) => {
       sessionStorage.setItem("disqualifyReason", reason);
       disconnectSocket();
@@ -358,7 +378,6 @@ export default function ExamPage() {
     });
     socket.on("broadcast", ({ message }: { message: string }) => setBroadcastMsg(message));
     return () => {
-      socket.off(SocketEvents.WARNING);
       socket.off(SocketEvents.DISQUALIFIED);
       socket.off("broadcast");
     };

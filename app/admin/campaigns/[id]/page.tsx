@@ -1110,7 +1110,7 @@ function OverviewTab({
                     Detect multiple displays
                   </p>
                   <p className="text-xs text-[#64748B]">
-                    Warn and log when more than one display is connected during the exam. Does not automatically disqualify — the candidate can resolve it by disconnecting the extra display.
+                    Disqualify the moment more than one display is connected during the exam
                   </p>
                 </div>
                 <button

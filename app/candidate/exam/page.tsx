@@ -308,19 +308,24 @@ export default function ExamPage() {
     }
   }, [reportCameraViolation]);
 
-  // Multi-display violation reporter — increment-only, no limit, no
-  // disqualification. Unlike camera, a candidate can always resolve this
-  // themselves by disconnecting the extra display, so this only logs.
-  const reportMultiDisplayViolation = useCallback(async () => {
+  // Multi-display violation reporter — the REST route disqualifies on the
+  // first detection when autoDisqualifyOnViolation is on (task #25); this
+  // just relays that outcome to the caller.
+  const reportMultiDisplayViolation = useCallback(async (): Promise<{
+    ok: boolean;
+    disqualified: boolean;
+  }> => {
     try {
       const res = await fetch("/api/candidate/multi-display-violation", {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-      return res.ok;
+      if (!res.ok) return { ok: false, disqualified: false };
+      const data = await res.json();
+      return { ok: true, disqualified: !!data.disqualified };
     } catch {
       // network error — overlay still reflects live isExtended state via polling
-      return false;
+      return { ok: false, disqualified: false };
     }
   }, []);
 
@@ -376,8 +381,19 @@ export default function ExamPage() {
               setMultiDisplayWarning(true);
               if (!multiDisplayReportedRef.current) {
                 multiDisplayReportedRef.current = true;
-                reportMultiDisplayViolation().then((ok) => {
-                  if (!ok) multiDisplayReportedRef.current = false;
+                reportMultiDisplayViolation().then(({ ok, disqualified }) => {
+                  if (!ok) {
+                    multiDisplayReportedRef.current = false;
+                    return;
+                  }
+                  if (disqualified) {
+                    sessionStorage.setItem(
+                      "disqualifyReason",
+                      "Disqualified: an additional display was detected during the assessment."
+                    );
+                    disconnectSocket();
+                    router.push("/candidate/disqualified");
+                  }
                 });
               }
             } else {

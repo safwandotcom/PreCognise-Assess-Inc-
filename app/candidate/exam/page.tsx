@@ -50,6 +50,14 @@ export default function ExamPage() {
   const configLoadedRef = useRef(false);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const multiDisplayIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fullscreenIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Latches once the current fullscreen-exit has been reported, so a poll
+  // tick that finds fullscreenElement still null doesn't re-warn/re-count a
+  // violation every interval. Reset to false on a confirmed re-entry (the
+  // "Return to fullscreen" button's success callback), so a later exit
+  // counts as a new occurrence. Mirrors cameraDropReportedRef/
+  // multiDisplayReportedRef above.
+  const fullscreenExitReportedRef = useRef(false);
   // Latches once a track-drop violation has been reported for the current
   // grant, so onended (which side-effects via fetch/router — kept out of any
   // setState updater, which React may invoke more than once) reports once.
@@ -214,6 +222,29 @@ export default function ExamPage() {
     }
   }, [router]);
 
+  // Single entry point for "candidate is not in fullscreen" — used by the
+  // fullscreenchange event listener AND the poll below, so both funnel
+  // through the same once-per-occurrence latch instead of the poll
+  // re-warning/re-counting every tick while the overlay is already up.
+  //
+  // A poll exists here (see the interval set up in the initial-load effect)
+  // because the fullscreenchange event alone isn't a reliable enough
+  // signal: requestFullscreen() can resolve successfully and then get
+  // silently auto-exited a moment later when the camera/mic permission
+  // prompt appears (Chrome's anti-phishing behaviour), and whether that
+  // specific auto-exit reliably fires a fullscreenchange event is a browser
+  // timing detail this code can't assume — a candidate who declines that
+  // prompt should not be able to keep going outside fullscreen because of
+  // it either way. The poll is a timing-independent backstop: whatever the
+  // event does or doesn't catch, actual fullscreen state gets re-verified
+  // every couple of seconds regardless.
+  const reportFullscreenExit = useCallback(() => {
+    if (fullscreenExitReportedRef.current) return;
+    fullscreenExitReportedRef.current = true;
+    setFullscreenWarning(true);
+    handleTabSwitch();
+  }, [handleTabSwitch]);
+
   // Dedicated camera/mic violation reporter — fixed at 3 attempts, independent
   // of the admin-configurable tabSwitchLimit/antiCheatTabSwitch toggle. Active
   // whenever antiCheatCamera is on, regardless of the tab-switch setting.
@@ -312,17 +343,24 @@ export default function ExamPage() {
           // and then get auto-exited a moment later by the browser itself
           // (Chrome exits fullscreen the instant a permission prompt, e.g.
           // the camera/mic request below, appears — a built-in anti-phishing
-          // measure). The existing fullscreenchange listener only fires on a
-          // *transition*, so if fullscreen never actually engaged in the
-          // first place, no exit event ever fires and nothing catches it.
-          // Explicitly verify the real state after the promise settles
-          // (success or failure) and surface the same blocking overlay a
-          // real exit would, instead of assuming requestFullscreen() worked.
+          // measure). Explicitly verify the real state after the promise
+          // settles (success or failure) instead of assuming it worked.
           document.documentElement.requestFullscreen().catch(() => {}).then(() => {
             if (mountedRef.current && !document.fullscreenElement) {
-              setFullscreenWarning(true);
+              reportFullscreenExit();
             }
           });
+          // Backstop for the timing case the check above can't fully cover:
+          // requestFullscreen() resolving successfully and *then* getting
+          // silently auto-exited a moment later (e.g. by the camera/mic
+          // prompt below), with no guarantee that a fullscreenchange event
+          // reliably fires for that specific browser-triggered exit. Poll
+          // actual state directly, the same way checkMultiDisplay does for
+          // multi-monitor detection just below, so a candidate can't end up
+          // outside fullscreen and unnoticed just because no event fired.
+          fullscreenIntervalRef.current = setInterval(() => {
+            if (!document.fullscreenElement) reportFullscreenExit();
+          }, 2000);
         }
         if (settingsRef.current.antiCheatCamera) {
           setCameraRequired(true);
@@ -359,6 +397,7 @@ export default function ExamPage() {
       if (graceTimerRef.current !== null) clearTimeout(graceTimerRef.current);
       cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
       if (multiDisplayIntervalRef.current !== null) clearInterval(multiDisplayIntervalRef.current);
+      if (fullscreenIntervalRef.current !== null) clearInterval(fullscreenIntervalRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -470,8 +509,7 @@ export default function ExamPage() {
 
     const onFullscreenChange = () => {
       if (!document.fullscreenElement && settingsRef.current.antiCheatFullscreen) {
-        setFullscreenWarning(true);
-        handleTabSwitch();
+        reportFullscreenExit();
       }
     };
 
@@ -496,7 +534,7 @@ export default function ExamPage() {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, [router, handleTabSwitch]);
+  }, [router, handleTabSwitch, reportFullscreenExit]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -539,7 +577,10 @@ export default function ExamPage() {
               // the request racing another permission prompt) leaves the
               // candidate correctly blocked instead of silently let through.
               document.documentElement.requestFullscreen().then(
-                () => setFullscreenWarning(false),
+                () => {
+                  fullscreenExitReportedRef.current = false;
+                  setFullscreenWarning(false);
+                },
                 () => {}
               );
             }}

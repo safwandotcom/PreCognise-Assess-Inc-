@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnerId, ownedCampaign } from "@/lib/tenant";
+import { canEditQuestions } from "@/lib/campaign-utils";
 
 export async function POST(req: NextRequest) {
   const { questionId, newIndex } = await req.json();
@@ -12,8 +13,14 @@ export async function POST(req: NextRequest) {
     where: { id: questionId },
     select: { campaignId: true, orderIndex: true },
   });
-  if (!target || !(await ownedCampaign(target.campaignId, ownerId))) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const campaign = await ownedCampaign(target.campaignId, ownerId);
+  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canEditQuestions(campaign.status)) {
+    return NextResponse.json(
+      { error: "Questions cannot be reordered once a campaign has gone live." },
+      { status: 403 }
+    );
   }
   const campaignId = target.campaignId;
 

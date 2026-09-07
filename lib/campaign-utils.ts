@@ -1,6 +1,15 @@
 import bcrypt from "bcryptjs";
+import { CampaignStatus } from "@prisma/client";
 
 export { slugify } from "@/lib/slugify";
+
+// A live campaign must never change what candidates are being scored
+// against mid-run — once a campaign has gone LIVE (including if it's since
+// been PAUSED or ENDED), its questions are locked. Only DRAFT/SCHEDULED
+// campaigns can still have their question set edited.
+export function canEditQuestions(status: CampaignStatus): boolean {
+  return status === CampaignStatus.DRAFT || status === CampaignStatus.SCHEDULED;
+}
 
 // Readable 8-char password — no ambiguous chars (0/O/1/I/l)
 export function generatePassword(): string {

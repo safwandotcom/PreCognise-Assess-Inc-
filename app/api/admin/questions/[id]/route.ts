@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnerId, ownedCampaign } from "@/lib/tenant";
+import { canEditQuestions } from "@/lib/campaign-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -22,8 +23,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const ownerId = await getOwnerId();
   if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const existing = await prisma.question.findUnique({ where: { id }, select: { campaignId: true } });
-  if (!existing || !(await ownedCampaign(existing.campaignId, ownerId))) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const campaign = await ownedCampaign(existing.campaignId, ownerId);
+  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canEditQuestions(campaign.status)) {
+    return NextResponse.json(
+      { error: "Questions cannot be edited once a campaign has gone live." },
+      { status: 403 }
+    );
   }
 
   const question = await prisma.question.update({
@@ -49,8 +56,14 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const ownerId = await getOwnerId();
   if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const question = await prisma.question.findUnique({ where: { id }, select: { campaignId: true } });
-  if (!question || !(await ownedCampaign(question.campaignId, ownerId))) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!question) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const campaign = await ownedCampaign(question.campaignId, ownerId);
+  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canEditQuestions(campaign.status)) {
+    return NextResponse.json(
+      { error: "Questions cannot be deleted once a campaign has gone live." },
+      { status: 403 }
+    );
   }
   await prisma.question.delete({ where: { id } });
   await syncDuration(question.campaignId);

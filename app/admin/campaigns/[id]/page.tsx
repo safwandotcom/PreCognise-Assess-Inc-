@@ -1300,17 +1300,24 @@ const DEFAULT_WORD_LIMIT: Record<string, string> = {
 
 function QuestionsTab({
   campaignId,
+  campaignStatus,
   questions,
   durationSec,
   negativeMarking,
   onChanged,
 }: {
   campaignId: string;
+  campaignStatus: string;
   questions: Question[];
   durationSec: number;
   negativeMarking: boolean;
   onChanged: () => void;
 }) {
+  // A live campaign must never change what candidates are being scored
+  // against mid-run (task #34) — the API enforces this; this just keeps the
+  // UI from offering actions that would fail. Mirrors
+  // lib/campaign-utils.ts's canEditQuestions — keep the two in sync.
+  const locked = campaignStatus !== "DRAFT" && campaignStatus !== "SCHEDULED";
   const [showAdd, setShowAdd] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
@@ -1478,6 +1485,19 @@ function QuestionsTab({
 
   return (
     <div className="space-y-6">
+      {/* Locked banner — a live (or since-ended) campaign's questions can't change */}
+      {locked && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <svg className="h-4 w-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <p className="text-sm text-amber-900">
+            <span className="font-semibold">Questions are locked.</span>{" "}
+            This campaign has gone live — its question set can no longer be changed, so every candidate is scored against the same content.
+          </p>
+        </div>
+      )}
+
       {/* Duration banner */}
       {durationSec > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
@@ -1519,6 +1539,7 @@ function QuestionsTab({
             {questions.map((q) => (
               <li key={q.id} className="flex items-start gap-3 px-5 py-4">
                 {/* Reorder */}
+                {!locked && (
                 <div className="flex flex-col gap-0.5 pt-0.5">
                   <button
                     type="button"
@@ -1565,6 +1586,7 @@ function QuestionsTab({
                     </svg>
                   </button>
                 </div>
+                )}
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
@@ -1593,6 +1615,7 @@ function QuestionsTab({
                 </div>
 
                 {/* Delete */}
+                {!locked && (
                 <button
                   type="button"
                   onClick={() => handleDelete(q.id)}
@@ -1614,6 +1637,7 @@ function QuestionsTab({
                     />
                   </svg>
                 </button>
+                )}
               </li>
             ))}
           </ul>
@@ -1621,7 +1645,7 @@ function QuestionsTab({
       )}
 
       {/* Add question */}
-      {!showAdd ? (
+      {!locked && (!showAdd ? (
         <button
           type="button"
           onClick={() => setShowAdd(true)}
@@ -2069,7 +2093,7 @@ function QuestionsTab({
             </div>
           </form>
         </section>
-      )}
+      ))}
     </div>
   );
 }
@@ -2936,6 +2960,7 @@ export default function CampaignManagePage({
       {tab === "questions" && (
         <QuestionsTab
           campaignId={id}
+          campaignStatus={campaign.status}
           questions={campaign.questions ?? []}
           durationSec={campaign.durationSec}
           negativeMarking={campaign.negativeMarking}

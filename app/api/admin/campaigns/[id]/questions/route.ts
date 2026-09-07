@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnerId, ownedCampaign } from "@/lib/tenant";
+import { canEditQuestions } from "@/lib/campaign-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,12 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (!ownerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const campaign = await ownedCampaign(id, ownerId);
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canEditQuestions(campaign.status)) {
+    return NextResponse.json(
+      { error: "Questions cannot be added once a campaign has gone live." },
+      { status: 403 }
+    );
+  }
   const body = await req.json();
   const { type, text, imageUrl, options, correctOption, correctOptions, wordLimit, timeLimitSec, basePoints, speedBonusMax } = body;
 

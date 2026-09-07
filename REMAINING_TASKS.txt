@@ -276,6 +276,17 @@ they wait behind Tiers 1-2.
         answer automatically and drafts the question for the admin to
         check and adjust before saving — no manual field-by-field entry.
 
+[ ] 90. Per-question "no time limit" option (NEW)
+        timeLimitSec is currently a required, always-positive Int on
+        Question — there's no way to author a question the candidate can
+        take as long as they want on. Add a per-question toggle (or a
+        sentinel value, e.g. 0/null = unlimited) the admin sets when
+        building each question, not a campaign-wide setting. Needs
+        thought on how this interacts with speed bonus (meaningless with
+        no time limit — speedBonusMax should probably force to 0 for an
+        unlimited question) and with the exam UI's timer ring, which
+        currently assumes every question has a countdown.
+
 [ ] 31. Geo-restriction per campaign, not global (was #11, partial)
         Admin UI already exists but only controls one global setting.
         Move it onto the Campaign model so each campaign can set its
@@ -473,13 +484,14 @@ customer-facing hiring assessment (most relevant first).
         other languages, with transcripts for video/audio responses.
 
 ============================================================
-Total tracked: 65 tasks (23-88) across 5 tiers — 63 not yet started,
+Total tracked: 66 tasks (23-90) across 5 tiers — 64 not yet started,
 2 done inline (35, 36).
 Note: #73 (Talent-sourcing marketplace) removed 2026-07-29 — precognise.co
 (the sister PreCognize repo) already provides this; not worth rebuilding.
 Note: 74-88 added 2026-09-07 from a codebase security/technical review
 plus a feature comparison against TestGorilla, Airwork AI and micro1
 (published report: https://claude.ai/code/artifact/0a16a7bb-7f73-4ac5-bdd9-b94bd8088140).
+Note: 90 added 2026-09-07, requested directly.
 Where we're already ahead of all three and shouldn't lose it while
 chasing the gaps above: atomic race-free single-device enforcement,
 true real-time (not polling) violation detection, exposed

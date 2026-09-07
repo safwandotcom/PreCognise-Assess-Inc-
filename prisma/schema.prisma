@@ -126,6 +126,12 @@ model Candidate {
   multiDisplayViolationCount Int             @default(0)
   otpHash                    String?
   otpExpiresAt               DateTime?
+  // Wrong-attempt counter for the *current* otpHash — reset to 0 whenever a
+  // new OTP is issued, incremented on each wrong guess. Locks the code (not
+  // just the account) after 5 wrong tries, independent of #74's time-window
+  // rate limiting, which bounds request rate but not total guesses against
+  // one still-valid code.
+  otpAttempts                Int             @default(0)
   acknowledgedAt             DateTime?
   // Set once the candidate has confirmed camera/fullscreen/single-display
   // access on the pre-waiting-room device-check screen. Deliberately

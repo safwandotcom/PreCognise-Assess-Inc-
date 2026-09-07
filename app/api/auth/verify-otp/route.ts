@@ -6,6 +6,11 @@ import { sendPasswordChanged } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { redis } from "@/lib/redis";
 
+// Locks the *current* code after 5 wrong guesses — independent of #74's
+// time-window rate limiting, which bounds request rate but not total
+// guesses against one still-valid code within its 15-minute window.
+const OTP_ATTEMPT_LIMIT = 5;
+
 export async function POST(req: NextRequest) {
   try {
     const { email, joinToken, code, newPassword } = await req.json();
@@ -53,8 +58,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
     }
 
+    // Same generic message as an expired/invalid code — don't tell an
+    // attacker whether they're locked out vs. just wrong, or that the
+    // account/code exists at all.
+    if (candidate.otpAttempts >= OTP_ATTEMPT_LIMIT) {
+      return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
+    }
+
     const valid = await bcrypt.compare(code, candidate.otpHash);
     if (!valid) {
+      await prisma.candidate.update({
+        where: { id: candidate.id },
+        data: { otpAttempts: { increment: 1 } },
+      });
       return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
     }
 
@@ -62,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.candidate.update({
       where: { id: candidate.id },
-      data: { passwordHash, otpHash: null, otpExpiresAt: null },
+      data: { passwordHash, otpHash: null, otpExpiresAt: null, otpAttempts: 0 },
     });
 
     await sendPasswordChanged({ to: candidate.email, name: candidate.name });

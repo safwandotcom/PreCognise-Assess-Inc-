@@ -32,7 +32,9 @@ export async function POST(req: NextRequest) {
 
     await prisma.candidate.update({
       where: { id: candidate.id },
-      data: { otpHash, otpExpiresAt },
+      // Reset the wrong-attempt counter — it locks the *current* code, not
+      // the account, so a fresh code gets a fresh 5 tries.
+      data: { otpHash, otpExpiresAt, otpAttempts: 0 },
     });
 
     await sendOTP({ to: candidate.email, name: candidate.name, code: rawCode });

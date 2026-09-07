@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 import { isOptionBasedQuestionType } from "@/types";
+import { applyNegativeMarking } from "@/lib/scoring";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -90,28 +91,21 @@ export async function GET(_req: NextRequest, { params }: Params) {
       const answeredCount = cResponses.length;
       const pendingReview = cResponses.some((r) => r.needsGrading && !r.gradedAt);
 
-      let penalty = 0;
-      if (campaign.negativeMarking) {
-        for (const r of cResponses) {
-          // score === 0 on an auto-scored, option-based type that wasn't
-          // skipped (answer !== null) already fully means "answered wrong" —
-          // this doesn't need to re-derive "wrong" by comparing against
-          // correctOption, which only exists for single-answer types and is
-          // always null for multi_select (whose answer key lives in
-          // correctOptions instead). Re-deriving it here previously meant
-          // negative marking silently never applied to a wrong multi-select
-          // answer.
-          if (
-            r.answer !== null &&
-            r.score === 0 &&
-            isOptionBasedQuestionType(r.question.type)
-          ) {
-            penalty += r.question.basePoints * campaign.negativeMarkingValue;
-          }
-        }
-      }
-
-      const totalScore = Math.max(0, rawScore - penalty);
+      // score === 0 on an auto-scored, option-based type that wasn't
+      // skipped (answer !== null) already fully means "answered wrong" —
+      // this doesn't need to re-derive "wrong" by comparing against
+      // correctOption, which only exists for single-answer types and is
+      // always null for multi_select (whose answer key lives in
+      // correctOptions instead). Re-deriving it here previously meant
+      // negative marking silently never applied to a wrong multi-select
+      // answer — now shared via lib/scoring.ts with the score and results
+      // routes instead of three separately-drifting copies of this formula.
+      const wrongAnswerBasePoints = campaign.negativeMarking
+        ? cResponses
+            .filter((r) => r.answer !== null && r.score === 0 && isOptionBasedQuestionType(r.question.type))
+            .map((r) => r.question.basePoints)
+        : [];
+      const totalScore = applyNegativeMarking(rawScore, wrongAnswerBasePoints, campaign.negativeMarkingValue);
 
       return {
         id: c.id,

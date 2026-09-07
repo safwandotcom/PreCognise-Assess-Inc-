@@ -66,3 +66,65 @@ export function calculateScore(
 
   return basePoints + speedBonus;
 }
+
+/**
+ * Negative marking (app/api/assessment/score/route.ts): deducts
+ * basePoints * negativeMarkingValue for each explicitly wrong answer —
+ * skipped/blank responses are never included in wrongAnswerBasePoints in
+ * the first place, so they're never penalized. Floors the final score at 0.
+ */
+export function applyNegativeMarking(
+  totalScore: number,
+  wrongAnswerBasePoints: number[],
+  negativeMarkingValue: number
+): number {
+  const penalty = wrongAnswerBasePoints.reduce(
+    (sum, basePoints) => sum + basePoints * negativeMarkingValue,
+    0
+  );
+  return Math.max(0, totalScore - penalty);
+}
+
+/**
+ * Percentile rank among completed peers (app/api/assessment/score/route.ts):
+ * the percentage of peers this candidate outscored. A tie doesn't count as
+ * "scored below". Null (not 0) when there are no completed peers to compare
+ * against — "beat nobody" and "nobody to compare to" are different states.
+ */
+export function calculatePercentileRank(
+  score: number,
+  peerScores: number[]
+): number | null {
+  if (peerScores.length < 1) return null;
+  const scoredBelow = peerScores.filter((s) => s < score).length;
+  return Math.round((scoredBelow / peerScores.length) * 100);
+}
+
+/**
+ * Difficulty (P-value) for a question (analytics route): the percentage of
+ * respondents who answered it correctly, rounded to one decimal place.
+ */
+export function calculatePValue(correct: number, answered: number): number {
+  return answered > 0 ? Math.round((correct / answered) * 1000) / 10 : 0;
+}
+
+/**
+ * Discrimination index for a question (analytics route): the difference
+ * between the top-scoring half's correct rate and the bottom half's, rounded
+ * to two decimal places. A high index means the question separates strong
+ * candidates from weak ones; near zero means it isn't doing useful work.
+ * 0 when either half is empty — nothing to discriminate against.
+ */
+export function calculateDiscriminationIndex(
+  topCorrect: number,
+  topHalfSize: number,
+  bottomCorrect: number,
+  bottomHalfSize: number
+): number {
+  if (topHalfSize === 0 || bottomHalfSize === 0) return 0;
+  return (
+    Math.round(
+      (topCorrect / topHalfSize - bottomCorrect / bottomHalfSize) * 100
+    ) / 100
+  );
+}

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnerId, ownedCampaign } from "@/lib/tenant";
 import { isOptionBasedQuestionType } from "@/types";
+import { calculatePValue, calculateDiscriminationIndex, applyNegativeMarking } from "@/lib/scoring";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -130,26 +131,24 @@ export async function GET(_req: NextRequest, { params }: Params) {
       const rawScore = cRes.reduce((s, r) => s + r.score, 0);
       const correctCount = cRes.filter(r => r.score > 0 && isOptionBasedQuestionType(r.question.type)).length;
 
-      let penalty = 0;
-      if (campaign.negativeMarking) {
-        for (const r of cRes) {
-          // score === 0 on an auto-scored, option-based type that wasn't
-          // skipped (answer !== null) already fully means "answered wrong" —
-          // this doesn't need to re-derive "wrong" by comparing against
-          // correctOption, which only exists for single-answer types and is
-          // always null for multi_select (whose answer key lives in
-          // correctOptions instead). Re-deriving it here previously meant
-          // negative marking silently never applied to a wrong multi-select
-          // answer.
-          if (r.answer !== null && r.score === 0 && isOptionBasedQuestionType(r.question.type)) {
-            penalty += r.question.basePoints * campaign.negativeMarkingValue;
-          }
-        }
-      }
+      // score === 0 on an auto-scored, option-based type that wasn't
+      // skipped (answer !== null) already fully means "answered wrong" —
+      // this doesn't need to re-derive "wrong" by comparing against
+      // correctOption, which only exists for single-answer types and is
+      // always null for multi_select (whose answer key lives in
+      // correctOptions instead). Re-deriving it here previously meant
+      // negative marking silently never applied to a wrong multi-select
+      // answer — now shared via lib/scoring.ts with the score and results
+      // routes instead of separately-drifting copies of this formula.
+      const wrongAnswerBasePoints = campaign.negativeMarking
+        ? cRes
+            .filter(r => r.answer !== null && r.score === 0 && isOptionBasedQuestionType(r.question.type))
+            .map(r => r.question.basePoints)
+        : [];
 
       candidateTotals.set(c.id, {
         rawScore,
-        totalScore: Math.max(0, rawScore - penalty),
+        totalScore: applyNegativeMarking(rawScore, wrongAnswerBasePoints, campaign.negativeMarkingValue),
         correctCount,
         answeredCount: cRes.length,
       });
@@ -227,7 +226,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       const qRes = respByQuestion.get(q.id) ?? [];
       const answered = qRes.length;
       const correct = qRes.filter(r => r.score > 0 && isOptionBasedQuestionType(q.type)).length;
-      const pValue = answered > 0 ? Math.round((correct / answered) * 1000) / 10 : 0;
+      const pValue = calculatePValue(correct, answered);
       const avgResponseMs = answered > 0
         ? Math.round(mean(qRes.map(r => r.responseTimeMs)))
         : 0;
@@ -248,14 +247,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
       }
 
       // Discrimination index
-      let discriminationIndex = 0;
-      if (topHalf.size > 0 && bottomHalf.size > 0) {
-        const topCorrect = qRes.filter(r => topHalf.has(r.candidateId) && r.score > 0 && isOptionBasedQuestionType(q.type)).length;
-        const bottomCorrect = qRes.filter(r => bottomHalf.has(r.candidateId) && r.score > 0 && isOptionBasedQuestionType(q.type)).length;
-        discriminationIndex = Math.round(
-          ((topCorrect / topHalf.size) - (bottomCorrect / bottomHalf.size)) * 100
-        ) / 100;
-      }
+      const topCorrect = qRes.filter(r => topHalf.has(r.candidateId) && r.score > 0 && isOptionBasedQuestionType(q.type)).length;
+      const bottomCorrect = qRes.filter(r => bottomHalf.has(r.candidateId) && r.score > 0 && isOptionBasedQuestionType(q.type)).length;
+      const discriminationIndex = calculateDiscriminationIndex(topCorrect, topHalf.size, bottomCorrect, bottomHalf.size);
 
       return {
         id: q.id,

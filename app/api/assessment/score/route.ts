@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
 import { isOptionBasedQuestionType } from "@/types";
+import { applyNegativeMarking, calculatePercentileRank } from "@/lib/scoring";
 
 function getBearerToken(req: NextRequest): string | null {
   const header = req.headers.get("authorization");
@@ -91,24 +92,17 @@ export async function GET(req: NextRequest) {
   // Only penalize explicitly wrong answers — skipped/blank (null) answers are not penalized.
   // Deduction is floored at 0 overall.
   if (campaign?.negativeMarking) {
-    let penalty = 0;
-    for (const r of responses) {
-      // score === 0 on an auto-scored, option-based type that wasn't
-      // skipped (answer !== null) already fully means "answered wrong" —
-      // this doesn't need to re-derive "wrong" by comparing against
-      // correctOption, which only exists for single-answer types and is
-      // always null for multi_select (whose answer key lives in
-      // correctOptions instead). Matches the same fix already applied to
-      // the admin analytics and results routes.
-      if (
-        isScoredType(r.question.type) &&
-        r.answer !== null &&
-        r.score === 0
-      ) {
-        penalty += r.question.basePoints * (campaign.negativeMarkingValue ?? 0.25);
-      }
-    }
-    totalScore = Math.max(0, totalScore - penalty);
+    // score === 0 on an auto-scored, option-based type that wasn't
+    // skipped (answer !== null) already fully means "answered wrong" —
+    // this doesn't need to re-derive "wrong" by comparing against
+    // correctOption, which only exists for single-answer types and is
+    // always null for multi_select (whose answer key lives in
+    // correctOptions instead). Matches the same fix already applied to
+    // the admin analytics and results routes.
+    const wrongAnswerBasePoints = responses
+      .filter((r) => isScoredType(r.question.type) && r.answer !== null && r.score === 0)
+      .map((r) => r.question.basePoints);
+    totalScore = applyNegativeMarking(totalScore, wrongAnswerBasePoints, campaign.negativeMarkingValue ?? 0.25);
   }
 
   const questionsAnswered = responses.length;
@@ -143,9 +137,7 @@ export async function GET(req: NextRequest) {
 
   const peerScores = peerAggregates.map((p) => p._sum.score ?? 0);
   const peersCompleted = peerScores.length;
-  const scoredBelow = peerScores.filter((s) => s < totalScore).length;
-  const percentileRank =
-    peersCompleted >= 1 ? Math.round((scoredBelow / peersCompleted) * 100) : null;
+  const percentileRank = calculatePercentileRank(totalScore, peerScores);
 
   // ── Per-question breakdown ─────────────────────────────────────────────────
 

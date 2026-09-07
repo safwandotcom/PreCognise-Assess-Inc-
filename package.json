@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx --test lib/**/*.test.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -39,6 +40,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "ioredis-mock": "^8.13.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"

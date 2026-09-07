@@ -5,6 +5,8 @@ import { signToken } from "@/lib/jwt";
 import { CampaignStatus, CandidateStatus, Prisma, type Candidate } from "@prisma/client";
 import { generatePassword, hashPassword, makeAccessId, nextAccessSeq } from "@/lib/campaign-utils";
 import { campaignLastEntryAt } from "@/lib/campaign-window";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { redis } from "@/lib/redis";
 
 const MAX_OPEN_JOIN_CREATE_ATTEMPTS = 3;
 
@@ -72,6 +74,25 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { accessId, password, joinToken, mode, name, email } = body;
+
+    // Rate-limit: a loose per-IP bucket that catches obvious spray attacks
+    // without punishing a shared exam-centre/school network, plus a tight
+    // per-account bucket (scoped to this specific campaign + accessId/email)
+    // that stops brute-forcing one candidate's password regardless of how
+    // many IPs it comes from. Checked before the campaign/candidate lookup
+    // so a flood of garbage requests doesn't reach the DB either.
+    const ip = getClientIp(req);
+    const ipLimit = await checkRateLimit(redis, `login:ip:${ip}`, 60, 300);
+    if (!ipLimit.allowed) {
+      return NextResponse.json({ error: "Too many attempts. Please try again in a few minutes." }, { status: 429 });
+    }
+    const accountKey = mode === "open" ? String(email ?? "").trim().toLowerCase() : String(accessId ?? "").trim().toUpperCase();
+    if (accountKey && joinToken) {
+      const accountLimit = await checkRateLimit(redis, `login:account:${joinToken}:${accountKey}`, 10, 600);
+      if (!accountLimit.allowed) {
+        return NextResponse.json({ error: "Too many attempts. Please try again in a few minutes." }, { status: 429 });
+      }
+    }
 
     // Resolve campaign from joinToken
     const campaign = joinToken

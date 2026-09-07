@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { hashPassword } from "@/lib/campaign-utils";
 import { sendPasswordChanged } from "@/lib/email";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { redis } from "@/lib/redis";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +12,24 @@ export async function POST(req: NextRequest) {
 
     if (!email?.trim() || !joinToken?.trim() || !code?.trim() || !newPassword?.trim()) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    }
+
+    // Same shape as login's rate limiting: loose per-IP, tight per-account
+    // — a 6-digit OTP is far more guessable than a real password, so this
+    // matters even more here.
+    const ip = getClientIp(req);
+    const ipLimit = await checkRateLimit(redis, `otp:ip:${ip}`, 60, 300);
+    if (!ipLimit.allowed) {
+      return NextResponse.json({ error: "Too many attempts. Please try again in a few minutes." }, { status: 429 });
+    }
+    const accountLimit = await checkRateLimit(
+      redis,
+      `otp:account:${joinToken.trim()}:${email.trim().toLowerCase()}`,
+      10,
+      600
+    );
+    if (!accountLimit.allowed) {
+      return NextResponse.json({ error: "Too many attempts. Please try again in a few minutes." }, { status: 429 });
     }
 
     if (newPassword.length < 8) {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
 import { CandidateStatus } from "@prisma/client";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { redis } from "@/lib/redis";
 
 // Disqualifies on the first detected extra display, when the campaign has
 // autoDisqualifyOnViolation on — matching task #25 ("disqualify the moment
@@ -14,6 +16,13 @@ export async function POST(req: NextRequest) {
     const token = req.headers.get("authorization")?.slice(7);
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { candidateId } = verifyToken(token);
+
+    // Client already de-dupes via multiDisplayReportedRef; this is a
+    // server-side backstop against request/DB-write spam regardless.
+    const limit = await checkRateLimit(redis, `multi-display-violation:${candidateId}`, 20, 60);
+    if (!limit.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
 
     const candidate = await prisma.candidate.findUnique({
       where: { id: candidateId },

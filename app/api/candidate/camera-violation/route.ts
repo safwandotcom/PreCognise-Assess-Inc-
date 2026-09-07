@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
 import { CandidateStatus } from "@prisma/client";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { redis } from "@/lib/redis";
 
 // Fixed at 3 by product decision — independent of the admin-configurable
 // tabSwitchLimit, and active whenever antiCheatCamera is on regardless of
@@ -13,6 +15,15 @@ export async function POST(req: NextRequest) {
     const token = req.headers.get("authorization")?.slice(7);
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { candidateId } = verifyToken(token);
+
+    // Not really a brute-force target (already gated behind a valid
+    // candidate JWT) — this just bounds request/DB-write spam, including
+    // from a candidate whose JWT is still technically valid after they've
+    // already been disqualified.
+    const limit = await checkRateLimit(redis, `camera-violation:${candidateId}`, 20, 60);
+    if (!limit.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
 
     const candidate = await prisma.candidate.findUnique({
       where: { id: candidateId },

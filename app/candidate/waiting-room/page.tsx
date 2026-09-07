@@ -35,6 +35,27 @@ export default function WaitingRoomPage() {
 
   const clearBroadcast = useCallback(() => setBroadcastMsg(null), []);
 
+  // Device check (task #26) is a mandatory step before the waiting room —
+  // guard against a candidate reaching this page directly (bookmark,
+  // back/forward, a stale tab) without having gone through it.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/candidate/device-check", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d: { alreadyConsented: boolean; antiCheat: { camera: boolean; fullscreen: boolean; multiDisplay: boolean } }) => {
+        if (d.alreadyConsented) return;
+        const { camera, fullscreen, multiDisplay } = d.antiCheat;
+        if (camera || fullscreen || multiDisplay) {
+          router.replace("/candidate/device-check");
+        }
+      })
+      .catch(() => {
+        // network error — don't block the waiting room over this; the
+        // device-check page itself still gates entry to the exam.
+      });
+  }, [router]);
+
   const goToExam = useCallback(() => {
     if (navigatingRef.current) return;
     navigatingRef.current = true;

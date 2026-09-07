@@ -127,6 +127,14 @@ model Candidate {
   otpHash                    String?
   otpExpiresAt               DateTime?
   acknowledgedAt             DateTime?
+  // Set once the candidate has confirmed camera/fullscreen/single-display
+  // access on the pre-waiting-room device-check screen. Deliberately
+  // separate from acknowledgedAt (which records "I read the rules and will
+  // behave honestly", captured later, right before the exam) — this is
+  // specifically "I agreed to be monitored", captured at the moment those
+  // permissions were live, and is the documented proof of consent task #26
+  // exists for.
+  monitoringConsentedAt      DateTime?
   campaignId                 String
   campaign                   Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   responses                  Response[]

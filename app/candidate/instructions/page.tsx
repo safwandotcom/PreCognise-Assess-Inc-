@@ -108,7 +108,7 @@ export default function InstructionsPage() {
   if (ac.fullscreen) rules.push("You must stay in fullscreen mode for the entire exam.");
   if (ac.copyPaste) rules.push("Copying and pasting text is disabled.");
   if (ac.rightClick) rules.push("Right-clicking is disabled during the exam.");
-  if (ac.screenshot) rules.push("Screenshot attempts are blocked and recorded.");
+  if (ac.screenshot) rules.push("Screenshot keyboard shortcuts are disabled during the exam.");
   if (ac.devTools) rules.push("Browser developer tools are blocked during the exam.");
   if (ac.camera) rules.push("You must allow camera and microphone access, and keep it on, for the entire exam — 3 failed attempts to grant access will disqualify you.");
   if (ac.multiDisplay) rules.push("Using more than one display or monitor during the exam is not allowed and will disqualify you immediately.");

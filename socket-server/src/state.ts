@@ -45,10 +45,6 @@ export async function updateStatus(
   await redis.hset(`candidate:${candidateId}`, "status", status);
 }
 
-export async function incrementTabSwitch(candidateId: string): Promise<number> {
-  return redis.hincrby(`candidate:${candidateId}`, "tabSwitchCount", 1);
-}
-
 export async function addAdminSocket(socketId: string): Promise<void> {
   await redis.sadd("admin:sockets", socketId);
 }

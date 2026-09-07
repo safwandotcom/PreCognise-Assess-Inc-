@@ -50,6 +50,14 @@ export default function ExamPage() {
   const configLoadedRef = useRef(false);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const multiDisplayIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fullscreenIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Latches once the current fullscreen-exit has been reported, so a poll
+  // tick that finds fullscreenElement still null doesn't re-warn/re-count a
+  // violation every interval. Reset to false on a confirmed re-entry (the
+  // "Return to fullscreen" button's success callback), so a later exit
+  // counts as a new occurrence. Mirrors cameraDropReportedRef/
+  // multiDisplayReportedRef above.
+  const fullscreenExitReportedRef = useRef(false);
   // Latches once a track-drop violation has been reported for the current
   // grant, so onended (which side-effects via fetch/router — kept out of any
   // setState updater, which React may invoke more than once) reports once.
@@ -170,6 +178,13 @@ export default function ExamPage() {
 
   // Shared anti-cheat violation reporter — used by tab-switch/visibility/blur
   // detection, the fullscreen-exit guard, and the camera/mic presence guard.
+  // /api/candidate/tab-switch (Postgres-backed) is the sole authority for
+  // counting violations and deciding disqualification — it persists to the
+  // DB and is unaffected by the candidate's socket reconnecting, which
+  // routinely happens when a browser tab is backgrounded (i.e. exactly when
+  // a real tab-switch occurs). The socket emit below is a fire-and-forget
+  // relay of that already-decided outcome, purely for the admin's live
+  // view — it is never itself the thing that decides pass/warn/disqualify.
   const handleTabSwitch = useCallback(async () => {
     if (!settingsRef.current.antiCheatTabSwitch) return;
     const socket = getSocket();
@@ -179,6 +194,15 @@ export default function ExamPage() {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
+
+      if (settingsRef.current.autoDisqualifyOnViolation) {
+        socket.emit(SocketEvents.TAB_SWITCH, {
+          count: data.count,
+          limit: data.limit,
+          disqualified: !!data.disqualified,
+        });
+      }
+
       if (data.disqualified) {
         sessionStorage.setItem(
           "disqualifyReason",
@@ -189,13 +213,37 @@ export default function ExamPage() {
         return;
       }
       setTabSwitchInfo({ count: data.count, limit: data.limit });
+      setShowWarning(true);
     } catch {
-      // network error — still emit socket event so admin can see it
-    }
-    if (settingsRef.current.autoDisqualifyOnViolation) {
-      socket.emit(SocketEvents.TAB_SWITCH);
+      // Network error — the REST call is the only source of truth for
+      // counting/disqualifying, so there is nothing reliable to relay or
+      // act on. The candidate is not warned or disqualified for this one
+      // occurrence; a later successful call reflects the real state.
     }
   }, [router]);
+
+  // Single entry point for "candidate is not in fullscreen" — used by the
+  // fullscreenchange event listener AND the poll below, so both funnel
+  // through the same once-per-occurrence latch instead of the poll
+  // re-warning/re-counting every tick while the overlay is already up.
+  //
+  // A poll exists here (see the interval set up in the initial-load effect)
+  // because the fullscreenchange event alone isn't a reliable enough
+  // signal: requestFullscreen() can resolve successfully and then get
+  // silently auto-exited a moment later when the camera/mic permission
+  // prompt appears (Chrome's anti-phishing behaviour), and whether that
+  // specific auto-exit reliably fires a fullscreenchange event is a browser
+  // timing detail this code can't assume — a candidate who declines that
+  // prompt should not be able to keep going outside fullscreen because of
+  // it either way. The poll is a timing-independent backstop: whatever the
+  // event does or doesn't catch, actual fullscreen state gets re-verified
+  // every couple of seconds regardless.
+  const reportFullscreenExit = useCallback(() => {
+    if (fullscreenExitReportedRef.current) return;
+    fullscreenExitReportedRef.current = true;
+    setFullscreenWarning(true);
+    handleTabSwitch();
+  }, [handleTabSwitch]);
 
   // Dedicated camera/mic violation reporter — fixed at 3 attempts, independent
   // of the admin-configurable tabSwitchLimit/antiCheatTabSwitch toggle. Active
@@ -260,19 +308,24 @@ export default function ExamPage() {
     }
   }, [reportCameraViolation]);
 
-  // Multi-display violation reporter — increment-only, no limit, no
-  // disqualification. Unlike camera, a candidate can always resolve this
-  // themselves by disconnecting the extra display, so this only logs.
-  const reportMultiDisplayViolation = useCallback(async () => {
+  // Multi-display violation reporter — the REST route disqualifies on the
+  // first detection when autoDisqualifyOnViolation is on (task #25); this
+  // just relays that outcome to the caller.
+  const reportMultiDisplayViolation = useCallback(async (): Promise<{
+    ok: boolean;
+    disqualified: boolean;
+  }> => {
     try {
       const res = await fetch("/api/candidate/multi-display-violation", {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-      return res.ok;
+      if (!res.ok) return { ok: false, disqualified: false };
+      const data = await res.json();
+      return { ok: true, disqualified: !!data.disqualified };
     } catch {
       // network error — overlay still reflects live isExtended state via polling
-      return false;
+      return { ok: false, disqualified: false };
     }
   }, []);
 
@@ -295,17 +348,24 @@ export default function ExamPage() {
           // and then get auto-exited a moment later by the browser itself
           // (Chrome exits fullscreen the instant a permission prompt, e.g.
           // the camera/mic request below, appears — a built-in anti-phishing
-          // measure). The existing fullscreenchange listener only fires on a
-          // *transition*, so if fullscreen never actually engaged in the
-          // first place, no exit event ever fires and nothing catches it.
-          // Explicitly verify the real state after the promise settles
-          // (success or failure) and surface the same blocking overlay a
-          // real exit would, instead of assuming requestFullscreen() worked.
+          // measure). Explicitly verify the real state after the promise
+          // settles (success or failure) instead of assuming it worked.
           document.documentElement.requestFullscreen().catch(() => {}).then(() => {
             if (mountedRef.current && !document.fullscreenElement) {
-              setFullscreenWarning(true);
+              reportFullscreenExit();
             }
           });
+          // Backstop for the timing case the check above can't fully cover:
+          // requestFullscreen() resolving successfully and *then* getting
+          // silently auto-exited a moment later (e.g. by the camera/mic
+          // prompt below), with no guarantee that a fullscreenchange event
+          // reliably fires for that specific browser-triggered exit. Poll
+          // actual state directly, the same way checkMultiDisplay does for
+          // multi-monitor detection just below, so a candidate can't end up
+          // outside fullscreen and unnoticed just because no event fired.
+          fullscreenIntervalRef.current = setInterval(() => {
+            if (!document.fullscreenElement) reportFullscreenExit();
+          }, 2000);
         }
         if (settingsRef.current.antiCheatCamera) {
           setCameraRequired(true);
@@ -321,8 +381,19 @@ export default function ExamPage() {
               setMultiDisplayWarning(true);
               if (!multiDisplayReportedRef.current) {
                 multiDisplayReportedRef.current = true;
-                reportMultiDisplayViolation().then((ok) => {
-                  if (!ok) multiDisplayReportedRef.current = false;
+                reportMultiDisplayViolation().then(({ ok, disqualified }) => {
+                  if (!ok) {
+                    multiDisplayReportedRef.current = false;
+                    return;
+                  }
+                  if (disqualified) {
+                    sessionStorage.setItem(
+                      "disqualifyReason",
+                      "Disqualified: an additional display was detected during the assessment."
+                    );
+                    disconnectSocket();
+                    router.push("/candidate/disqualified");
+                  }
                 });
               }
             } else {
@@ -342,6 +413,7 @@ export default function ExamPage() {
       if (graceTimerRef.current !== null) clearTimeout(graceTimerRef.current);
       cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
       if (multiDisplayIntervalRef.current !== null) clearInterval(multiDisplayIntervalRef.current);
+      if (fullscreenIntervalRef.current !== null) clearInterval(fullscreenIntervalRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -350,7 +422,10 @@ export default function ExamPage() {
   useEffect(() => {
     const socket = getSocket();
     socket.emit(SocketEvents.CANDIDATE_JOIN);
-    socket.on(SocketEvents.WARNING, () => setShowWarning(true));
+    // The tab-switch warning modal is driven directly by the REST response
+    // in handleTabSwitch now, not by a server-pushed "warning" event — see
+    // the comment there for why the socket layer is no longer a decision
+    // point for tab-switch handling.
     socket.on(SocketEvents.DISQUALIFIED, ({ reason }: { reason: string }) => {
       sessionStorage.setItem("disqualifyReason", reason);
       disconnectSocket();
@@ -358,7 +433,6 @@ export default function ExamPage() {
     });
     socket.on("broadcast", ({ message }: { message: string }) => setBroadcastMsg(message));
     return () => {
-      socket.off(SocketEvents.WARNING);
       socket.off(SocketEvents.DISQUALIFIED);
       socket.off("broadcast");
     };
@@ -451,8 +525,7 @@ export default function ExamPage() {
 
     const onFullscreenChange = () => {
       if (!document.fullscreenElement && settingsRef.current.antiCheatFullscreen) {
-        setFullscreenWarning(true);
-        handleTabSwitch();
+        reportFullscreenExit();
       }
     };
 
@@ -477,7 +550,7 @@ export default function ExamPage() {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, [router, handleTabSwitch]);
+  }, [router, handleTabSwitch, reportFullscreenExit]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -520,7 +593,10 @@ export default function ExamPage() {
               // the request racing another permission prompt) leaves the
               // candidate correctly blocked instead of silently let through.
               document.documentElement.requestFullscreen().then(
-                () => setFullscreenWarning(false),
+                () => {
+                  fullscreenExitReportedRef.current = false;
+                  setFullscreenWarning(false);
+                },
                 () => {}
               );
             }}

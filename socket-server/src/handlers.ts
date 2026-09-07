@@ -1,6 +1,6 @@
 import { Server, Socket } from "socket.io";
 import { addCandidate, removeCandidate, addAdminSocket, removeAdminSocket } from "./state";
-import { handleTabSwitch, handlePageRefresh, disqualifyCandidate } from "./anticheat";
+import { reportTabSwitch, handlePageRefresh, disqualifyCandidate, TabSwitchReport } from "./anticheat";
 
 interface CandidateAuth {
   candidateId: string;
@@ -26,9 +26,21 @@ export function registerCandidateHandlers(
     }
   });
 
-  socket.on("tab:switch", async () => {
+  socket.on("tab:switch", async (report: TabSwitchReport) => {
+    // The client sends the outcome of the already-authoritative REST call
+    // (/api/candidate/tab-switch) — this is a live-visibility relay, not a
+    // decision point. Ignore anything that doesn't look like a real report
+    // rather than trusting/crashing on a malformed or tampered payload.
+    if (
+      !report ||
+      typeof report.count !== "number" ||
+      typeof report.limit !== "number" ||
+      typeof report.disqualified !== "boolean"
+    ) {
+      return;
+    }
     try {
-      await handleTabSwitch(io, socket, candidateId);
+      await reportTabSwitch(io, candidateId, report);
     } catch (err) {
       console.error("tab:switch error:", err);
     }

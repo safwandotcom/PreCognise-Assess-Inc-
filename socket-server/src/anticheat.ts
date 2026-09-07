@@ -1,10 +1,10 @@
 import { Server, Socket } from "socket.io";
-import { getCandidate, updateStatus, incrementTabSwitch } from "./state";
+import { getCandidate, updateStatus } from "./state";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 
-export type DisqualifyReason = "TAB_SWITCH_2" | "PAGE_REFRESH" | string;
+export type DisqualifyReason = "PAGE_REFRESH" | string;
 
 export async function disqualifyCandidate(
   io: Server,
@@ -41,16 +41,41 @@ export async function disqualifyCandidate(
   }
 }
 
-export async function handleTabSwitch(io: Server, socket: Socket, candidateId: string) {
-  const count = await incrementTabSwitch(candidateId);
+export interface TabSwitchReport {
+  count: number;
+  limit: number;
+  disqualified: boolean;
+}
 
-  if (count === 1) {
-    socket.emit("warning", {
-      message: "Tab switch detected. Next switch will disqualify you.",
-    });
-  } else if (count === 2) {
-    await disqualifyCandidate(io, candidateId, "TAB_SWITCH_2");
+// /api/candidate/tab-switch (Postgres-backed) is the sole authority for
+// counting tab switches and deciding disqualification — it already
+// persisted the outcome before this ever runs. This just relays that
+// decision onto the socket layer for live admin visibility, and mirrors
+// the disqualification here so the candidate's socket is notified too.
+//
+// This replaces an earlier design that kept its own Redis counter and
+// disqualified at a hardcoded count of 2, independent of the campaign's
+// configurable tabSwitchLimit. That counter lived only in the per-candidate
+// Redis hash, which handlers.ts's "disconnect" handler deletes on every
+// socket disconnect — and a backgrounded browser tab (exactly what happens
+// when a candidate switches to an already-open tab) routinely drops the
+// WebSocket, silently resetting the count to zero before it ever reached 2.
+export async function reportTabSwitch(
+  io: Server,
+  candidateId: string,
+  report: TabSwitchReport
+): Promise<void> {
+  if (report.disqualified) {
+    await updateStatus(candidateId, "DISQUALIFIED");
+    io.to(candidateId).emit("disqualified", { reason: "TAB_SWITCH_LIMIT_EXCEEDED" });
   }
+
+  io.to("admins").emit("candidate:event", {
+    id: candidateId,
+    status: report.disqualified ? "DISQUALIFIED" : "ACTIVE",
+    tabSwitchCount: report.count,
+    tabSwitchLimit: report.limit,
+  });
 }
 
 export async function handlePageRefresh(io: Server, socket: Socket, candidateId: string) {

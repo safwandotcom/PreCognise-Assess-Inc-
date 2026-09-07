@@ -42,7 +42,7 @@ function LoginForm() {
       if (data.candidateName) {
         sessionStorage.setItem("candidateName", data.candidateName);
       }
-      router.replace("/candidate/waiting-room");
+      router.replace("/candidate/device-check");
     } catch {
       setError("Network error. Please try again.");
     } finally {

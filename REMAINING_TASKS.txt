@@ -1,13 +1,40 @@
 REMAINING GAP ANALYSIS TASKS
 precognise-assess platform
-Last updated: 2026-07-13
+Last updated: 2026-09-07
+============================================================
+Goal for this pass: not just "fix what's broken" but close the gap to
+TestGorilla, Airwork AI and micro1 — and beat them on the things that
+are actually ours to win (integrity under load, transparent scoring,
+white-label trust). Items 74-88 below are new: 74-85 come from a
+codebase security/technical review, 86-88 from a feature-by-feature
+comparison against those three platforms. Everything else (1-73) is
+unchanged from the previous pass, renumbered nowhere, so old
+references and commit messages still point at the right task.
 ============================================================
 
-COMPLETED (5/21)
+COMPLETED (9/22 original gap-analysis items)
   [x] 1.  Clerk admin auth on /admin routes
   [x] 2.  Remove test-only button from waiting room
   [x] 3.  Email delivery of credentials on CSV import
+  [x] 4.  Redis adapter for Socket.IO
+          @socket.io/redis-adapter wired in; state.ts rewritten on
+          Redis hash/set ops; handlers + anticheat made Redis-aware.
+          Commits a7455a1, 4952ece, c3ee827.
+  [x] 5.  Redis cache for DB polling endpoints
+          15s-TTL Redis cache in front of /api/candidate/broadcast and
+          /api/candidate/session-stats, with graceful degradation on
+          connection failure. Commits 6ee6902, f16fb0f.
+  [x] 6.  Load test before launch
+          k6 script simulating 15k candidate exam session.
+          Commit 21ed43d.
   [x] 8.  Password recovery via email OTP (forgot-password flow)
+  [x] 9.  Pre-exam instruction + acknowledgment screen
+          app/candidate/instructions/page.tsx — shows duration,
+          question count, plain-language anti-cheat rules built from
+          the campaign's actual toggles (tab-switch, fullscreen,
+          copy-paste, right-click, screenshot, devtools, duplicate
+          login, multi-display), "I understand, start the exam" gate.
+          Commit 789ff51.
   [x] 21. Question order / answer option shuffling (anti-cheat)
           Added per-campaign toggles: shuffle question order, and
           shuffle MCQ/Image answer options, per candidate. Seeded
@@ -20,162 +47,441 @@ COMPLETED (5/21)
           and docs/superpowers/plans/2026-07-12-question-answer-shuffle.md.
 
 ============================================================
-
-PHASE 2 — Scale Hardening (before 15k load)
-------------------------------------------------------------
-
-[ ] 4. Redis adapter for Socket.IO
-        Problem : socket-server/src/state.ts holds all candidates in
-                  process memory. Cannot handle 15k+ concurrent
-                  WebSocket connections. No horizontal scaling.
-        Fix     : Add @socket.io/redis-adapter backed by a Redis
-                  instance. Run multiple socket server replicas behind
-                  a load balancer with sticky sessions.
-
-[ ] 5. Redis cache for DB polling endpoints
-        Problem : /api/candidate/broadcast (polled every 20s) and
-                  /api/candidate/session-stats (polled every 10s)
-                  generate 750-1500 DB reads/sec at 15k candidates.
-        Fix (short-term) : Add Redis cache in front of both endpoints
-                           with a 15-second TTL.
-        Fix (long-term)  : Replace polling with SSE or Socket.IO push.
-
-[ ] 6. Load test before launch
-        Run realistic concurrency test (15k simulated candidates)
-        against the Redis-hardened stack before going live.
-
+Everything below carries its task number from the previous grouping
+(23-88, noted in "Old gap-analysis numbers" where relevant) but is now
+ordered by priority, top to bottom, instead of by category.
 ============================================================
 
-PHASE 3 — Compliance + Candidate Experience
+PRIORITY TIER 1 — CRITICAL
 ------------------------------------------------------------
+Live security/legal exposure. These are bugs in features we already
+claim to have, gaps a real candidate/admin could exploit or trigger
+today, or auth-layer holes that let someone brute-force their way past
+a control we advertise. Do these first, in this order.
 
-[ ] 7. PIPEDA consent on registration form
-        Problem : /apply/[slug] collects name, email, country with no
-                  privacy notice or consent checkbox. Required by
-                  Canadian law (PIPEDA).
-        Fix     : Add required consent checkbox with link to privacy
-                  policy. Store consent timestamp and IP on Candidate.
+[ ] 23. Fix tab-switch detection for pre-opened tabs
+        Candidates who join with other browser tabs already open show
+        tab-switch activity but are not being disqualified.
 
-[ ] 9. Pre-exam instruction + acknowledgment screen
-        Problem : Candidates go login -> waiting room -> first question
-                  with no screen showing rules, duration, or anti-cheat
-                  warnings.
-        Fix     : Add instruction screen between waiting room and exam.
-                  Show: duration, question count, anti-cheat rules,
-                  "I understand, start the exam" button.
-                  Record acknowledgment timestamp on Candidate.
-                  Allow admin to edit instructions per campaign.
+[ ] 24. Fix fullscreen bypass via camera/video denial
+        Candidates can dodge the forced-fullscreen requirement by
+        declining the camera/video permission prompt.
 
-[ ] 10. Waiting room countdown from real scheduledAt
-        Problem : app/candidate/waiting-room/page.tsx line 12 —
-                  COUNTDOWN_START = 60 is hardcoded. Not connected to
-                  the actual scheduled start time.
-        Fix     : Pass scheduledAt from campaign config to the waiting
-                  room. Derive countdown from scheduledAt - Date.now().
+[ ] 25. Fix multi-display bypass after join
+        Detection only catches a second display at the start of the
+        exam. If a candidate connects a second monitor mid-exam, they
+        are not caught or disqualified. It must keep checking for the
+        whole session and disqualify the moment a second display
+        appears, at any point.
 
-[ ] 11. Geo-restriction per campaign with admin UI
-        Problem : AssessmentSettings.geoRestriction exists in schema
-                  but has no admin UI and is global (not per-campaign).
-        Fix     : Add geo-restriction field to Campaign model. Add
-                  controls to campaign edit page. Move restriction
-                  check from AssessmentSettings to campaign level.
+[ ] 26. Pre-exam device & permission check screen
+        Add a mandatory step before the waiting room: candidate must
+        grant camera access, enter fullscreen, and confirm single-display,
+        with an explicit "I agree to be monitored" checkbox. Store the
+        agreement with a timestamp on the candidate record — this is our
+        documented proof of consent so a candidate can't dispute being
+        disqualified for a rule they agreed to.
+
+[ ] 27. Full anti-cheat regression pass
+        Go through every anti-cheat feature (tab-switch, fullscreen,
+        copy-paste, right-click, screenshot, devtools, duplicate-login,
+        multi-display) one by one and confirm each actually enforces and
+        disqualifies as configured. Several are currently bypassable
+        (see 23-25).
+
+[ ] 74. Rate-limit login, OTP-verify, and violation endpoints (NEW)
+        /api/auth/login, /api/auth/verify-otp, /api/candidate/camera-violation
+        and /api/candidate/multi-display-violation have no request
+        throttling at all — an accessId+password pair or a 6-digit OTP
+        code can be brute-forced with no friction. Redis is already a
+        dependency (lib/redis.ts) and sits unused for this; a fixed-window
+        or sliding-window counter keyed by IP + candidate/campaign closes
+        it directly. This is the single biggest live auth hole in the
+        platform today.
+
+[ ] 76. Add an OTP attempt lockout counter (NEW)
+        /api/auth/verify-otp checks the hash and the 15-minute expiry but
+        never counts failed attempts — paired with #74's missing rate
+        limit, a leaked or guessed code can currently be retried without
+        limit inside its window. Lock the OTP after 5 wrong tries,
+        independent of rate limiting at the network layer.
+
+[ ] 75. Add HTTP security headers (NEW)
+        next.config.ts sets no Content-Security-Policy, X-Frame-Options,
+        Strict-Transport-Security, X-Content-Type-Options, or
+        Referrer-Policy on any route — candidate exam pages and the admin
+        dashboard are both exposed to clickjacking and MIME-sniffing with
+        no browser-side defense. A handful of headers in next.config.ts
+        closes this for the whole app in one change.
+
+[ ] 34. Lock question edits once a campaign goes live
+        A question can be freely edited while its campaign is in
+        Draft/Scheduled. Once the campaign has gone Live, editing is
+        locked — no versioning system needed, just a hard stop, since a
+        live campaign must never change what candidates are being
+        scored against mid-run.
+
+[ ] 30. PIPEDA consent on registration form (was #7)
+        /apply/[slug] needs a required consent checkbox + privacy policy
+        link. Store consent timestamp + IP on the candidate.
+
+[ ] 49. Lock down admin access — no self-signup (was #22)
+        Admin accounts are staff-provisioned only: PreCognise adds a
+        client's email to Clerk with an initial password; the client can
+        only change their password after first sign-in. No public
+        sign-up path for admins, ever.
+
+[ ] 78. Wire up a real test runner and cover scoring + anti-cheat logic (NEW)
+        The main app has zero test script in package.json — lib/*.test.ts
+        exist (node:test, no runner wired) but nothing runs them, and
+        there is no CI to catch a regression before it ships. This is not
+        abstract: the recent commit history (scheduledEnd-vs-durationSec
+        fix, disqualifyReason dedupe, colSpan/score-column fix, socket
+        disqualify gating fix) is a string of exactly the kind of bug a
+        unit-test suite over lib/scoring.ts, lib/campaign-utils.ts, and
+        socket-server/src/anticheat.ts + handlers.ts would have caught
+        before a candidate ever saw it. Wire `node --test` (or promote to
+        vitest if the suite grows) into package.json, then add coverage
+        for: speed-bonus math, negative marking floor at zero, percentile
+        ranking, discrimination index, and every disqualify path in
+        anticheat.ts. Treat this as the direct fix for why 23-27 keep
+        recurring, not a separate nice-to-have.
+
+PRIORITY TIER 2 — HIGH
+------------------------------------------------------------
+Directly requested core value, or a second hardening layer on top of
+Tier 1's fixes. No known live exploit, but blocks day-to-day usefulness
+or trust.
+
+[ ] 41. Show options + correct answer in the question builder dashboard
+        Today the builder list only shows the question text — admins
+        can't see the options or which one is marked correct without
+        opening edit mode. Show both inline in the list.
+
+[ ] 43. Per-question answer breakdown after campaign ends
+        For each question: show the correct answer and which candidate
+        picked which option. Today only aggregate stats (discrimination
+        index, difficulty, etc.) are shown, not the per-candidate detail.
+
+[ ] 44. Psychometric result summary per candidate
+        A candidate with, say, 10 psychometric answers should get an
+        auto-generated summary: a fit judgement, title, or percentage
+        score with a short justification of why — not just raw answers.
+
+[ ] 37. New question types: Case Study, Situational Judgement, Creative
+        (covers was #16, open-ended/short-answer)
+        - Case Study: scenario + follow-up question(s).
+        - Situational Judgement: "most / least effective" response
+          picks for a workplace scenario — high-value for hiring
+          judgement/fit, more discriminating than plain MCQ.
+        - Creative / free-text: open response, reviewed manually (or
+          scored later).
+
+[x] 35. Multi-select MCQ (was #17)
+        Let a question have 2, 3, or all options marked correct instead
+        of exactly one.
+
+[ ] 28. Fix waiting-room timer logic
+        Countdown should only appear if a candidate joins before the
+        scheduled start time. Anyone joining during the grace period
+        should skip the timer entirely and just get "Join Now."
+
+[ ] 32. Email anti-cheat instructions with the access link
+        The access-ID/join-link email candidates already receive should
+        also explain, in plain language, what will be required of them
+        (camera, fullscreen, single display, no tab-switching) before
+        they show up — so nothing is a surprise on exam day.
+
+[ ] 53. Webcam capture during exam
+        Snapshots or a live feed captured through the exam, stored per
+        session — visual evidence beyond client-side detection signals,
+        for disputed-disqualification cases. Today antiCheatCamera only
+        confirms the camera/mic permission is live (CameraSelfView is a
+        self-view mirror, nothing is captured or stored) — this is the
+        gap TestGorilla (30s webcam snapshots) and micro1 (screen +
+        webcam + gaze recording) both cover and we currently don't.
+
+[ ] 86. Scoped team roles within an admin account (NEW)
+        One Clerk user is the entire tenant today — there is no way to
+        invite a colleague as a "grader" (can only grade long/short
+        answers) or a "viewer" (read-only results access) without
+        handing over full admin control of settings, branding, and every
+        other campaign. TestGorilla and most enterprise ATS tools support
+        multi-seat teams; this is also what limits the blast radius of a
+        single compromised admin session. Add owner/grader/viewer roles
+        via Clerk organizations.
+
+[ ] 66. Kiosk-mode secure browser
+        OS-level lockdown during the exam — disable screenshots,
+        alt-tab/app-switching, and external applications — a harder
+        layer than the current in-browser JS detection.
+
+[ ] 79. Add missing database indexes on high-traffic foreign keys (NEW)
+        Question.campaignId has no index at all; Candidate's only
+        campaignId coverage is via @@unique([accessId, campaignId]) and
+        @@unique([email, campaignId]) — both lead with accessId/email,
+        not campaignId; Response's only coverage is
+        @@unique([candidateId, questionId]), which leads with
+        candidateId, so per-question analytics (discrimination index,
+        P-value, option frequency — all filtered by questionId) aren't
+        served by an index either. Postgres does not auto-index a
+        foreign-key column the way MySQL does, so every admin dashboard
+        query filtering "all X for this campaign/question" is scanning
+        more than it needs to. Fine at today's volumes; the whole pitch
+        is 15,000-candidate campaigns, so this should be fixed before one
+        actually runs that big, not after the first slow-dashboard report.
+
+[ ] 81. Structured error logging / error-tracking service (NEW)
+        Errors across the API surface (login, scoring, disqualify,
+        socket-server) go to console.error and nowhere else — nothing
+        pages anyone or aggregates failure rate. Wire a lightweight
+        error-tracking service (Sentry or equivalent) so a spike in
+        failed disqualifications or scoring errors during a live 15k-
+        candidate session is visible in real time, not discovered from a
+        support ticket afterward.
+
+PRIORITY TIER 3 — MEDIUM
+------------------------------------------------------------
+Meaningful improvements and easy wins. Worth doing, nothing breaks if
+they wait behind Tiers 1-2.
+
+[ ] 70. Candidate ratings & notes
+        Let an admin leave a rating or free-text note on a candidate
+        directly in the results view.
+
+[ ] 71. PDF export of results
+        Currently only CSV export exists; add a formatted PDF report
+        option.
+
+[ ] 40. Per-question "Preview" button
+        After adding a question, let the admin see exactly how it will
+        render to a candidate on the exam screen.
+
+[ ] 42. "Preview assessment" mode
+        A button to walk through the whole exam exactly as a candidate
+        would experience it, before going live.
+
+[x] 36. Configurable number of options per MCQ question
+        Admin picks how many options a question has, not fixed at 4.
+
+[ ] 38. Question bank — save and reuse across campaigns
+        Stop rebuilding the same questions for every new campaign. This
+        is also the gap behind "no test library" vs. TestGorilla's 350+
+        prebuilt tests — we don't need their library, but campaigns
+        should stop starting from a blank page.
+
+[ ] 39. Smart paste-to-build question import
+        Admin pastes raw text (e.g. copied from a Word doc or question
+        paper). System detects the question stem, options, and correct
+        answer automatically and drafts the question for the admin to
+        check and adjust before saving — no manual field-by-field entry.
+
+[ ] 31. Geo-restriction per campaign, not global (was #11, partial)
+        Admin UI already exists but only controls one global setting.
+        Move it onto the Campaign model so each campaign can set its
+        own allowed countries.
+
+[ ] 68. Candidate location/IP logging
+        Record the candidate's IP/approximate location per session, for
+        the integrity record and for enforcing geo-restriction (task
+        #31).
+
+[ ] 33. Full lifecycle email notifications (was #18)
+        Beyond credentials, send: 24h-before reminder, 1h-before final
+        reminder, session-opened notice, completion thank-you,
+        disqualification notice with reason + contact info, and
+        shortlisted next-steps. Needs cron-driven triggers.
+
+[ ] 45. Shortlisting pipeline in results page (was #13)
+        Status column (Pending / Shortlisted / Rejected / Interview),
+        bulk updates by score range, automated status-change emails.
+
+[ ] 47. Wave scheduling / candidate batching (was #12)
+        A "wave" layer — each wave a child campaign with its own
+        scheduled time and candidate subset, rolling up to a parent.
+
+[ ] 57. Candidate-side integrity audit report
+        AI-generated narrative summary of a candidate's integrity events
+        (tab-switches, camera flags, disqualification reason, etc.) for
+        admin review — separate from task #46's admin-action audit log
+        and task #43's per-question answer breakdown.
+
+[ ] 29. Polish multi-display detection screen
+        Update the wording/visuals of the multi-display block overlay.
+
+[ ] 52. Per-candidate live question progress (was #20)
+        Show which question each candidate is currently on in the live
+        session dashboard, not just JOINED/ACTIVE/COMPLETED status.
+
+    — Engineering & ops hygiene (new, from the technical review —
+      none of these are urgent alone, but doing them together is a
+      day or two of work that pays for itself the first time something
+      goes wrong in production) —
+
+[ ] 77. Stand up a CI pipeline (NEW)
+        No .github/workflows exist — lint, typecheck, and (once #78
+        lands) tests all run only on someone's machine, if at all,
+        before merging. A single workflow gating on lint + tsc + test +
+        build catches most breakage before it reaches main.
+
+[ ] 80. Add a health-check endpoint (NEW)
+        Neither the Next.js app nor the socket-server exposes a
+        /health or /api/health route — nothing for a load balancer or
+        uptime monitor to poll ahead of a live session, which matters
+        specifically because the whole pitch is "everyone sits the exam
+        at 9:00 AM sharp."
+
+[ ] 82. Schema-validate API input with zod (NEW)
+        Request bodies across app/api/** are checked with ad hoc
+        `?.trim()` / truthiness checks rather than a validation schema.
+        Works today; gets harder to keep consistent (and easier to leave
+        a hole in) as the number of routes grows. Zod is already a
+        natural fit given TypeScript is used throughout.
+
+[ ] 83. Add dependency vulnerability scanning (NEW)
+        No Dependabot config and no CI, so a known-vulnerable package
+        version can sit in package.json indefinitely with nothing
+        flagging it. Dependabot (or `npm audit --audit-level=high` as a
+        CI gate once #77 exists) closes this cheaply.
+
+[ ] 84. Commit a real .env.example (NEW)
+        No .env.example exists in the repo — JWT_SECRET,
+        INTERNAL_API_SECRET, DATABASE_URL, DIRECT_URL, REDIS_URL and
+        friends aren't self-documented for a new environment or a new
+        engineer. Add the file, and a one-line note on where/how each
+        secret is rotated.
+
+[ ] 85. Write a data-retention policy for candidate PII (NEW)
+        Candidate names, emails, password hashes, disqualification
+        reasons, and every raw exam answer appear to be kept
+        indefinitely with no deletion path. Pairs with task #30's
+        PIPEDA consent — worth having an actual answer to "how long do
+        you keep my data" before a client's legal team asks it first.
+
+PRIORITY TIER 4 — LOW
+------------------------------------------------------------
+Nice-to-have or dependent on business direction (bigger clients, sales
+motion) rather than the current campaign's needs.
+
+[ ] 46. Admin audit log (was #15)
+        Record which admin started, paused, ended, or disqualified —
+        actor, action, target, timestamp.
+
+[ ] 48. Invite-only campaign mode (was #14)
+        Campaign-level toggle to disable self-registration entirely.
+
+[ ] 69. Department/skill heatmap dashboard
+        Aggregate scores by skill area or department for an
+        organization-wide view — mainly useful if we support internal
+        employee skill assessments, not just hiring campaigns.
+
+[ ] 54. Facial recognition identity verification
+        Confirm the person taking the exam matches who registered;
+        detect multiple faces in frame or candidate absence mid-exam.
+
+[ ] 58. SSO for admin login (SAML/OAuth)
+        Lets an enterprise client's staff sign in with their existing
+        company identity provider instead of a PreCognise-issued password.
+
+[ ] 87. SOC 2 (or equivalent) compliance certification program (NEW)
+        TestGorilla markets SOC 2 directly on its features page; we have
+        nothing to point to. Not worth starting until the fixes above
+        (especially the Tier 1 auth-hardening items, #46's audit log, and
+        #85's retention policy) are in place — a lot of what an auditor
+        asks for is exactly that list — but it's the credential that
+        unlocks larger enterprise/bank-scale deals, which is the exact
+        market this platform is built for.
+
+[ ] 59. ATS integrations + API/Zapier
+        Workday, Greenhouse, BambooHR, etc., plus a general API — so a
+        client can plug candidate/result data into their existing HR
+        stack instead of relying on CSV export.
+
+[ ] 67. Live human proctor intervention
+        Let a human proctor watch a session and intervene via chat or
+        pause the exam in real time, for high-stakes sessions.
+
+[ ] 50. Global action toast notification
+        Whenever an action completes anywhere in the admin app, show a
+        small confirmation toast bottom-left ("Question saved", "Campaign
+        paused", etc.) so it's always clear what just happened.
+
+[ ] 51. Video response question type (was #19)
+        Recorded video response, with playback in admin results view.
+
+PRIORITY TIER 5 — SPECULATIVE / FUTURE
+------------------------------------------------------------
+New assessment-depth capabilities, mostly AI-heavy builds. Worth
+revisiting once Tiers 1-4 are clear, roughly ordered by fit with a
+customer-facing hiring assessment (most relevant first).
+
+[ ] 88. AI conversational interview agent (NEW)
+        The one category both TestGorilla (AI-avatar video interviews)
+        and micro1 (its "Zara" voice interviewer, with live coding +
+        system-design rounds and an auto-computed integrity score) build
+        their whole pitch around, and we have nothing like it. Distinct
+        from task #51 (a candidate just records a video, nothing else
+        happens) and task #61 (a single async prompt gets auto-scored
+        after the fact): this is a multi-turn, adaptive conversation —
+        the system asks a question, listens/reads the answer, and picks
+        its next question based on it, live, the way a human interviewer
+        would. This is the single most direct way to compete with
+        TestGorilla and micro1 head-on rather than staying in our own
+        lane — worth scoping seriously once the Tier 1-2 foundation is
+        solid enough to build AI features on top of with confidence.
+
+[ ] 63. Communication skill scoring (audio)
+        AI analysis of a recorded audio response for fluency,
+        pronunciation, and listening comprehension.
+
+[ ] 64. AI-scored writing assessment
+        Grammar and coherence scoring for free-text/essay responses
+        (builds on the Creative/free-text type in task #37).
+
+[ ] 56. AI job-description-to-assessment builder
+        Admin pastes a job description; system suggests a relevant
+        question set to start from.
+
+[ ] 55. Adaptive-difficulty aptitude test type
+        Numerical/logical/verbal reasoning questions where difficulty
+        adjusts based on the candidate's running performance.
+
+[ ] 65. Resume scoring
+        Parse an uploaded resume and score it against the role, as a
+        pre-screen before the candidate takes the exam.
+
+[ ] 61. AI-scored async interview questions
+        Distinct from task #51 (plain video recording): candidate
+        answers a prompt on video/audio and the system auto-scores the
+        response content, not just stores it for manual review.
+
+[ ] 62. Job simulation question format
+        A hands-on task simulating a real piece of the job (e.g. inbox
+        triage, spreadsheet cleanup) rather than a written scenario —
+        distinct from Case Study (task #37).
+
+[ ] 60. Coding assessment format
+        A coding question type with a built-in code editor/IDE,
+        language-specific challenges, debugging challenges, code
+        playback, and automated test-case scoring. This is the single
+        biggest category gap against all three competitors — TestGorilla,
+        Airwork AI (as "real-work assignments") and micro1 (live coding +
+        system design) all have some form of this and we have none.
+
+[ ] 72. Multi-language support + auto-translation
+        Translate assessment content and candidate-facing UI into
+        other languages, with transcripts for video/audio responses.
 
 ============================================================
-
-PHASE 4 — Operational Completeness
-------------------------------------------------------------
-
-[ ] 12. Wave scheduling / candidate batching
-        Problem : 15-20k candidates cannot sit one simultaneous session.
-                  No concept of cohorts or waves exists in the platform.
-        Fix     : Add a "wave" layer — each wave is a child campaign
-                  with its own scheduled time and candidate subset,
-                  linked to a parent campaign. Results roll up to parent.
-
-[ ] 13. Shortlisting pipeline in results page
-        Problem : After CSV export the platform's role ends. No way to
-                  mark candidates as shortlisted/rejected within the tool.
-        Fix     : Add status column to results table
-                  (Pending / Shortlisted / Rejected / Interview).
-                  Allow bulk status updates by score range.
-                  Send automated emails on status change (needs email).
-
-[ ] 14. Invite-only campaign mode
-        Problem : /apply/[slug] allows anyone with the link to register,
-                  inflating counts and allowing unauthorized entries.
-        Fix     : Add campaign-level toggle: "Open registration" vs
-                  "Invite-only". In invite-only mode, disable the
-                  self-registration form entirely.
-
-[ ] 15. Admin audit log
-        Problem : No record of which admin started, paused, ended, or
-                  disqualified. Required compliance trail for a bank.
-        Fix     : Create AuditLog table. Record actor, action, target,
-                  and timestamp for all admin actions.
-
-[ ] 22. Admin sign-in entry point + restricted admin access (no self-signup)
-        Problem : The landing page (app/page.tsx) nav only has a "Log in"
-                  button for candidates — no visible way for an admin to
-                  reach the sign-in page without already knowing the
-                  /admin URL. Separately, there is nothing today stopping
-                  anyone from becoming an admin — access needs to be
-                  locked down since admin accounts belong to real paying
-                  clients who facilitate their own campaigns.
-        Fix     : Add an "Admin" button beside "Log in" in the nav,
-                  linking to /admin (redirects through clerkMiddleware to
-                  /admin/sign-in). Admin accounts must never be
-                  self-service: only PreCognise staff add a client's
-                  email to Clerk, with a PreCognise-issued initial
-                  password. The admin signs in with that email + provided
-                  password, and can only change their password after that
-                  first successful sign-in — never before, and never
-                  through a public sign-up form. Remove/disable any Clerk
-                  sign-up path for the admin flow (dashboard restricted
-                  sign-up mode + invite-only), so no one can register as
-                  an admin on their own.
-
-============================================================
-
-PHASE 5 — Assessment Depth + Lifecycle Emails
-------------------------------------------------------------
-
-[ ] 16. Open-ended / short-answer question type
-        Problem : Platform only supports MCQ, image MCQ, psychometric
-                  (Likert), and rating. No free-text response.
-        Fix     : Add "short_answer" to QuestionType enum. Update
-                  question editor, exam renderer, and scoring logic.
-
-[ ] 17. Multi-select MCQ
-        Problem : All MCQ is single-answer only.
-        Fix     : Add "mcq_multi" variant. Update schema, editor,
-                  renderer, and scoring (partial credit optional).
-
-[ ] 18. Full lifecycle email notifications
-        Problem : No automated emails across the candidate lifecycle.
-        Emails needed:
-          - Credentials created (import)     -> already done (gap 3)
-          - 24h before exam                  -> reminder + instructions
-          - 1h before exam                   -> final reminder
-          - Exam opened / session live        -> "session is now open"
-          - Completion                        -> thank you message
-          - Disqualification                  -> reason + contact info
-          - Shortlisted                       -> next steps
-        Fix     : Build email trigger hooks at each lifecycle event.
-                  Integrate with cron jobs for timed reminders.
-                  Use React Email templates for polish.
-
-[ ] 19. Video response question type
-        Problem : No recorded video response question type available.
-        Fix     : Add "video" to QuestionType enum. Integrate with a
-                  video recording/storage provider (e.g. Mux, Cloudinary).
-                  Add playback in admin results view.
-
-[ ] 20. Per-candidate question progress in live session dashboard
-        Problem : Live session shows JOINED/ACTIVE/COMPLETED status
-                  but not which question each candidate is on.
-        Fix     : Track currentQuestionIndex on Candidate. Surface it
-                  in the admin live session candidate table.
-
-============================================================
-Total remaining: 17 of 22 tasks
+Total tracked: 65 tasks (23-88) across 5 tiers — 63 not yet started,
+2 done inline (35, 36).
+Note: #73 (Talent-sourcing marketplace) removed 2026-07-29 — precognise.co
+(the sister PreCognize repo) already provides this; not worth rebuilding.
+Note: 74-88 added 2026-09-07 from a codebase security/technical review
+plus a feature comparison against TestGorilla, Airwork AI and micro1
+(published report: https://claude.ai/code/artifact/0a16a7bb-7f73-4ac5-bdd9-b94bd8088140).
+Where we're already ahead of all three and shouldn't lose it while
+chasing the gaps above: atomic race-free single-device enforcement,
+true real-time (not polling) violation detection, exposed
+discrimination-index/P-value analytics, and full white-label branding.
 ============================================================

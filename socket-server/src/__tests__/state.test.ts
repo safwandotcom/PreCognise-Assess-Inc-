@@ -10,7 +10,6 @@ import {
   removeCandidate,
   getCandidate,
   updateStatus,
-  incrementTabSwitch,
   addAdminSocket,
   removeAdminSocket,
   getAdminSockets,
@@ -49,13 +48,6 @@ test("updateStatus changes status, leaves other fields intact", async () => {
   expect(candidate?.status).toBe("DISQUALIFIED");
   expect(candidate?.accessId).toBe("A001");
   expect(candidate?.tabSwitchCount).toBe(0);
-});
-
-test("incrementTabSwitch returns incrementing counts", async () => {
-  await addCandidate("c1", "s1", "A001");
-  expect(await incrementTabSwitch("c1")).toBe(1);
-  expect(await incrementTabSwitch("c1")).toBe(2);
-  expect((await getCandidate("c1"))?.tabSwitchCount).toBe(2);
 });
 
 test("addAdminSocket / getAdminSockets / removeAdminSocket", async () => {

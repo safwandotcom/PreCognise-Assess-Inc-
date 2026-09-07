@@ -132,6 +132,12 @@ model Candidate {
   // rate limiting, which bounds request rate but not total guesses against
   // one still-valid code.
   otpAttempts                Int             @default(0)
+  // PIPEDA consent — set for self-registered (open-join) candidates only,
+  // captured at the moment their account was created. Null for
+  // admin-imported candidates, who never went through a self-registration
+  // form to consent on.
+  consentedAt                DateTime?
+  consentIp                  String?
   acknowledgedAt             DateTime?
   // Set once the candidate has confirmed camera/fullscreen/single-display
   // access on the pre-waiting-room device-check screen. Deliberately

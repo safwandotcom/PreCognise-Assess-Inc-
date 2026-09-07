@@ -26,6 +26,7 @@ async function createOpenJoinCandidate(
   campaign: { id: string; name: string; maxCandidates: number | null },
   emailNorm: string,
   trimmedName: string,
+  consentIp: string,
 ): Promise<Candidate> {
   for (let attempt = 1; attempt <= MAX_OPEN_JOIN_CREATE_ATTEMPTS; attempt++) {
     const existingAccessIds = await prisma.candidate.findMany({
@@ -51,6 +52,11 @@ async function createOpenJoinCandidate(
           generatedPassword: plainPassword,
           campaignId: campaign.id,
           status: CandidateStatus.REGISTERED,
+          // PIPEDA consent (task #30) — the caller has already verified
+          // body.consent === true before reaching here; this records when
+          // and from where.
+          consentedAt: new Date(),
+          consentIp,
         },
       });
     } catch (err) {
@@ -73,7 +79,7 @@ async function createOpenJoinCandidate(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { accessId, password, joinToken, mode, name, email } = body;
+    const { accessId, password, joinToken, mode, name, email, consent } = body;
 
     // Rate-limit: a loose per-IP bucket that catches obvious spray attacks
     // without punishing a shared exam-centre/school network, plus a tight
@@ -116,6 +122,11 @@ export async function POST(req: NextRequest) {
       if (!name?.trim() || !email?.trim()) {
         return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
       }
+      // PIPEDA consent (task #30) — server-enforced, not just a disabled
+      // submit button on the client.
+      if (consent !== true) {
+        return NextResponse.json({ error: "You must agree to the privacy policy to register" }, { status: 400 });
+      }
 
       const lastEntryAt = campaignLastEntryAt(campaign);
       if (lastEntryAt && new Date() > lastEntryAt) {
@@ -131,7 +142,7 @@ export async function POST(req: NextRequest) {
         candidate = existingCandidate;
       } else {
         try {
-          candidate = await createOpenJoinCandidate(campaign, emailNorm, name.trim());
+          candidate = await createOpenJoinCandidate(campaign, emailNorm, name.trim(), ip);
         } catch (err) {
           if (err instanceof CampaignAtCapacityError) {
             return NextResponse.json({ error: "Campaign is at maximum candidate capacity" }, { status: 422 });

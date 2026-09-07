@@ -17,6 +17,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +27,7 @@ function LoginForm() {
     setLoading(true);
     try {
       const body = openJoin
-        ? { mode: "open", name, email, joinToken }
+        ? { mode: "open", name, email, joinToken, consent }
         : { accessId, password, joinToken };
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -91,10 +92,31 @@ function LoginForm() {
                   className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
                 />
               </div>
+              <label className="flex cursor-pointer items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={e => setConsent(e.target.checked)}
+                  required
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-gray-300 accent-[#6366F1]"
+                />
+                <span className="text-xs leading-relaxed text-[#64748B]">
+                  I agree to the{" "}
+                  <a
+                    href="https://precognise.co/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#6366F1] hover:underline underline-offset-2"
+                  >
+                    Privacy Policy
+                  </a>
+                  {" "}and consent to my personal information being collected and processed for this assessment.
+                </span>
+              </label>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !consent}
                 className="w-full rounded-lg bg-[#6366F1] py-2 text-sm font-semibold text-white disabled:opacity-60"
               >
                 {loading ? "Joining…" : "Join Assessment"}

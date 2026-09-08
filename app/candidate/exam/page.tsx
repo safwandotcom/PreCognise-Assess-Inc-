@@ -21,6 +21,14 @@ import CameraSelfView from "@/components/exam/CameraSelfView";
 const SCREENSHOT_TRIGGER_KEYS = new Set(["PrintScreen", "F13"]);
 const MAC_SCREENSHOT_SHIFT_KEYS = new Set(["3", "4", "5", "s", "S"]);
 
+// iOS Safari on iPhone (and most in-app browser webviews) don't implement
+// the Fullscreen API for regular pages at all — a platform limitation, not
+// something a JS workaround can fix. Only called client-side, inside
+// effects, never at module scope.
+function isFullscreenSupported(): boolean {
+  return typeof document.documentElement.requestFullscreen === "function";
+}
+
 export default function ExamPage() {
   const router = useRouter();
   const branding = useBranding();
@@ -341,31 +349,44 @@ export default function ExamPage() {
         settingsRef.current = { ...SETTINGS_DEFAULTS, ...data };
         configLoadedRef.current = true;
         if (settingsRef.current.antiCheatFullscreen) {
-          // requestFullscreen() can fail silently here — this runs inside an
-          // async fetch().then(), not a direct user-gesture handler, so it
-          // frequently lacks the "transient activation" the Fullscreen API
-          // requires and rejects with no error surfaced. It can also resolve
-          // and then get auto-exited a moment later by the browser itself
-          // (Chrome exits fullscreen the instant a permission prompt, e.g.
-          // the camera/mic request below, appears — a built-in anti-phishing
-          // measure). Explicitly verify the real state after the promise
-          // settles (success or failure) instead of assuming it worked.
-          document.documentElement.requestFullscreen().catch(() => {}).then(() => {
-            if (mountedRef.current && !document.fullscreenElement) {
-              reportFullscreenExit();
-            }
-          });
-          // Backstop for the timing case the check above can't fully cover:
-          // requestFullscreen() resolving successfully and *then* getting
-          // silently auto-exited a moment later (e.g. by the camera/mic
-          // prompt below), with no guarantee that a fullscreenchange event
-          // reliably fires for that specific browser-triggered exit. Poll
-          // actual state directly, the same way checkMultiDisplay does for
-          // multi-monitor detection just below, so a candidate can't end up
-          // outside fullscreen and unnoticed just because no event fired.
-          fullscreenIntervalRef.current = setInterval(() => {
-            if (!document.fullscreenElement) reportFullscreenExit();
-          }, 2000);
+          if (!isFullscreenSupported()) {
+            // iOS Safari on iPhone (and most in-app browser webviews) don't
+            // implement the Fullscreen API for regular pages at all — a
+            // platform limitation, not something a JS workaround can fix.
+            // Skip enforcement entirely rather than trap the candidate
+            // behind a "return to fullscreen" prompt that can never
+            // succeed; record it for the admin (live view + results).
+            fetch("/api/candidate/fullscreen-unsupported", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${getToken()}` },
+            }).catch(() => {});
+          } else {
+            // requestFullscreen() can fail silently here — this runs inside an
+            // async fetch().then(), not a direct user-gesture handler, so it
+            // frequently lacks the "transient activation" the Fullscreen API
+            // requires and rejects with no error surfaced. It can also resolve
+            // and then get auto-exited a moment later by the browser itself
+            // (Chrome exits fullscreen the instant a permission prompt, e.g.
+            // the camera/mic request below, appears — a built-in anti-phishing
+            // measure). Explicitly verify the real state after the promise
+            // settles (success or failure) instead of assuming it worked.
+            document.documentElement.requestFullscreen().catch(() => {}).then(() => {
+              if (mountedRef.current && !document.fullscreenElement) {
+                reportFullscreenExit();
+              }
+            });
+            // Backstop for the timing case the check above can't fully cover:
+            // requestFullscreen() resolving successfully and *then* getting
+            // silently auto-exited a moment later (e.g. by the camera/mic
+            // prompt below), with no guarantee that a fullscreenchange event
+            // reliably fires for that specific browser-triggered exit. Poll
+            // actual state directly, the same way checkMultiDisplay does for
+            // multi-monitor detection just below, so a candidate can't end up
+            // outside fullscreen and unnoticed just because no event fired.
+            fullscreenIntervalRef.current = setInterval(() => {
+              if (!document.fullscreenElement) reportFullscreenExit();
+            }, 2000);
+          }
         }
         if (settingsRef.current.antiCheatCamera) {
           setCameraRequired(true);
@@ -524,7 +545,7 @@ export default function ExamPage() {
     };
 
     const onFullscreenChange = () => {
-      if (!document.fullscreenElement && settingsRef.current.antiCheatFullscreen) {
+      if (!document.fullscreenElement && settingsRef.current.antiCheatFullscreen && isFullscreenSupported()) {
         reportFullscreenExit();
       }
     };

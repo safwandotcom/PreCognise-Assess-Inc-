@@ -23,6 +23,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       disqualifyReason: true,
       tabSwitchCount: true,
       generatedPassword: true,
+      fullscreenUnsupported: true,
     },
   });
   const scoreSums = await prisma.response.groupBy({

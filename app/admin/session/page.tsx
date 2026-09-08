@@ -28,6 +28,7 @@ interface Candidate {
   disqualifyReason: string | null;
   score: number;
   flagged: boolean;
+  fullscreenUnsupported: boolean;
 }
 
 export default function LiveSessionPage() {
@@ -275,6 +276,14 @@ export default function LiveSessionPage() {
                             <p className="mt-0.5 max-w-[220px] whitespace-pre-line text-[10px] text-[#94A3B8]">{c.disqualifyReason}</p>
                           )}
                         </>
+                      )}
+                      {c.fullscreenUnsupported && (
+                        <span
+                          title="This candidate's device (e.g. iPhone) doesn't support fullscreen mode — the requirement was skipped for their session."
+                          className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
+                        >
+                          No fullscreen
+                        </span>
                       )}
                     </td>
                     <td

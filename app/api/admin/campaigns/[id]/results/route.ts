@@ -66,6 +66,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         tabSwitchCount: true,
         multiDisplayViolationCount: true,
         disqualifyReason: true,
+        fullscreenUnsupported: true,
       },
     });
 
@@ -116,6 +117,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         tabSwitchCount: c.tabSwitchCount,
         multiDisplayViolationCount: c.multiDisplayViolationCount,
         disqualifyReason: c.disqualifyReason,
+        fullscreenUnsupported: c.fullscreenUnsupported,
         totalScore,
         rawScore,
         correctCount,

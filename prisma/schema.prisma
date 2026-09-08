@@ -138,6 +138,13 @@ model Candidate {
   // form to consent on.
   consentedAt                DateTime?
   consentIp                  String?
+  // Set when this candidate's device doesn't support the Fullscreen API at
+  // all (iOS Safari on iPhone, most in-app browser webviews) — a platform
+  // limitation, not something JS can work around. Fullscreen enforcement is
+  // skipped for this candidate rather than trapping them behind an
+  // unwinnable "return to fullscreen" prompt; this flag is the record that
+  // it happened, surfaced to the admin in the live view and results.
+  fullscreenUnsupported      Boolean         @default(false)
   acknowledgedAt             DateTime?
   // Set once the candidate has confirmed camera/fullscreen/single-display
   // access on the pre-waiting-room device-check screen. Deliberately

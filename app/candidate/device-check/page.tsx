@@ -16,7 +16,16 @@ interface DeviceCheckData {
   antiCheat: AntiCheat;
 }
 
-type StepStatus = "pending" | "checking" | "granted" | "denied";
+type StepStatus = "pending" | "checking" | "granted" | "denied" | "unsupported";
+
+// iOS Safari on iPhone (and most in-app browser webviews) don't implement
+// the Fullscreen API for regular pages at all — a platform limitation, not
+// something a JS workaround can fix. Feature-detect before ever attempting
+// requestFullscreen() rather than trapping the candidate behind a "return
+// to fullscreen" prompt that can never succeed on that device.
+function isFullscreenSupported(): boolean {
+  return typeof document.documentElement.requestFullscreen === "function";
+}
 
 export default function DeviceCheckPage() {
   const router = useRouter();
@@ -57,6 +66,26 @@ export default function DeviceCheckPage() {
       .catch(() => setError("Failed to load device check. Please refresh."))
       .finally(() => setLoading(false));
   }, [router]);
+
+  // If this device can't do real fullscreen at all, skip the requirement
+  // entirely rather than offering a button that can never succeed — and
+  // record it so the admin can see this candidate's session ran without
+  // fullscreen enforcement, in the live view and results.
+  useEffect(() => {
+    const checkFullscreenSupport = () => {
+      if (!data?.antiCheat.fullscreen) return;
+      if (isFullscreenSupported()) return;
+      setFullscreenStatus("unsupported");
+      fetch("/api/candidate/fullscreen-unsupported", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      }).catch(() => {
+        // Non-fatal — the exam page detects and records this independently
+        // too, as a safety net.
+      });
+    };
+    checkFullscreenSupport();
+  }, [data?.antiCheat.fullscreen]);
 
   // Single-display is a passive check (screen.isExtended needs no
   // permission) — poll it while it's still showing extended, so a candidate
@@ -114,7 +143,7 @@ export default function DeviceCheckPage() {
   const allStepsReady =
     data !== null &&
     (!data.antiCheat.camera || cameraStatus === "granted") &&
-    (!data.antiCheat.fullscreen || fullscreenStatus === "granted") &&
+    (!data.antiCheat.fullscreen || fullscreenStatus === "granted" || fullscreenStatus === "unsupported") &&
     (!data.antiCheat.multiDisplay || displayStatus === "granted");
 
   const handleContinue = useCallback(async () => {
@@ -198,10 +227,14 @@ export default function DeviceCheckPage() {
           {ac.fullscreen && (
             <DeviceCheckStep
               title="Fullscreen mode"
-              description="This assessment requires fullscreen mode for the entire exam."
+              description={
+                fullscreenStatus === "unsupported"
+                  ? "Your browser doesn't support fullscreen mode — continuing without it. This is noted on your session."
+                  : "This assessment requires fullscreen mode for the entire exam."
+              }
               status={fullscreenStatus}
               accent={branding.primaryColour}
-              onAction={requestFullscreenAccess}
+              onAction={fullscreenStatus === "unsupported" ? undefined : requestFullscreenAccess}
               actionLabel={fullscreenStatus === "denied" ? "Try again" : "Enter fullscreen"}
             />
           )}
@@ -305,6 +338,15 @@ function StatusIcon({ status, accent }: { status: StepStatus; accent: string }) 
       <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100">
         <svg className="h-3 w-3 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </div>
+    );
+  }
+  if (status === "unsupported") {
+    return (
+      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100">
+        <svg className="h-3 w-3 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3.75h.007M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
     );

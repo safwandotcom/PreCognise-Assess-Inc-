@@ -15,6 +15,7 @@ interface CandidateResult {
   status: string;
   tabSwitchCount: number;
   multiDisplayViolationCount: number;
+  fullscreenUnsupported: boolean;
   disqualifyReason: string | null;
   totalScore: number;
   rawScore: number;
@@ -492,6 +493,14 @@ export default function CampaignResultsPage({
                             {c.name}
                           </Link>
                           <p className="text-xs text-[#64748B]">{c.email}</p>
+                          {c.fullscreenUnsupported && (
+                            <span
+                              className="mt-0.5 inline-block rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
+                              title="This candidate's device (e.g. iPhone) doesn't support fullscreen mode — the requirement was skipped for their session."
+                            >
+                              No fullscreen (device unsupported)
+                            </span>
+                          )}
                           {c.status === "DISQUALIFIED" && c.disqualifyReason && (
                             <p className="mt-0.5 text-xs text-[#94A3B8] italic">
                               {c.disqualifyReason.length > 60

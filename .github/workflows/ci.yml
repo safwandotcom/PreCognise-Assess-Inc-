@@ -30,7 +30,16 @@ jobs:
 
       - run: npm test
 
+      # GitHub withholds repository secrets from workflow runs triggered by
+      # Dependabot PRs (treated like fork PRs, as a supply-chain-security
+      # measure) — this step would fail on every Dependabot PR regardless of
+      # the actual dependency change, since it can't read JWT_SECRET etc.
+      # Skip it there; Vercel's own preview deployment (a separate secret
+      # store, unaffected by this restriction) is what actually validates
+      # the build for those PRs. lint/typecheck/test above don't need
+      # secrets and still run normally.
       - name: Build
+        if: github.actor != 'dependabot[bot]'
         run: npm run build
         env:
           # See .env.example for what each of these is and where it comes from.

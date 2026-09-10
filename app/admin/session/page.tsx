@@ -55,6 +55,7 @@ export default function LiveSessionPage() {
   }, [liveCampaign?.id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: fetch-on-mount + poll
     fetchCampaigns();
     // 60s polling fallback
     pollingRef.current = setInterval(fetchCampaigns, 60_000);
@@ -63,6 +64,7 @@ export default function LiveSessionPage() {
 
   useEffect(() => {
     if (!liveCampaign) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: fetch-on-mount for the now-live campaign
     fetchLiveCandidates();
     const socket = getAdminSocket();
     socket.on("stats:update", fetchLiveCandidates);
@@ -223,7 +225,7 @@ export default function LiveSessionPage() {
                 Send
               </button>
             </div>
-            <p className="text-xs text-[#64748B] mt-1">Appears instantly on every candidate's screen for this campaign.</p>
+            <p className="text-xs text-[#64748B] mt-1">Appears instantly on every candidate&apos;s screen for this campaign.</p>
             {broadcastStatus === "sent" && (
               <p className="text-xs text-green-600 font-medium">Message sent — candidates will see it within 20 seconds.</p>
             )}

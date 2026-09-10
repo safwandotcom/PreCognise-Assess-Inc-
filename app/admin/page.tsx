@@ -41,6 +41,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: fetch-on-mount + poll
     fetchStats();
     fetchCampaigns();
     const interval = setInterval(fetchStats, 3000);

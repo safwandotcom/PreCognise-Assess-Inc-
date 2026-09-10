@@ -12,6 +12,7 @@ export default function ResultPage() {
   useEffect(() => {
     const msg = sessionStorage.getItem("completionMessage");
     const total = sessionStorage.getItem("totalQuestions");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: reading one-shot sessionStorage on mount
     setMessage(msg);
     if (total) setTotalQuestions(Number(total));
     // Animate in after mount

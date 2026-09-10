@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same branch/PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (lint, typecheck, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # See .env.example for what each of these is and where it comes from.
+          # Values live in repo Settings -> Secrets and variables -> Actions.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${{ vars.NEXT_PUBLIC_CLERK_SIGN_IN_URL }}
+          NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL: ${{ vars.NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          ADMIN_ALLOWED_EMAILS: ${{ secrets.ADMIN_ALLOWED_EMAILS }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_SOCKET_URL: ${{ vars.NEXT_PUBLIC_SOCKET_URL }}
+
+  socket-server:
+    name: socket-server (typecheck, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: socket-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: socket-server/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test

@@ -1,7 +1,9 @@
 // jest.mock is hoisted above imports, so the mock replaces ./redis-client
 // before state.ts loads it — the mock Redis is what state.ts operates on.
+// mockIoRedis's "mock" prefix satisfies jest's out-of-scope-variable check for hoisted factories.
+import mockIoRedis from "ioredis-mock";
 jest.mock("../redis-client", () => ({
-  redis: new (require("ioredis-mock"))(),
+  redis: new mockIoRedis(),
 }));
 
 import { redis } from "../redis-client";
@@ -17,7 +19,7 @@ import {
 
 beforeEach(async () => {
   // Clear all Redis keys between tests so each test starts from a clean slate.
-  await (redis as any).flushall();
+  await redis.flushall();
 });
 
 test("addCandidate stores candidate; getCandidate retrieves it", async () => {

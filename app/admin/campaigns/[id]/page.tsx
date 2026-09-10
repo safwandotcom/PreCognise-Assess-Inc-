@@ -272,6 +272,7 @@ function OverviewTab({
 
   // Sync form when campaign changes (e.g. after reload)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: syncing local form state from a prop that changes on reload
     setName(campaign.name);
     setLogoUrl(campaign.logoUrl ?? "");
     setBgColor(campaign.bgColor ?? "#F8FAFC");
@@ -2444,7 +2445,7 @@ function CandidatesTab({
               Bulk import via CSV
             </h2>
             <p className="mt-0.5 text-xs text-[#64748B]">
-              Upload a .csv or Excel .xlsx file with a name column and an email column (any order). We'll generate a unique access ID and password for each row automatically.
+              Upload a .csv or Excel .xlsx file with a name column and an email column (any order). We&apos;ll generate a unique access ID and password for each row automatically.
             </p>
           </div>
         </div>
@@ -2467,7 +2468,7 @@ function CandidatesTab({
             Click to upload CSV or Excel
           </span>
           <span className="mt-0.5 text-xs text-[#64748B]">
-            Upload a .csv or Excel .xlsx file with a name column and an email column (any order). We'll generate a unique access ID and password for each row automatically.
+            Upload a .csv or Excel .xlsx file with a name column and an email column (any order). We&apos;ll generate a unique access ID and password for each row automatically.
           </span>
           <input
             type="file"
@@ -2887,10 +2888,12 @@ export default function CampaignManagePage({
   }, [id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: fetch-on-mount
     fetchCampaign();
   }, [fetchCampaign]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: fetch-on-tab-change
     if (tab === "candidates") fetchCandidates();
   }, [tab, fetchCandidates]);
 

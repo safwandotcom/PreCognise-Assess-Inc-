@@ -340,25 +340,32 @@ they wait behind Tiers 1-2.
         eslint-disable-next-line + reason (rule stays enforced for new
         code). See branch feat/ci-pipeline.
 
-[ ] 80. Add a health-check endpoint (NEW)
-        Neither the Next.js app nor the socket-server exposes a
-        /health or /api/health route — nothing for a load balancer or
-        uptime monitor to poll ahead of a live session, which matters
-        specifically because the whole pitch is "everyone sits the exam
-        at 9:00 AM sharp."
+[x] 80. Add a health-check endpoint (NEW)
+        GET /api/health (Next.js) checks DB connectivity (Prisma
+        `SELECT 1`), 200/503; Redis is informational-only there,
+        matching lib/rate-limit.ts's existing fail-open stance. GET
+        /health (socket-server) checks Redis directly and does fail
+        the check on it, since Redis is load-bearing there (adapter +
+        candidate state). Both unauthenticated, both return quickly.
 
-[ ] 82. Schema-validate API input with zod (NEW)
-        Request bodies across app/api/** are checked with ad hoc
-        `?.trim()` / truthiness checks rather than a validation schema.
-        Works today; gets harder to keep consistent (and easier to leave
-        a hole in) as the number of routes grows. Zod is already a
-        natural fit given TypeScript is used throughout.
+[x] 82. Schema-validate API input with zod (NEW)
+        Scoped to the routes that actually parse a JSON body under
+        /api/auth/*, /api/candidate/*, /api/assessment/* — turned out
+        to be just 4 (login, forgot-password, verify-otp,
+        submit-answer); everything else there is a GET or takes no
+        body. Added lib/validate-body.ts (parseBody + nonBlankString
+        helpers) and a colocated schema.ts per route, each with its
+        own schema.test.ts. Careful about per-field trim semantics —
+        several fields (password, OTP code, joinToken in most routes)
+        are compared/looked-up raw downstream and must not be
+        transformed, only presence-checked. The other ~38 routes
+        (mostly admin, already behind Clerk auth) are unconverted —
+        worth a follow-up if this pattern proves out.
 
-[ ] 83. Add dependency vulnerability scanning (NEW)
-        No Dependabot config and no CI, so a known-vulnerable package
-        version can sit in package.json indefinitely with nothing
-        flagging it. Dependabot (or `npm audit --audit-level=high` as a
-        CI gate once #77 exists) closes this cheaply.
+[x] 83. Add dependency vulnerability scanning (NEW)
+        .github/dependabot.yml — weekly npm updates for the root app
+        and socket-server (separate lockfiles), plus github-actions
+        updates for the CI workflow's own pinned actions.
 
 [x] 84. Commit a real .env.example (NEW)
         .env.example (root) and socket-server/.env.example — every env

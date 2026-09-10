@@ -329,11 +329,16 @@ they wait behind Tiers 1-2.
       day or two of work that pays for itself the first time something
       goes wrong in production) —
 
-[ ] 77. Stand up a CI pipeline (NEW)
-        No .github/workflows exist — lint, typecheck, and (once #78
-        lands) tests all run only on someone's machine, if at all,
-        before merging. A single workflow gating on lint + tsc + test +
-        build catches most breakage before it reaches main.
+[x] 77. Stand up a CI pipeline (NEW)
+        .github/workflows/ci.yml — two jobs (app: lint, typecheck,
+        test, build; socket-server: typecheck, test), gating push-to-
+        main and every PR. Needed real fixes to go green: a broken
+        socket-server tsconfig ("types": [] hid Jest's globals from
+        tsc), require()-in-hoisted-mock + unnecessary `as any` casts
+        in two test files, 5 unescaped-apostrophe JSX errors, and 8
+        deliberate fetch-on-mount/poll effects suppressed with scoped
+        eslint-disable-next-line + reason (rule stays enforced for new
+        code). See branch feat/ci-pipeline.
 
 [ ] 80. Add a health-check endpoint (NEW)
         Neither the Next.js app nor the socket-server exposes a
@@ -355,12 +360,14 @@ they wait behind Tiers 1-2.
         flagging it. Dependabot (or `npm audit --audit-level=high` as a
         CI gate once #77 exists) closes this cheaply.
 
-[ ] 84. Commit a real .env.example (NEW)
-        No .env.example exists in the repo — JWT_SECRET,
-        INTERNAL_API_SECRET, DATABASE_URL, DIRECT_URL, REDIS_URL and
-        friends aren't self-documented for a new environment or a new
-        engineer. Add the file, and a one-line note on where/how each
-        secret is rotated.
+[x] 84. Commit a real .env.example (NEW)
+        .env.example (root) and socket-server/.env.example — every env
+        var actually referenced in the codebase, with a comment on
+        what each is for and which dashboard issues it (Clerk, Resend,
+        Neon). Rotation isn't documented per-secret yet — most of
+        these (JWT_SECRET, INTERNAL_API_SECRET, CRON_SECRET) are just
+        "regenerate and redeploy both sides that check it," worth a
+        one-line callout if this becomes a real pain point.
 
 [ ] 85. Write a data-retention policy for candidate PII (NEW)
         Candidate names, emails, password hashes, disqualification

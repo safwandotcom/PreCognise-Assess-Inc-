@@ -42,6 +42,7 @@ next-env.d.ts
 
 .vercel
 .env*
+!.env.example
 
 # git worktrees (scratch, not tracked)
 .worktrees/

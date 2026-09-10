@@ -92,6 +92,7 @@ export default function WaitingRoomPage() {
 
   // Poll every 10 s — Redis cache means this is ~4 DB hits/10 s across all 15k candidates
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate: fetch-on-mount + poll
     fetchStats();
     const interval = setInterval(fetchStats, 10_000);
     return () => clearInterval(interval);
@@ -172,7 +173,7 @@ export default function WaitingRoomPage() {
                 >
                   Start Assessment Now
                 </button>
-                <p className="mt-3 text-xs text-[#94A3B8]">Click when you're ready — you can begin at any time.</p>
+                <p className="mt-3 text-xs text-[#94A3B8]">Click when you&apos;re ready — you can begin at any time.</p>
               </>
             ) : secondsLeft > 0 ? (
               /* ── COUNTING DOWN ── */
@@ -195,7 +196,7 @@ export default function WaitingRoomPage() {
                   />
                 </div>
                 <p className="text-sm font-medium text-[#0F172A]">Waiting for your assessment to begin…</p>
-                <p className="mt-1 text-xs text-[#94A3B8]">Your assessment hasn't started yet. Please stay on this page.</p>
+                <p className="mt-1 text-xs text-[#94A3B8]">Your assessment hasn&apos;t started yet. Please stay on this page.</p>
               </>
             )}
           </div>

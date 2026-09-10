@@ -36,7 +36,7 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20",
+    "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",

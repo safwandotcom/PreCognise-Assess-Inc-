@@ -3,14 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/campaign-utils";
 import { sendOTP } from "@/lib/email";
 import { randomInt } from "crypto";
+import { parseBody } from "@/lib/validate-body";
+import { forgotPasswordSchema } from "./schema";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, joinToken } = await req.json();
-
-    if (!email?.trim() || !joinToken?.trim()) {
-      return NextResponse.json({ error: "email and joinToken are required" }, { status: 400 });
-    }
+    const parsed = await parseBody(forgotPasswordSchema, req, "email and joinToken are required");
+    if ("error" in parsed) return parsed.error;
+    const { email, joinToken } = parsed.data;
 
     const campaign = await prisma.campaign.findUnique({ where: { joinToken } });
     if (!campaign) {

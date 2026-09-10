@@ -5,6 +5,8 @@ import { hashPassword } from "@/lib/campaign-utils";
 import { sendPasswordChanged } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { redis } from "@/lib/redis";
+import { parseBody } from "@/lib/validate-body";
+import { verifyOtpSchema } from "./schema";
 
 // Locks the *current* code after 5 wrong guesses — independent of #74's
 // time-window rate limiting, which bounds request rate but not total
@@ -13,11 +15,9 @@ const OTP_ATTEMPT_LIMIT = 5;
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, joinToken, code, newPassword } = await req.json();
-
-    if (!email?.trim() || !joinToken?.trim() || !code?.trim() || !newPassword?.trim()) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-    }
+    const parsed = await parseBody(verifyOtpSchema, req, "All fields are required");
+    if ("error" in parsed) return parsed.error;
+    const { email, joinToken, code, newPassword } = parsed.data;
 
     // Same shape as login's rate limiting: loose per-IP, tight per-account
     // — a 6-digit OTP is far more guessable than a real password, so this

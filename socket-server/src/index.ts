@@ -19,6 +19,19 @@ if (!JWT_SECRET) {
 const app = express();
 app.use(cors({ origin: FRONTEND_URL }));
 
+// Redis is load-bearing here (Socket.IO adapter + candidate state in
+// state.ts), unlike the Next.js app where it's fail-open — so an
+// unreachable Redis does mean this instance is unhealthy.
+app.get("/health", async (_req, res) => {
+  try {
+    await redis.ping();
+    res.status(200).json({ status: "ok", redis: "ok" });
+  } catch (err) {
+    console.error("GET /health: redis check failed:", err);
+    res.status(503).json({ status: "error", redis: "error" });
+  }
+});
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: FRONTEND_URL },

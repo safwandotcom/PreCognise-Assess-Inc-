@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
 import { calculateScore, isMultiSelectAnswerCorrect } from "@/lib/scoring";
 import { getSettings } from "@/lib/get-settings";
-import { AnswerPayload, QuestionType, isOptionBasedQuestionType } from "@/types";
+import { QuestionType, isOptionBasedQuestionType } from "@/types";
 import { translateDisplayIndexToCanonical } from "@/lib/shuffle";
 import { campaignCloseAt } from "@/lib/campaign-window";
+import { parseBody } from "@/lib/validate-body";
+import { submitAnswerSchema } from "./schema";
 
 function getBearerToken(req: NextRequest): string | null {
   const header = req.headers.get("authorization");
@@ -48,12 +50,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "window_closed" }, { status: 403 });
   }
 
-  const body = (await req.json()) as Partial<AnswerPayload>;
-  const { questionId, value, responseTimeMs } = body;
-
-  if (!questionId || typeof responseTimeMs !== "number") {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  }
+  const parsed = await parseBody(submitAnswerSchema, req, "Missing fields");
+  if ("error" in parsed) return parsed.error;
+  const { questionId, value, responseTimeMs } = parsed.data;
 
   // Double-answer guard — @@unique constraint also backs this up
   const existing = await prisma.response.findUnique({

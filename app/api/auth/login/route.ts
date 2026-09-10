@@ -7,6 +7,7 @@ import { generatePassword, hashPassword, makeAccessId, nextAccessSeq } from "@/l
 import { campaignLastEntryAt } from "@/lib/campaign-window";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { redis } from "@/lib/redis";
+import { openLoginSchema, accessIdLoginSchema } from "./schema";
 
 const MAX_OPEN_JOIN_CREATE_ATTEMPTS = 3;
 
@@ -78,8 +79,20 @@ async function createOpenJoinCandidate(
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { accessId, password, joinToken, mode, name, email, consent } = body;
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    if (typeof body !== "object" || body === null) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    // Loose read for the rate-limit check below, which must run even
+    // against a malformed body (a flood of garbage shouldn't dodge the
+    // per-IP limiter by failing shape validation first). The real,
+    // schema-validated read happens per-branch further down.
+    const { accessId, joinToken, mode, email } = body as Record<string, unknown>;
 
     // Rate-limit: a loose per-IP bucket that catches obvious spray attacks
     // without punishing a shared exam-centre/school network, plus a tight
@@ -101,9 +114,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve campaign from joinToken
-    const campaign = joinToken
-      ? await prisma.campaign.findUnique({ where: { joinToken } })
-      : null;
+    const campaign =
+      typeof joinToken === "string" && joinToken
+        ? await prisma.campaign.findUnique({ where: { joinToken } })
+        : null;
 
     if (!campaign) {
       return NextResponse.json({ error: "Invalid join link" }, { status: 400 });
@@ -119,9 +133,11 @@ export async function POST(req: NextRequest) {
       if (!campaign.openJoinEnabled) {
         return NextResponse.json({ error: "This assessment does not accept open joins" }, { status: 403 });
       }
-      if (!name?.trim() || !email?.trim()) {
+      const parsedOpen = openLoginSchema.safeParse(body);
+      if (!parsedOpen.success) {
         return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
       }
+      const { name, email, consent } = parsedOpen.data;
       // PIPEDA consent (task #30) — server-enforced, not just a disabled
       // submit button on the client.
       if (consent !== true) {
@@ -155,9 +171,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "You have been disqualified from this assessment" }, { status: 403 });
       }
     } else {
-      if (!accessId?.trim() || !password?.trim()) {
+      const parsedAccessId = accessIdLoginSchema.safeParse(body);
+      if (!parsedAccessId.success) {
         return NextResponse.json({ error: "Access ID and password are required" }, { status: 400 });
       }
+      const { accessId, password } = parsedAccessId.data;
 
       const found = await prisma.candidate.findFirst({
         where: { accessId: accessId.trim().toUpperCase(), campaignId: campaign.id },

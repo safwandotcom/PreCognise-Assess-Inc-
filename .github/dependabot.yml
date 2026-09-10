@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Root Next.js app
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # socket-server (deployed separately, its own package.json/lockfile)
+  - package-ecosystem: "npm"
+    directory: "/socket-server"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Keep the CI workflow's own actions (checkout, setup-node) current too
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
